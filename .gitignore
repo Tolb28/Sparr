@@ -1,24 +1,63 @@
-# Nestjs specific
-/dist
-/node_modules
-/build
-/tmp
+# Node modules
+node_modules/
+
+# Expo specific
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# React Native / iOS
+ios/build/
+ios/Pods/
+ios/Podfile.lock
+ios/*.xcodeproj/project.xcworkspace/
+ios/*.xcworkspace/
+ios/*/xcuserdata/
+ios/*/DerivedData/
+ios/*.pbxuser
+ios/*.mode1v3
+ios/*.mode2v3
+ios/*.perspectivev3
+
+# React Native / Android
+android/.gradle/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/captures/
+android/gradlew
+android/gradlew.bat
+android/gradle/
+android/app/google-services.json
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # Logs
-logs
-*.log
 npm-debug.log*
-pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-lerna-debug.log*
+pnpm-debug.log*
+*.log
 
-# dotenv environment variable files
+# Metro / Watchman
+.watchmanconfig
+.expo-dev-cache/
+.expo-web-cache/
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
+
+# dotenv environment files (keep secrets out of git!)
 .env
-.env.development
-.env.test
-.env.production
-
-# temp directory
-.temp
-.tmp
+.env.local
+.env.*.local
