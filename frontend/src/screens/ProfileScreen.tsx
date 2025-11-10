@@ -12,7 +12,6 @@ export default function ProfileScreen() {
             <Ionicons name="person-circle-outline" size={100} color="#888" />
           </View>
           <Text style={styles.nickname}>Nickname</Text>
-          <Text style={styles.nickname}>Your Name</Text>
           <Text style={styles.username}>username</Text>
           <Text style={styles.club}>Affiliated Club</Text>
 
