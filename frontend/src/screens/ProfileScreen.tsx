@@ -58,15 +58,6 @@ export default function ProfileScreen() {
           ))}
         </View>
       </ScrollView>
-
-      {/* Bottom Navigation Bar */}
-      <View style={styles.bottomNav}>
-        <Ionicons name="calendar-outline" size={26} color="#000" />
-        <Ionicons name="barbell-outline" size={26} color="#000" />
-        <Ionicons name="person-circle-outline" size={28} color="#000" />
-        <Ionicons name="clipboard-outline" size={26} color="#000" />
-        <Ionicons name="people-outline" size={26} color="#000" />
-      </View>
     </View>
   );
 }
