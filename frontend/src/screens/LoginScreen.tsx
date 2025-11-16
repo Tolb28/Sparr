@@ -10,8 +10,8 @@ export default function LoginScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
 
   const handleLogin = () => {
-    // Mock login, navigate to Profile
-    navigation.navigate('Profile');
+    // Mock login — navigate to the tabbed Main stack
+    navigation.replace('Main');
   };
 
   return (
