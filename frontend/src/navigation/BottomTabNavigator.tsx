@@ -2,47 +2,17 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { GestureResponderEvent, View } from 'react-native';
 import ProfileScreen from '../screens/ProfileScreen';
+import CalendarScreen from '../screens/CalendarScreen'; // replaced inline placeholder with real screen
 import { Box, Pressable as GPressable, Text } from '@gluestack-ui/themed';
 import { Ionicons } from '@expo/vector-icons';
 
-
 const Tab = createBottomTabNavigator();
-
-// simple placeholders for other tabs
-function CalendarScreen() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Calendar</Text>
-    </View>
-  );
-}
-function WorkoutsScreen() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Workouts</Text>
-    </View>
-  );
-}
-function FriendsScreen() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Friends</Text>
-    </View>
-  );
-}
-function ClipboardScreen() {
-  return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Clipboard</Text>
-    </View>
-  );
-}
 
 const ICONS: Record<string, string> = {
   Calendar: 'calendar-outline',
   Workouts: 'barbell-outline',
   Friends: 'people-outline',
-  Clipboard: 'clipboard-outline',
+  Discovery: 'clipboard-outline',
   Profile: 'person-circle-outline',
 };
 
@@ -84,7 +54,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         const iconName = ICONS[route.name] ?? 'ellipse-outline';
         const color = isFocused ? '#000' : '#777';
         const size = 26;
-        const translateY = 0;
 
         return (
           <GPressable
@@ -93,12 +62,10 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             onLongPress={onLongPress}
             accessibilityRole="button"
             $pressed={{ opacity: 0.7 }}
-            style={{ alignItems: 'center', justifyContent: 'center', transform: [{ translateY }] }}
+            style={{ alignItems: 'center', justifyContent: 'center' }}
           >
             <Ionicons name={iconName as any} size={size} color={color} />
-            {route.name !== 'Create' && (
-              <Text style={{ fontSize: 10, marginTop: 2, color }}>{route.name}</Text>
-            )}
+            <Text style={{ fontSize: 10, marginTop: 2, color }}>{route.name}</Text>
           </GPressable>
         );
       })}
@@ -114,10 +81,10 @@ export default function BottomTabNavigator() {
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tab.Screen name="Calendar" component={CalendarScreen} />
-      <Tab.Screen name="Workouts" component={WorkoutsScreen} />
+      <Tab.Screen name="Workouts" component={() => <View />} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Clipboard" component={ClipboardScreen} />
-      <Tab.Screen name="Friends" component={FriendsScreen} />
+      <Tab.Screen name="Discovery" component={() => <View />} />
+      <Tab.Screen name="Friends" component={() => <View />} />
     </Tab.Navigator>
   );
 }
