@@ -5,14 +5,10 @@ import {
   Text,
   Button,
   ButtonText,
-  Pressable,
   VStack,
   HStack,
-  Card,
-  CardHeader,
-  CardContent,
   Heading,
-  Divider
+  Divider,
 } from '@gluestack-ui/themed';
 
 const BOX_SIZE = 40;
@@ -34,7 +30,7 @@ export default function CalendarScreen() {
   return (
     <Box flex={1} bg="$backgroundLight0">
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 140 }}>
-        
+
         {/* Calendar */}
         <HStack justifyContent="space-between" px="$1" mb="$4">
           {['M','T','W','T','F','S','S'].map((d, i) => (
@@ -44,7 +40,7 @@ export default function CalendarScreen() {
               <Box
                 width={BOX_SIZE}
                 height={BOX_SIZE}
-                rounded="$md"
+                rounded="$lg"
                 mt="$1"
                 bg="$white"
                 borderWidth={1}
@@ -54,80 +50,85 @@ export default function CalendarScreen() {
           ))}
         </HStack>
 
-        {/* Large box under first column */}
+        {/* Large Box */}
         <HStack mb="$4">
           <Box
             width={BOX_SIZE}
             height={BOX_SIZE}
-            rounded="$md"
+            rounded="$lg"
             bg="$white"
             borderWidth={1}
             borderColor="$coolGray300"
           />
         </HStack>
 
-        {/* Training Card */}
-        <Card size="md" variant="outline">
-          <CardHeader>
-            <Heading textAlign="center" size="lg">
-              Current Training Title
-            </Heading>
-          </CardHeader>
+        {/* Card */}
+        <Box
+          bg="$white"
+          p="$4"
+          rounded="$xl"
+          borderWidth={1}
+          borderColor="$coolGray300"
+        >
+          {/* Title */}
+          <Heading textAlign="center" size="lg" mb="$2">
+            Current Training Title
+          </Heading>
 
           <Divider my="$2" />
 
-          <CardContent>
-            {/* Length */}
-            <HStack alignItems="center" mb="$1">
-              <Text fontWeight="$bold" mr="$2">Length:</Text>
-              <Text color="$textDark700">1h 12m</Text>
-            </HStack>
+          {/* Length */}
+          <HStack alignItems="center" mb="$1">
+            <Text fontWeight="$semibold" mr="$2">Length:</Text>
+            <Text color="$textDark700">1h 12m</Text>
+          </HStack>
 
-            {/* Description */}
-            <Text fontWeight="$bold" mt="$2">Description:</Text>
-            <Text mt="$1" lineHeight="$sm" color="$textDark700">
-              {descExpanded ? description : description.slice(0, 120) + (description.length > 120 ? '...' : '')}
-              {description.length > 120 && (
-                <Text
-                  color="$primary600"
-                  onPress={() => setDescExpanded(s => !s)}
-                >
-                  {descExpanded ? ' (Show less)' : ' (Show more)'}
-                </Text>
-              )}
-            </Text>
+          {/* Description */}
+          <Text fontWeight="$semibold" mt="$3">Description:</Text>
+          <Text mt="$1" color="$textDark700" lineHeight="$sm">
+            {descExpanded ? description : description.slice(0, 120) + (description.length > 120 ? '...' : '')}
+            {description.length > 120 && (
+              <Text
+                color="$primary600"
+                onPress={() => setDescExpanded(v => !v)}
+              >
+                {descExpanded ? ' (Show less)' : ' (Show more)'}
+              </Text>
+            )}
+          </Text>
 
-            {/* Content */}
-            <Text fontWeight="$bold" mt="$3">Content:</Text>
-            <VStack mt="$1">
-              {(contentExpanded ? contentItems : contentItems.slice(0, 3)).map((c, i) => (
-                <Text key={i} color="$textDark700">- {c}</Text>
-              ))}
+          {/* Content */}
+          <Text fontWeight="$semibold" mt="$3">Content:</Text>
+          <VStack mt="$1">
+            {(contentExpanded ? contentItems : contentItems.slice(0, 3)).map((c, i) => (
+              <Text key={i} color="$textDark700">- {c}</Text>
+            ))}
 
-              {contentItems.length > 3 && (
-                <Text
-                  mt="$1"
-                  color="$primary600"
-                  onPress={() => setContentExpanded(s => !s)}
-                >
-                  ({contentExpanded ? 'Show less' : 'Show more'})
-                </Text>
-              )}
-            </VStack>
+            {contentItems.length > 3 && (
+              <Text
+                color="$primary600"
+                mt="$1"
+                onPress={() => setContentExpanded(v => !v)}
+              >
+                ({contentExpanded ? 'Show less' : 'Show more'})
+              </Text>
+            )}
+          </VStack>
 
-            {/* Buttons */}
-            <HStack mt="$5" space="md">
-              <Button flex={1} action="primary" onPress={() => {}}>
-                <ButtonText>Start Training</ButtonText>
-              </Button>
+          {/* Buttons */}
+          <HStack mt="$5" space="md">
+            <Button flex={1} action="primary" onPress={() => {}}>
+              <ButtonText>Start Training</ButtonText>
+            </Button>
 
-              <Button flex={1} variant="outline" action="secondary" onPress={() => {}}>
-                <ButtonText>Edit Training</ButtonText>
-              </Button>
-            </HStack>
-          </CardContent>
-        </Card>
+            <Button flex={1} variant="outline" action="secondary" onPress={() => {}}>
+              <ButtonText>Edit Training</ButtonText>
+            </Button>
+          </HStack>
+        </Box>
+
       </ScrollView>
     </Box>
   );
 }
+

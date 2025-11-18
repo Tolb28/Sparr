@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { GestureResponderEvent, View } from 'react-native';
 import ProfileScreen from '../screens/ProfileScreen';
 import CalendarScreen from '../screens/CalendarScreen'; // replaced inline placeholder with real screen
+import DiscoveryScreen from '../screens/DiscoveryScreen'; // replaced inline placeholder with real screen
 import { Box, Pressable as GPressable, Text } from '@gluestack-ui/themed';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -83,7 +84,7 @@ export default function BottomTabNavigator() {
       <Tab.Screen name="Calendar" component={CalendarScreen} />
       <Tab.Screen name="Workouts" component={() => <View />} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Discovery" component={() => <View />} />
+      <Tab.Screen name="Discovery" component={DiscoveryScreen} />
       <Tab.Screen name="Friends" component={() => <View />} />
     </Tab.Navigator>
   );
