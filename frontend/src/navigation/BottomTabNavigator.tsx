@@ -4,7 +4,9 @@ import { GestureResponderEvent, View } from 'react-native';
 import ProfileScreen from '../screens/ProfileScreen';
 import CalendarScreen from '../screens/CalendarScreen'; // replaced inline placeholder with real screen
 import DiscoveryScreen from '../screens/DiscoveryScreen'; // replaced inline placeholder with real screen
-import { Box, Pressable as GPressable, Text } from '@gluestack-ui/themed';
+import { Box } from '@/components/ui/box';
+import { Pressable} from '@/components/ui/pressable';
+import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator();
@@ -57,17 +59,16 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         const size = 26;
 
         return (
-          <GPressable
+          <Pressable
             key={route.key}
             onPress={onPress}
             onLongPress={onLongPress}
             accessibilityRole="button"
-            $pressed={{ opacity: 0.7 }}
             style={{ alignItems: 'center', justifyContent: 'center' }}
           >
             <Ionicons name={iconName as any} size={size} color={color} />
             <Text style={{ fontSize: 10, marginTop: 2, color }}>{route.name}</Text>
-          </GPressable>
+          </Pressable>
         );
       })}
     </Box>
