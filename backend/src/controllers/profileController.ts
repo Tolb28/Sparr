@@ -63,7 +63,7 @@ export const getProfile = async (req: Request, res: Response) => {
     const userId = req.userId;
 
     const { rows } = await pool.query(
-      "SELECT * FROM profiles WHERE user_id = $1",
+      "SELECT * FROM profiles JOIN weight_class ON profiles.weight_class_id_weight_class = weight_class.id_weight_class JOIN boxing_style ON profiles.boxing_style_id_boxing_style = boxing_style.id_boxing_style WHERE user_id = $1",
       [userId]
     );
 

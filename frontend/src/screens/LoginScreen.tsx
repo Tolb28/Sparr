@@ -3,6 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet, Platform, TouchableOpacity }
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { login } from '../api/login';
+import { storeToken } from '../api/tokenHandler';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -24,6 +25,7 @@ export default function LoginScreen({ navigation }: Props) {
       const resp = await login(email, password);
       console.log('login success', resp);
       setError(null);
+      await storeToken(resp.token);
       // You can store resp.token here (AsyncStorage, context, etc.) if needed
       navigation.replace('Main');
     } catch (err: any) {

@@ -1,33 +1,86 @@
-import React from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from "react-native";
-import { Ionicons, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import { getUserProfile } from '../api/profileInfo';
+
+type Profile = {
+  display_name?: string;
+  username?: string;
+  location?: string;
+  bio?: string;
+  weight_class_id?: number | null;
+  boxing_style_id?: number | null;
+  img_path?: string | null;
+  title_weight?: string | null;
+  title_style?: string | null;
+};
 
 export default function ProfileScreen() {
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const data = await getUserProfile();
+        console.log('Profile data:', data);
+        // backend returns { profile: {...} }
+        const p = data?.profile ?? data;
+        if (mounted) setProfile(p);
+      } catch (err: any) {
+        if (mounted) setError(err?.message ?? 'Failed to load profile');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => { mounted = false; };
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 20 }] }>
+        <Text style={{ color: 'red', textAlign: 'center' }}>{error}</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Profile Header */}
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            <Ionicons name="person-circle-outline" size={100} color="#888" />
+            {profile?.img_path ? (
+              <Image source={{ uri: profile.img_path }} style={{ width: 100, height: 100, borderRadius: 50 }} />
+            ) : (
+              <Ionicons name="person-circle-outline" size={100} color="#888" />
+            )}
           </View>
-          <Text style={styles.nickname}>Nickname</Text>
-          <Text style={styles.username}>username</Text>
-          <Text style={styles.club}>Affiliated Club</Text>
+          <Text style={styles.nickname}>{profile?.display_name ?? 'Nickname'}</Text>
+          <Text style={styles.username}>{profile?.username ?? 'username'}</Text>
+          <Text style={styles.club}>{profile?.location ?? 'Affiliated Club'}</Text>
 
           <View style={styles.infoBlock}>
             <Text style={styles.infoText}>
-              <Text style={styles.bold}>Experience:</Text> 2 years
+              <Text style={styles.bold}>Bio:</Text> {profile?.bio ?? 'No bio provided.'}
             </Text>
             <Text style={styles.infoText}>
-              <Text style={styles.bold}>Weightclass:</Text> Middleweight
+              <Text style={styles.bold}>Weightclass:</Text> {profile?.title_weight ?? '—'}
             </Text>
             <Text style={styles.infoText}>
-              <Text style={styles.bold}>Boxing style:</Text> Orthodox
-            </Text>
-            <Text style={styles.infoText}>
-              <Text style={styles.bold}>Bio:</Text> Lorem ipsum dolor sit amet et delectus accommodare
-              his consul copiosae legendos at.
+              <Text style={styles.bold}>Boxing style:</Text> {profile?.title_style ?? '—'}
             </Text>
           </View>
 
