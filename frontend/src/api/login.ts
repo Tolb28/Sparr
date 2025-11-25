@@ -1,5 +1,6 @@
 // src/api/login.ts
 import { Platform } from 'react-native';
+import * as Keychain from "react-native-keychain";
 
 const BASE_URL = Platform.OS === 'web'
   ? 'http://localhost:4000/api'
@@ -31,5 +32,6 @@ export async function login(email: string, password: string) {
   }
 
   // If the response was OK (status 200), parse and return the successful data
+
   return response.json();
 }

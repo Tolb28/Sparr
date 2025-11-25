@@ -13,7 +13,7 @@ export async function register(email: string, password: string, username?: strin
   const response = await fetch(`${BASE_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, username }),
+    body: JSON.stringify({ email, password}),
   });
 
   if (!response.ok) {
