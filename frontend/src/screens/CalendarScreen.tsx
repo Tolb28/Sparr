@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Box } from '@/components/ui/box';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
+import MyTrainingCalendar from '../components/Calendar';
 
 export default function CalendarScreen() {
   const [descExpanded, setDescExpanded] = useState(false);
@@ -24,29 +25,7 @@ export default function CalendarScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
         {/* Day header */}
         <VStack className="px-4 py-6 gap-4">
-          <HStack className="justify-between px-1 mb-1.5">
-            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d) => (
-              <Text key={d} className="text-sm text-gray-700 w-9 text-center">
-                {d}
-              </Text>
-            ))}
-          </HStack>
-
-          {/* Calendar boxes row */}
-          <HStack className="justify-between mb-2">
-            {Array.from({ length: 7 }).map((_, i) => (
-              <Box
-                key={i}
-                className="w-9 h-9 border border-gray-300 rounded bg-white"
-              />
-            ))}
-          </HStack>
-
-          {/* Larger box */}
-          <VStack className="mb-4">
-            <Box className="w-9 h-9 border border-gray-300 rounded bg-white" />
-          </VStack>
-
+          <MyTrainingCalendar />
           {/* Training card */}
           <Box className="bg-white rounded-lg p-3.5 border border-gray-200">
             <Text className="text-lg font-semibold text-center mb-3">
@@ -61,20 +40,20 @@ export default function CalendarScreen() {
             <HStack className="mb-2">
               <Text className="font-semibold mr-2">Description:</Text>
             </HStack>
+
             <Text className="text-gray-700 leading-5 mt-1">
-              {descExpanded
-                ? description
-                : description.slice(0, 120) + '...'}
-              {description.length > 120 && (
-                <Text
-                  className="text-blue-500"
-                  onPress={() => setDescExpanded(!descExpanded)}
-                >
-                  {' '}
-                  ({descExpanded ? 'Show less' : 'Show more'})
-                </Text>
-              )}
+              {descExpanded ? description : description.slice(0, 120) + '...'}
             </Text>
+            {description.length > 120 && (
+              <Pressable
+                onPress={() => setDescExpanded((s) => !s)}
+                className="mt-1"
+              >
+                <Text className="text-blue-500">
+                  {descExpanded ? 'Show less' : 'Show more'}
+                </Text>
+              </Pressable>
+            )}
 
             <VStack className="mt-3">
               <Text className="font-semibold mb-2">Content:</Text>
@@ -86,12 +65,14 @@ export default function CalendarScreen() {
                 )
               )}
               {contentItems.length > 3 && (
-                <Text
-                  className="text-blue-500 mt-2"
-                  onPress={() => setContentExpanded(!contentExpanded)}
+                <Pressable
+                  onPress={() => setContentExpanded((s) => !s)}
+                  className="mt-2"
                 >
-                  ({contentExpanded ? 'Show less' : 'Show more'})
-                </Text>
+                  <Text className="text-blue-500">
+                    {contentExpanded ? 'Show less' : 'Show more'}
+                  </Text>
+                </Pressable>
               )}
             </VStack>
 
