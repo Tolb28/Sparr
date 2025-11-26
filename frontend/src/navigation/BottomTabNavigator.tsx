@@ -56,7 +56,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
         const iconName = ICONS[route.name] ?? 'ellipse-outline';
         const color = isFocused ? '#000' : '#777';
-        const size = 26;
+        const size = 36;
 
         return (
           <Pressable
@@ -67,7 +67,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             style={{ alignItems: 'center', justifyContent: 'center' }}
           >
             <Ionicons name={iconName as any} size={size} color={color} />
-            <Text style={{ fontSize: 10, marginTop: 2, color }}>{route.name}</Text>
           </Pressable>
         );
       })}
