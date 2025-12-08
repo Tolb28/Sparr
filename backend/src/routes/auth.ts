@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { register, login, getUser, updateUser } from "../controllers/userController";
 import { authenticate } from "../middleware/authMiddleware";
-import { createProfile, updateProfile, deleteProfile, getProfile } from "../controllers/profileController";
+import { createProfile, updateProfile, deleteProfile, getProfile, getProfilePosts } from "../controllers/profileController";
+import { getDiscoveryFeed } from "../controllers/discoveryController";
 
 const router = Router();
 
@@ -13,5 +14,7 @@ router.post("/profile", authenticate, createProfile); // Placeholder for profile
 router.get("/profile", authenticate, getProfile);
 router.put("/profile", authenticate, updateProfile);
 router.delete("/profile", authenticate, deleteProfile);
+router.get("/profile/posts/:id", authenticate, getProfilePosts);
+router.get("/discovery", authenticate, getDiscoveryFeed);
 
 export default router;

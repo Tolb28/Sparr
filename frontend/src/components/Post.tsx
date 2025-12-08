@@ -1,8 +1,9 @@
+// Post.tsx
+
 import React, { useState } from "react";
 import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
 import { Icon } from "@/components/ui/icon";
-import { Input, InputField, InputSlot} from '@/components/ui/input';
 import { Text } from "@/components/ui/text";
 import { Image } from "@/components/ui/image";
 import {
@@ -13,11 +14,23 @@ import {
 } from "lucide-react-native";
 import { Pressable } from "@/components/ui/pressable";
 
+interface FeedPostProps {
+  post: {
+    id_posts: number;
+    source?: string;
+    description?: string;
+    hashtag?: string;
+    likes_count?: number;
+    comments_count?: number;
+    display_name: string;
+  };
+}
 
-function FeedPost({ type = "default" }) {
-  const [likes, setLikes] = useState(70);
-  const [dislikes, setDislikes] = useState(70);
-  const [comments, setComments] = useState(70);
+function FeedPost({ post }: FeedPostProps) {
+  // fallbacks
+  const [likes, setLikes] = useState(post.likes_count || 0);
+  const [comments, setComments] = useState(post.comments_count || 0);
+  const [dislikes, setDislikes] = useState(0);
 
   const handleLike = () => setLikes((prev) => prev + 1);
   const handleDislike = () => setDislikes((prev) => prev + 1);
@@ -25,22 +38,32 @@ function FeedPost({ type = "default" }) {
 
   return (
     <Box className="bg-white mx-3 mb-3 p-3 rounded-lg border border-gray-200">
-      {/* User Row */}
+      {/* User row */}
       <HStack className="items-center mb-3 gap-2">
         <Icon as={User} size="lg" className="text-gray-700" />
-        <Text className="font-bold text-base">Profile_Name</Text>
+        <Text className="font-bold text-base">{post.display_name}</Text>
       </HStack>
 
-      {type !== "textOnly" && (
-        <Box className="bg-gray-200 rounded-md mb-3 justify-center items-center aspect-square">
-            <Image className="bg-gray-200 rounded-md mb-3 justify-center items-center aspect-square" />
+      {/* Post media */}
+      {post.source && (
+        <Box className="rounded-md mb-3 justify-center items-center aspect-square bg-gray-200">
+          <Image
+            source={{ uri: post.source }}
+            className="rounded-md aspect-square"
+            resizeMode="cover"
+          />
         </Box>
       )}
 
-      {type === "textOnly" && (
-        <Text className="text-gray-700 leading-5 mb-3">
-          Lorem ipsum dolor sit amet et delectus accommodare his consul copiosae
-          legendos at vix ad putent delectus delicata usu.
+      {/* Text description */}
+      {post.description && (
+        <Text className="text-gray-700 leading-5 mb-3">{post.description}</Text>
+      )}
+
+      {/* Hashtag */}
+      {post.hashtag && (
+        <Text className="text-blue-600 font-semibold mb-3">
+          #{post.hashtag}
         </Text>
       )}
 
@@ -67,16 +90,8 @@ function FeedPost({ type = "default" }) {
           </HStack>
         </Pressable>
       </HStack>
-
-      {/* Description */}
-      {type !== "textOnly" && (
-        <Text className="text-gray-700 text-sm">
-          <Text className="font-bold">Profile_Name </Text>
-          Lorem ipsum dolor sit amet et delectus accommodare his consul copiosae
-          legendos at vix ad putent delectus delicata usu.
-        </Text>
-      )}
     </Box>
   );
 }
+
 export default FeedPost;

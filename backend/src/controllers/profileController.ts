@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { getPosts } from "../services/postsService";
 import { pool } from "../db";
 
 /**
@@ -170,5 +171,24 @@ export const deleteProfile = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getProfilePosts = async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.id as string, 10);
+
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    const posts = await getPosts({ userId, limit, offset });
+
+    res.json({
+      success: true,
+      posts,
+    });
+  } catch (err) {
+    console.error("Profile posts error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
