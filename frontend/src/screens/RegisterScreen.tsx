@@ -3,6 +3,8 @@ import { Platform } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { register } from '../api/register';
+import { storeToken } from '../api/tokenHandler';
+import { login } from '../api/login';
 import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
@@ -15,7 +17,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
 export default function RegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +32,17 @@ export default function RegisterScreen({ navigation }: Props) {
       const resp = await register(email, password);
       console.log('register success', resp);
       setError(null);
-      navigation.replace('Main');
+      // After successful register, auto-login to receive token and route to CreateProfile
+      try {
+        const loginResp = await login(email, password);
+        if (loginResp?.token) {
+          await storeToken(loginResp.token);
+        }
+      } catch (e) {
+        console.log('auto-login after register failed', e);
+      }
+      // Always navigate to create profile on first-time sign up
+      navigation.replace('CreateProfile');
     } catch (err: any) {
       console.log('register error', err);
       setError(err?.message ?? 'Registration failed');
@@ -70,18 +81,7 @@ export default function RegisterScreen({ navigation }: Props) {
           </Input>
         </VStack>
 
-        {/* Username Input */}
-        <VStack className="gap-2">
-          <Text className="text-sm font-semibold">Username</Text>
-          <Input className="border border-gray-300 rounded">
-            <InputField
-              placeholder="Choose a username"
-              value={username}
-              onChangeText={setUsername}
-              autoCapitalize="none"
-            />
-          </Input>
-        </VStack>
+        {/* Username is collected when creating a profile. */}
 
         {/* Password Input */}
         <VStack className="gap-2">

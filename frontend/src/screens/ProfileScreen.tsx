@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, ActivityIndicator } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { getUserProfile } from '../api/profileInfo';
+import { getUserProfile } from '../api/profile';
 import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
@@ -24,7 +27,10 @@ type Profile = {
   title_style?: string | null; 
 };
 
+type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 export default function ProfileScreen() {
+  const navigation = useNavigation<RootNavigationProp>();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -118,7 +124,11 @@ export default function ProfileScreen() {
             <Text className="text-sm text-gray-700"><Text className="font-bold">Boxing style: </Text>{profile?.title_style ?? '—'}</Text>
           </VStack>
 
-          <Button variant="outline" className="mt-4 border border-gray-400 rounded px-6 py-2">
+          <Button 
+            variant="outline" 
+            className="mt-4 border border-gray-400 rounded px-6 py-2"
+            onPress={() => navigation.navigate('EditProfile')}
+          >
             <ButtonText className="text-gray-800 font-semibold">Edit profile</ButtonText>
           </Button>
         </VStack>
