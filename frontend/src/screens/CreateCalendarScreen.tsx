@@ -5,19 +5,19 @@ import { HStack } from '@/components/ui/hstack';
 import { Input, InputField } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
+import { createCalendar, selectCalendar, getTrainings, listDrills, listCombinations, listTechniques, createTraining, addTrainingComponent, addTrainingToCalendar } from '../api/trainingCalendars';
+import { useNavigation } from '@react-navigation/native';
 import {
   Select,
   SelectTrigger,
   SelectInput,
+  SelectIcon,
   SelectPortal,
   SelectBackdrop,
   SelectContent,
-  SelectDragIndicatorWrapper,
-  SelectDragIndicator,
   SelectItem,
-} from '@/components/ui/select';
-import { createCalendar, selectCalendar, getTrainings, listDrills, listCombinations, listTechniques, createTraining, addTrainingComponent, addTrainingToCalendar } from '../api/trainingCalendars';
-import { useNavigation } from '@react-navigation/native';
+} from "@/components/ui/select";
+import { ChevronDownIcon } from '@/components/ui/icon';
 
 export default function CreateCalendarScreen() {
   const [title, setTitle] = useState('');
@@ -161,18 +161,29 @@ export default function CreateCalendarScreen() {
             <HStack className="gap-2">
               <VStack>
                 <Text>Select Training:</Text>
-                <Select selectedValue={selectedExistingTraining ? String(selectedExistingTraining) : undefined} onValueChange={(v: any) => setSelectedExistingTraining(v ? Number(v) : null)}>
+                <Select
+                  selectedValue={selectedExistingTraining ? String(selectedExistingTraining) : ""}
+                  onValueChange={(value) =>
+                    setSelectedExistingTraining(value ? Number(value) : null)
+                  }
+                >
                   <SelectTrigger>
                     <SelectInput placeholder="-- select training --" />
+                    <SelectIcon>
+                      <ChevronDownIcon />
+                    </SelectIcon>
                   </SelectTrigger>
+                
                   <SelectPortal>
                     <SelectBackdrop />
                     <SelectContent>
-                      <SelectDragIndicatorWrapper>
-                        <SelectDragIndicator />
-                      </SelectDragIndicatorWrapper>
+                      <SelectItem label="-- select training --" value="" />
                       {trainings.map((t) => (
-                        <SelectItem key={t.id_trainings} label={t.title} value={String(t.id_trainings)} />
+                        <SelectItem
+                          key={t.id_trainings}
+                          label={t.title}
+                          value={String(t.id_trainings)}
+                        />
                       ))}
                     </SelectContent>
                   </SelectPortal>
@@ -208,19 +219,36 @@ export default function CreateCalendarScreen() {
               <Pressable className={`px-3 py-2 rounded ${componentType === 'drill' ? 'bg-gray-800' : 'bg-gray-200'}`} onPress={() => setComponentType('drill')}><Text className={`${componentType === 'drill' ? 'text-white' : 'text-gray-800'}`}>Drill</Text></Pressable>
               <Pressable className={`px-3 py-2 rounded ${componentType === 'combination' ? 'bg-gray-800' : 'bg-gray-200'}`} onPress={() => setComponentType('combination')}><Text className={`${componentType === 'combination' ? 'text-white' : 'text-gray-800'}`}>Combination</Text></Pressable>
 
-              <Select selectedValue={componentSelectedId ? String(componentSelectedId) : undefined} onValueChange={(v: any) => setComponentSelectedId(v ? Number(v) : null)}>
+              <Select
+                selectedValue={componentSelectedId ? String(componentSelectedId) : ""}
+                onValueChange={(value) =>
+                  setComponentSelectedId(value ? Number(value) : null)
+                }
+              >
                 <SelectTrigger>
                   <SelectInput placeholder="-- select --" />
+                  <SelectIcon>
+                    <ChevronDownIcon />
+                  </SelectIcon>
                 </SelectTrigger>
+              
                 <SelectPortal>
                   <SelectBackdrop />
                   <SelectContent>
-                    <SelectDragIndicatorWrapper>
-                      <SelectDragIndicator />
-                    </SelectDragIndicatorWrapper>
-                    {(componentType === 'drill' ? drills : combinations).map((i) => (
-                      <SelectItem key={(componentType === 'drill' ? i.id_drills : i.id_combinations)} label={i.title} value={String(componentType === 'drill' ? i.id_drills : i.id_combinations)} />
-                    ))}
+                    <SelectItem label="-- select --" value="" />
+              
+                    {(componentType === "drill" ? drills : combinations).map((i) => {
+                      const id =
+                        componentType === "drill" ? i.id_drills : i.id_combinations;
+                    
+                      return (
+                        <SelectItem
+                          key={id}
+                          value={String(id)}
+                          label={i.title}
+                        />
+                      );
+                    })}
                   </SelectContent>
                 </SelectPortal>
               </Select>
