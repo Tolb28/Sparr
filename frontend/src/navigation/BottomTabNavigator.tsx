@@ -8,6 +8,7 @@ import { Box } from '@/components/ui/box';
 import { Pressable} from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
+import FriendsScreen from '../screens/FriendsScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -85,7 +86,7 @@ export default function BottomTabNavigator() {
       <Tab.Screen name="Workouts" component={() => <View />} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Discovery" component={DiscoveryScreen} />
-      <Tab.Screen name="Friends" component={() => <View />} />
+      <Tab.Screen name="Friends" component={FriendsScreen} />
     </Tab.Navigator>
   );
 }

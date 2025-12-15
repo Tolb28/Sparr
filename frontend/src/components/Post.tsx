@@ -1,6 +1,8 @@
 // Post.tsx
 
 import React, { useState } from "react";
+import { Platform } from 'react-native';
+import { getToken } from '../api/tokenHandler';
 import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
 import { Icon } from "@/components/ui/icon";
@@ -31,10 +33,49 @@ function FeedPost({ post }: FeedPostProps) {
   const [likes, setLikes] = useState(post.likes_count || 0);
   const [comments, setComments] = useState(post.comments_count || 0);
   const [dislikes, setDislikes] = useState(0);
+  const [loadingLike, setLoadingLike] = useState(false);
+  const [loadingDislike, setLoadingDislike] = useState(false);
 
-  const handleLike = () => setLikes((prev) => prev + 1);
-  const handleDislike = () => setDislikes((prev) => prev + 1);
+  // Use the same API base as other frontend API clients (includes /api)
+  const BASE_URL = Platform.OS === 'web' ? 'http://localhost:4000/api' : 'http://10.0.2.2:4000/api';
+
   const handleComment = () => setComments((prev) => prev + 1);
+
+  const callInteraction = async (type: 'like'|'dislike') => {
+    try {
+      const token = await getToken();
+      setLoadingLike(type === 'like');
+      setLoadingDislike(type === 'dislike');
+
+      const resp = await fetch(`${BASE_URL}/auth/interactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ postId: post.id_posts, type }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        console.error('Interaction error', err);
+        return;
+      }
+
+      const data = await resp.json();
+      // backend returns likes_count and dislikes_count
+      if (typeof data.likes_count === 'number') setLikes(data.likes_count);
+      if (typeof data.dislikes_count === 'number') setDislikes(data.dislikes_count);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingLike(false);
+      setLoadingDislike(false);
+    }
+  };
+
+  const handleLike = () => callInteraction('like');
+  const handleDislike = () => callInteraction('dislike');
 
   return (
     <Box className="bg-white mx-3 mb-3 p-3 rounded-lg border border-gray-200">

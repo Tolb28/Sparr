@@ -4,6 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { login } from '../api/login';
 import { storeToken } from '../api/tokenHandler';
+import { getUserProfile } from '../api/profile';
 import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
@@ -33,8 +34,19 @@ export default function LoginScreen({ navigation }: Props) {
       const resp = await login(email, password);
       console.log('login success', resp);
       setError(null);
-      await storeToken(resp.token);
-      navigation.replace('Main');
+        await storeToken(resp.token);
+        // Check whether profile exists yet
+        try {
+          const profileResp = await getUserProfile();
+          if (profileResp?.profile) {
+            navigation.replace('Main');
+          } else {
+            navigation.replace('CreateProfile');
+          }
+        } catch (e: any) {
+          // If profile not found (or any get profile error), route to create profile
+          navigation.replace('CreateProfile');
+        }
     } catch (err: any) {
       console.log('login error', err);
       setError(err?.message ?? 'Login failed');

@@ -21,18 +21,23 @@ export const createProfile = async (req: Request, res: Response) => {
       location // NOTE: Will change datatype in future (varchar → likely structured)
     } = req.body;
 
+    // Basic validation: ensure minimal required fields are present
+    if (!display_name || !username) {
+      return res.status(400).json({ error: 'display_name and username are required' });
+    }
+
     const query = `
       INSERT INTO profiles (
-        weight_class_id,
-        boxing_style_id,
+        weight_class_id_weight_class,
+        boxing_style_id_boxing_style,
         bio,
-        img_path,
+        avatar,
         display_name,
         username,
         location,
         user_id
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       RETURNING *;
     `;
 
@@ -51,6 +56,10 @@ export const createProfile = async (req: Request, res: Response) => {
     return res.status(201).json({ profile: rows[0] });
   } catch (err: any) {
     console.error(err);
+    if (err?.code === "23505") {
+      // unique_violation
+      return res.status(400).json({ error: "Username already exists" });
+    }
     return res.status(500).json({ error: "Server error" });
   }
 };
@@ -64,7 +73,7 @@ export const getProfile = async (req: Request, res: Response) => {
     const userId = req.userId;
 
     const { rows } = await pool.query(
-      "SELECT * FROM profiles JOIN weight_class ON profiles.weight_class_id_weight_class = weight_class.id_weight_class JOIN boxing_style ON profiles.boxing_style_id_boxing_style = boxing_style.id_boxing_style WHERE user_id = $1",
+      "SELECT * FROM profiles LEFT JOIN weight_class ON profiles.weight_class_id_weight_class = weight_class.id_weight_class LEFT JOIN boxing_style ON profiles.boxing_style_id_boxing_style = boxing_style.id_boxing_style WHERE user_id = $1",
       [userId]
     );
 
@@ -101,12 +110,12 @@ export const updateProfile = async (req: Request, res: Response) => {
     let idx = 1;
 
     if (weight_class_id !== undefined) {
-      updates.push(`weight_class_id = $${idx}`);
+      updates.push(`weight_class_id_weight_class = $${idx}`);
       values.push(weight_class_id);
       idx++;
     }
     if (boxing_style_id !== undefined) {
-      updates.push(`boxing_style_id = $${idx}`);
+      updates.push(`boxing_style_id_boxing_style = $${idx}`);
       values.push(boxing_style_id);
       idx++;
     }
@@ -116,7 +125,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       idx++;
     }
     if (img_path !== undefined) {
-      updates.push(`img_path = $${idx}`);
+      updates.push(`avatar = $${idx}`);
       values.push(img_path);
       idx++;
     }
@@ -151,8 +160,11 @@ export const updateProfile = async (req: Request, res: Response) => {
 
     const { rows } = await pool.query(query, values);
     return res.json({ profile: rows[0] });
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
+    if (err?.code === "23505") {
+      return res.status(400).json({ error: "Username already exists" });
+    }
     return res.status(500).json({ error: "Server error" });
   }
 };
