@@ -20,6 +20,7 @@ export const getPosts = async ({
       pr.display_name,
       pr.avatar,
       COUNT(i.posts_id_posts) FILTER (WHERE it.title = 'like') AS likes_count,
+      COUNT(i.posts_id_posts) FILTER (WHERE it.title = 'dislike') AS dislikes_count,
       COUNT(i.posts_id_posts) FILTER (WHERE it.title = 'comment') AS comments_count
     FROM posts p
     LEFT JOIN interactions i 

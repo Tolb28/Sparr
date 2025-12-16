@@ -14,6 +14,7 @@ export type RootStackParamList = {
   Main: undefined;
   BrowseCalendars: undefined;
   CreateCalendar: undefined;
+  ForeignProfile : { foreign_profile_id: number};
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -55,6 +56,12 @@ export default function AppNavigator() {
         name="CreateCalendar"
         component={require('../screens/CreateCalendarScreen').default}
         options={{ title: 'Create Calendar' }}
+      />
+
+      <Stack.Screen
+        name="ForeignProfile"
+        component={require('../screens/ForeignProfileScreen').default}
+        options={{ title: 'Foreign Profile' }}
       />
     </Stack.Navigator>
   );

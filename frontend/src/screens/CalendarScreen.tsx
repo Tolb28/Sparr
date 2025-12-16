@@ -114,12 +114,13 @@ export default function CalendarScreen() {
   }, [selectedDate, items]);
 
   const description =
-    'Lorem ipsum illium sebsum helium exostatic postmort sereium... (longer sample text)';
+    'No training selected for this day';
   const contentItems = [
-    'Jumping jacks (3 rounds, 1 minute)',
-    'Push ups (3 rounds, 30s)',
-    'Bodyweight squats (3 rounds, 45s)',
-    'Plank (3 rounds, 60s)',
+    'Light stretching exercises',
+    'Foam rolling for muscle relaxation',
+    'Hydration and nutrition tips',
+    'Breathing exercises for relaxation',
+    'Short walk or light cardio',
   ];
 
   return (
@@ -136,7 +137,7 @@ export default function CalendarScreen() {
               <Text className="text-white font-semibold">Create Calendar</Text>
             </Pressable>
             <Pressable
-              className="bg-gray-200 rounded px-4 py-2.5 items-center justify-center"
+              className="flex-1 bg-gray-200 rounded px-4 py-2.5 items-center justify-center"
               onPress={() => (navigation as any).navigate('BrowseCalendars') }
             >
               <Text className="text-gray-800 font-semibold">Select Calendar</Text>
@@ -152,8 +153,8 @@ export default function CalendarScreen() {
                     const n = orders.length || 1;
                     const idx = ((dayNum - 1) % n) + 1;
                     const found = items.find((it) => Number(it.order) === idx || it.order === String(idx));
-                    return found?.title || found?.tr?.title || found?.tct?.title || 'Current Training';
-                  })() : 'Current Training Title'}
+                    return found?.title || found?.tr?.title || found?.tct?.title || 'No Training';
+                  })() : 'No Training'}
             </Text>
 
             <HStack className="mb-1.5">

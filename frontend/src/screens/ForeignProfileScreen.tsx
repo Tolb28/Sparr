@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
-import { getUserProfile } from '../api/profile';
+import { getForeignProfile } from '../api/profile';
 import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
@@ -14,6 +14,8 @@ import { Pressable } from '@/components/ui/pressable';
 import { Image } from '@/components/ui/image';
 import { Avatar, AvatarBadge, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Grid } from '@/components/ui/grid';
+import { RouteProp, useRoute } from '@react-navigation/native';
+
 
 type Profile = { 
   display_name?: string;
@@ -27,13 +29,22 @@ type Profile = {
   title_style?: string | null; 
 };
 
+type ProfileRouteProp = RouteProp<
+  RootStackParamList,
+  'ForeignProfile'
+>;
+
+
 type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-export default function ProfileScreen() {
+export default function ForeignProfileScreen(){
   const navigation = useNavigation<RootNavigationProp>();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const route = useRoute<ProfileRouteProp>();
+
+  const { foreign_profile_id } = route.params;
 
   const [activeTab, setActiveTab] = useState('personalized');
 
@@ -42,7 +53,7 @@ export default function ProfileScreen() {
     const load = async () => {
       setLoading(true);
       try {
-        const data = await getUserProfile();
+        const data = await getForeignProfile(foreign_profile_id);
         const p = data?.profile ?? data;
         if (mounted) setProfile(p);
       } catch (err : any) {
@@ -123,14 +134,6 @@ export default function ProfileScreen() {
             <Text className="text-sm text-gray-700"><Text className="font-bold">Weightclass: </Text>{profile?.title_weight ?? '—'}</Text>
             <Text className="text-sm text-gray-700"><Text className="font-bold">Boxing style: </Text>{profile?.title_style ?? '—'}</Text>
           </VStack>
-
-          <Button 
-            variant="outline" 
-            className="mt-4 border border-gray-400 rounded px-6 py-2"
-            onPress={() => navigation.navigate('EditProfile')}
-          >
-            <ButtonText className="text-gray-800 font-semibold">Edit profile</ButtonText>
-          </Button>
         </VStack>
 
         {/* Tabs */}

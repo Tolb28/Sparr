@@ -25,6 +25,7 @@ interface FeedPostProps {
     likes_count?: number;
     comments_count?: number;
     display_name: string;
+    dislikes_count?: number;
   };
 }
 
@@ -32,7 +33,7 @@ function FeedPost({ post }: FeedPostProps) {
   // fallbacks
   const [likes, setLikes] = useState(post.likes_count || 0);
   const [comments, setComments] = useState(post.comments_count || 0);
-  const [dislikes, setDislikes] = useState(0);
+  const [dislikes, setDislikes] = useState(post.dislikes_count || 0);
   const [loadingLike, setLoadingLike] = useState(false);
   const [loadingDislike, setLoadingDislike] = useState(false);
 

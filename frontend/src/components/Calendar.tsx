@@ -1,16 +1,6 @@
 import { WeeklyCalendar } from 'react-native-simple-weekly-calendar';
-import { Dumbbell, Footprints, HandFist, Brain, HelpCircle } from 'lucide-react-native';
+import { HelpCircle, CircleSlashed } from 'lucide-react-native';
 import { Pressable } from 'react-native';
-
-const trainingOfTheDay: Record<number, React.ComponentType<any>> = {
-  1: Dumbbell,
-  2: Footprints,
-  3: HandFist,
-  4: Brain,
-  5: Dumbbell,
-  6: Footprints,
-  7: HandFist,
-};
 
 const today: Date = new Date();
 const year = today.getFullYear();
@@ -23,16 +13,16 @@ function mapIconNameToComponent(name?: string) {
   switch (name.toLowerCase()) {
     case 'dumbbell':
     case 'dumbell':
-      return Dumbbell;
+      return ;
     case 'footprints':
     case 'footprint':
-      return Footprints;
+      return;
     case 'handfist':
     case 'hand_fist':
     case 'hand-fist':
-      return HandFist;
+      return;
     case 'brain':
-      return Brain;
+      return ;
     default:
       return undefined;
   }
@@ -54,7 +44,7 @@ const MyTrainingCalendar = ({
         const dayNum = Number(date.substring(8, 10));
 
         // default fallback icon based on weekday cycling
-        const fallback = trainingOfTheDay[((dayNum - 1) % 7) + 1] || Dumbbell;
+        const fallback = CircleSlashed;
 
         if (items && items.length > 0) {
           const orders = Array.from(new Set(items.map((it: any) => Number(it.order)))).sort((a: number, b: number) => a - b);
@@ -74,7 +64,7 @@ const MyTrainingCalendar = ({
           }
           return (
             <Pressable onPress={() => onSelectDate && onSelectDate(date)}>
-              <IconComponent size={25} color={date === (selectedDate || formattedDate) ? 'rgba(0, 148, 197, 1)' : '#111'} />
+              <IconComponent size={25} color={date === (selectedDate) ? 'rgba(0, 148, 197, 1)' : (date === (formattedDate) ? 'rgba(0, 0, 0, 1)' : '#848484ff')} />
             </Pressable>
           );
         }
@@ -82,7 +72,7 @@ const MyTrainingCalendar = ({
         const Fallback = fallback;
         return (
           <Pressable onPress={() => onSelectDate && onSelectDate(date)}>
-            <Fallback size={25} color={date === (selectedDate || formattedDate) ? 'rgba(0, 148, 197, 1)' : '#111'} />
+            <Fallback size={25} color={date === (selectedDate || formattedDate) ? 'rgba(0, 148, 197, 1)' : '#848484ff'} />
           </Pressable>
         );
       }}
