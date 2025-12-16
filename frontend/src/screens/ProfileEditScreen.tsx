@@ -10,6 +10,9 @@ import { Text } from '@/components/ui/text';
 import { Input, InputField } from '@/components/ui/input';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectTrigger, SelectInput, SelectIcon, SelectPortal, SelectBackdrop, SelectContent, SelectItem} from "@/components/ui/select";
+import { ChevronDownIcon } from '@/components/ui/icon';
+import { getProfileReferences } from '../api/references';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
 
@@ -20,31 +23,70 @@ interface ProfileForm {
   bio?: string;
   weight_class_id?: number | null;
   boxing_style_id?: number | null;
-  img_path?: string | null;
+  avatar?: string | null;
 }
 
+type Profile = { 
+  display_name?: string;
+  username?: string; 
+  location?: string; 
+  bio?: string; 
+  id_weight_class?: number | null; 
+  id_boxing_style?: number | null; 
+  avatar?: string | null; 
+  title_weight?: string | null; 
+  title_style?: string | null; 
+};
+
 export default function EditProfileScreen({ navigation }: Props) {
-  const [profile, setProfile] = useState<ProfileForm | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [form, setForm] = useState<ProfileForm>({});
   const [loading, setLoading] = useState(true);
+  const [loadingRefs, setLoadingRefs] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBoxingStyle, setSelectedBoxingStyle] = useState<number | null>(null);
+  const [selectedWeightClass, setSelectedWeightClass] = useState<number | null>(null);
+  const [selectedBoxingStyleTitle, setSelectedBoxingStyleTitle] = useState<string | null>(null);
+  const [selectedWeightClassTitle, setSelectedWeightClassTitle] = useState<string | null>(null);
+  const [boxingStyles, setBoxingStyles] = useState<any[]>([]);
+  const [weightClasses, setWeightClasses] = useState<any[]>([]);
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       setLoading(true);
+      setLoadingRefs(true);
       try {
         const data = await getUserProfile();
         const p = data?.profile ?? data;
+        console.log('Loaded profile for editing:', p);
         if (mounted) {
           setProfile(p);
           setForm(p);
+          setSelectedBoxingStyle(p.id_boxing_style || null);
+          setSelectedWeightClass(p.id_weight_class || null);
+          setSelectedBoxingStyleTitle(p.title_style || null);
+          setSelectedWeightClassTitle(p.title_weight || null);
+          console.log('Selected boxing style:', p.id_boxing_style);
+          console.log('Selected weight class:', p.id_weight_class);
         }
       } catch (err: any) {
         if (mounted) setError(err?.message ?? 'Failed to load profile');
       } finally {
         if (mounted) setLoading(false);
+      }
+      try {
+        const refs = await getProfileReferences();
+        console.log('Profile references:', refs);
+        if (mounted) {
+          setWeightClasses(refs.weight_classes || []);
+          setBoxingStyles(refs.boxing_styles || []);
+        }}
+      catch (err) {
+        console.error('Failed to load profile references', err);
+      } finally {
+        if (mounted) setLoadingRefs(false);
       }
     };
     load();
@@ -107,7 +149,7 @@ export default function EditProfileScreen({ navigation }: Props) {
           <HStack className="justify-center mb-4">
                 <Avatar className="bg-indigo-600" size="xl">
                     <AvatarFallbackText className="text-white">{profile?.display_name ?? '?'}</AvatarFallbackText>
-                    <AvatarImage source={{ uri: profile?.img_path || undefined }} />
+                    <AvatarImage source={{ uri: profile?.avatar || undefined }} />
                 </Avatar>
           </HStack>
 
@@ -151,9 +193,48 @@ export default function EditProfileScreen({ navigation }: Props) {
               </Input>
             </VStack>
 
+            <Text className="font-semibold text-gray-700">Weight Class</Text>
+              <Select selectedValue={selectedWeightClassTitle ? String(selectedWeightClassTitle) : ''} onValueChange={(value) => {setForm({...form, weight_class_id: value ? Number(value) : null}); setSelectedWeightClassTitle(value ? value : null); }}>
+                    <SelectTrigger>
+                      <SelectInput placeholder="-- select weight class --" />
+                      <SelectIcon>
+                        <ChevronDownIcon />
+                      </SelectIcon>
+                    </SelectTrigger>
+
+                    <SelectPortal>
+                      <SelectBackdrop />
+                      <SelectContent>
+                        <SelectItem label="None" value="" />
+                        {weightClasses.map((wc) => (
+                          <SelectItem key={wc.id_weight_class} label={wc.title_weight} value={String(wc.id_weight_class)} />
+                        ))}
+                      </SelectContent>
+                    </SelectPortal>
+              </Select>
+              <Text className="font-semibold text-gray-700">Boxing Style</Text>
+              <Select selectedValue={selectedBoxingStyleTitle ? String(selectedBoxingStyleTitle) : ''} onValueChange={(value) => {setForm({...form, boxing_style_id: value ? Number(value) : null}); setSelectedBoxingStyleTitle(value ? value : null); }}>
+                    <SelectTrigger>
+                      <SelectInput placeholder="-- select boxing style --"/>
+                      <SelectIcon>
+                        <ChevronDownIcon />
+                      </SelectIcon>
+                    </SelectTrigger>
+
+                    <SelectPortal>
+                      <SelectBackdrop />
+                      <SelectContent>
+                        <SelectItem label="None" value="" />
+                        {boxingStyles.map((bs) => (
+                          <SelectItem key={bs.id_boxing_style} label={bs.title_style} value={String(bs.id_boxing_style)} />
+                        ))}
+                      </SelectContent>
+                    </SelectPortal>
+              </Select>
+
             <VStack className="gap-1">
               <Text className="font-semibold text-gray-700">Bio</Text>
-              <Input className="border border-gray-300 rounded px-3 py-2">
+              <Input className="border border-gray-300 rounded px-3 py-2 h-32">
                 <InputField
                   placeholder="Bio"
                   value={form.bio ?? ''}
@@ -169,8 +250,8 @@ export default function EditProfileScreen({ navigation }: Props) {
               <Input className="border border-gray-300 rounded px-3 py-2">
                 <InputField
                   placeholder="Image URL"
-                  value={form.img_path ?? ''}
-                  onChangeText={(text) => setForm({ ...form, img_path: text })}
+                  value={form.avatar ?? ''}
+                  onChangeText={(text) => setForm({ ...form, avatar: text })}
                 />
               </Input>
             </VStack>

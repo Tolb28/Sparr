@@ -5,6 +5,7 @@ import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { Avatar, AvatarImage, AvatarFallbackText } from '@/components/ui/avatar';
+import { useNavigation } from '@react-navigation/core';
 
 interface FriendProps {
   friend: {
@@ -17,7 +18,10 @@ interface FriendProps {
 }
 
 export default function Friend({ friend }: FriendProps) {
+    const navigation = useNavigation();
+  
   return (
+    <Pressable onPress={() => (navigation as any).navigate('ForeignProfile', { foreign_profile_id: friend.id_profiles })}>
     <Box className="bg-white mx-3 mb-3 p-3 rounded-lg border border-gray-200">
       <HStack className="items-center gap-3">
         <Avatar size="md">
@@ -34,5 +38,6 @@ export default function Friend({ friend }: FriendProps) {
         </View>
       </HStack>
     </Box>
+    </Pressable>
   );
 }

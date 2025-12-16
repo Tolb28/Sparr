@@ -10,15 +10,19 @@ import { Text } from '@/components/ui/text';
 import { Input, InputField } from '@/components/ui/input';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectTrigger, SelectInput, SelectIcon, SelectPortal, SelectBackdrop, SelectContent, SelectItem} from "@/components/ui/select";
+import { ChevronDownIcon } from '@/components/ui/icon';
+import { getProfileReferences } from '../api/references';
+
 
 interface ProfileForm {
   display_name?: string;
   username?: string;
   location?: string;
   bio?: string;
-  weight_class_id?: number | null;
-  boxing_style_id?: number | null;
-  img_path?: string | null;
+  id_weight_class?: number | null;
+  id_boxing_style?: number | null;
+  avatar?: string | null;
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateProfile'>;
@@ -26,13 +30,22 @@ type Props = NativeStackScreenProps<RootStackParamList, 'CreateProfile'>;
 export default function ProfileCreateScreen({ navigation }: Props) {
   const [form, setForm] = useState<ProfileForm>({});
   const [loading, setLoading] = useState(false);
+  const [loadingRefs, setLoadingRefs] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBoxingStyle, setSelectedBoxingStyle] = useState<number | null>(null);
+  const [selectedWeightClass, setSelectedWeightClass] = useState<number | null>(null);
+  const [boxingStyles, setBoxingStyles] = useState<any[]>([]);
+  const [weightClasses, setWeightClasses] = useState<any[]>([]);
+  
+
+  
 
   useEffect(() => {
     let mounted = true;
     const load = async () => {
       setLoading(true);
+      setLoadingRefs(true);
       try {
         const data = await getUserProfile();
         // If profile exists (rare while creating) redirect to Main
@@ -44,6 +57,19 @@ export default function ProfileCreateScreen({ navigation }: Props) {
       } finally {
         if (mounted) setLoading(false);
       }
+      try {
+        const refs = await getProfileReferences();
+        console.log('Profile references:', refs);
+        if (mounted) {
+          setWeightClasses(refs.weight_classes || []);
+          setBoxingStyles(refs.boxing_styles || []);
+        }}
+      catch (err) {
+        console.error('Failed to load profile references', err);
+      } finally {
+        if (mounted) setLoadingRefs(false);
+      }
+
     };
     load();
     return () => { mounted = false; };
@@ -78,7 +104,7 @@ export default function ProfileCreateScreen({ navigation }: Props) {
           <HStack className="justify-center mb-4">
             <Avatar className="bg-indigo-600" size="xl">
               <AvatarFallbackText className="text-white">?</AvatarFallbackText>
-              <AvatarImage source={{ uri: form.img_path || undefined }} />
+              <AvatarImage source={{ uri: form.avatar || undefined }} />
             </Avatar>
           </HStack>
 
@@ -121,10 +147,48 @@ export default function ProfileCreateScreen({ navigation }: Props) {
                 />
               </Input>
             </VStack>
+              <Text className="font-semibold text-gray-700">Weight Class</Text>
+              <Select selectedValue={selectedWeightClass ? String(selectedWeightClass) : ''} onValueChange={(value) => setForm({...form, id_weight_class: value ? Number(value) : null})}>
+                    <SelectTrigger>
+                      <SelectInput placeholder="-- select weight class --" />
+                      <SelectIcon>
+                        <ChevronDownIcon />
+                      </SelectIcon>
+                    </SelectTrigger>
+
+                    <SelectPortal>
+                      <SelectBackdrop />
+                      <SelectContent>
+                        <SelectItem label="None" value="" />
+                        {weightClasses.map((wc) => (
+                          <SelectItem key={wc.id_weight_class} label={wc.title_weight} value={String(wc.id_weight_class)} />
+                        ))}
+                      </SelectContent>
+                    </SelectPortal>
+              </Select>
+              <Text className="font-semibold text-gray-700">Boxing Style</Text>
+              <Select selectedValue={selectedBoxingStyle ? String(selectedBoxingStyle) : ''} onValueChange={(value) => setForm({...form, id_boxing_style: value ? Number(value) : null})}>
+                    <SelectTrigger>
+                      <SelectInput placeholder="-- select boxing style --" />
+                      <SelectIcon>
+                        <ChevronDownIcon />
+                      </SelectIcon>
+                    </SelectTrigger>
+
+                    <SelectPortal>
+                      <SelectBackdrop />
+                      <SelectContent>
+                        <SelectItem label="None" value="" />
+                        {boxingStyles.map((bs) => (
+                          <SelectItem key={bs.id_boxing_style} label={bs.title_style} value={String(bs.id_boxing_style)} />
+                        ))}
+                      </SelectContent>
+                    </SelectPortal>
+              </Select>
 
             <VStack className="gap-1">
               <Text className="font-semibold text-gray-700">Bio</Text>
-              <Input className="border border-gray-300 rounded px-3 py-2">
+              <Input className="border border-gray-300 rounded px-3 py-2 h-32">
                 <InputField
                   placeholder="Bio"
                   value={form.bio ?? ''}
@@ -140,8 +204,8 @@ export default function ProfileCreateScreen({ navigation }: Props) {
               <Input className="border border-gray-300 rounded px-3 py-2">
                 <InputField
                   placeholder="Image URL"
-                  value={form.img_path ?? ''}
-                  onChangeText={(text) => setForm({ ...form, img_path: text })}
+                  value={form.avatar ?? ''}
+                  onChangeText={(text) => setForm({ ...form, avatar: text })}
                 />
               </Input>
             </VStack>

@@ -12,8 +12,8 @@ export const createProfile = async (req: Request, res: Response) => {
     const userId = req.userId;
 
     const {
-      weight_class_id,
-      boxing_style_id,
+      id_weight_class,
+      id_boxing_style,
       bio,
       img_path,
       display_name,
@@ -42,8 +42,8 @@ export const createProfile = async (req: Request, res: Response) => {
     `;
 
     const values = [
-      weight_class_id || null,
-      boxing_style_id || null,
+      id_weight_class || null,
+      id_boxing_style || null,
       bio || null,
       img_path || null,
       display_name,
@@ -96,8 +96,8 @@ export const updateProfile = async (req: Request, res: Response) => {
     const userId = req.userId;
 
     const {
-      weight_class_id,
-      boxing_style_id,
+      id_weight_class,
+      id_boxing_style,
       bio,
       img_path,
       display_name,
@@ -109,14 +109,14 @@ export const updateProfile = async (req: Request, res: Response) => {
     const values: any[] = [];
     let idx = 1;
 
-    if (weight_class_id !== undefined) {
+    if (id_weight_class !== undefined) {
       updates.push(`weight_class_id_weight_class = $${idx}`);
-      values.push(weight_class_id);
+      values.push(id_weight_class);
       idx++;
     }
-    if (boxing_style_id !== undefined) {
+    if (id_boxing_style !== undefined) {
       updates.push(`boxing_style_id_boxing_style = $${idx}`);
-      values.push(boxing_style_id);
+      values.push(id_boxing_style);
       idx++;
     }
     if (bio !== undefined) {
@@ -202,5 +202,24 @@ export const getProfilePosts = async (req: Request, res: Response) => {
   } catch (err) {
     console.error("Profile posts error:", err);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+    export const getForeignProfile = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const id = parseInt(req.params.id as string, 10);
+
+    const { rows } = await pool.query(
+      "SELECT * FROM profiles LEFT JOIN weight_class ON profiles.weight_class_id_weight_class = weight_class.id_weight_class LEFT JOIN boxing_style ON profiles.boxing_style_id_boxing_style = boxing_style.id_boxing_style WHERE id_profiles = $1",
+      [id]
+    );
+
+    if (!rows[0]) return res.status(404).json({ error: "Profile not found" });
+
+    res.json({ profile: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 };

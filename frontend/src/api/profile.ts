@@ -107,3 +107,29 @@ export async function createProfile(payload: any) {
 
   return response.json();
 }
+
+export async function getForeignProfile(id : number) {
+  // read token from keychain
+  const token = await getToken();
+
+  const response = await fetch(`${BASE_URL}/auth/profile/${id}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      throw new Error(`Server error: ${response.statusText}`);
+    }
+    const errorMessage = errorData?.error || errorData?.message;
+    throw new Error(errorMessage || 'Failed to fetch profile');
+  }
+
+  return response.json();
+}

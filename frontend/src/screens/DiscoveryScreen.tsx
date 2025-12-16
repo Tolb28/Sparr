@@ -1,6 +1,4 @@
-// DiscoveryScreen.tsx
-
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo} from "react";
 import { FlatList } from "react-native";
 import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
@@ -8,6 +6,7 @@ import { Input, InputField, InputSlot } from "@/components/ui/input";
 import { Ionicons } from "@expo/vector-icons";
 import FeedPost from "../components/Post";
 import { getDiscoveryFeed } from "../api/discovery";
+
 
 export default function DiscoveryScreen() {
   const [query, setQuery] = useState("");
@@ -18,15 +17,13 @@ export default function DiscoveryScreen() {
   const LIMIT = 10;
 
   const loadMore = useCallback(async () => {
-    if (loadingMore) return; // avoid overlapping calls
-    setLoadingMore(true);
+    if (loadingMore) return;
 
+    setLoadingMore(true);
     try {
       const newPosts = await getDiscoveryFeed(LIMIT, offset);
-
       setPosts((prev) => [...prev, ...newPosts]);
       setOffset((prev) => prev + LIMIT);
-      console.log(newPosts);
     } catch (err) {
       console.log("Feed error:", err);
     } finally {
@@ -35,15 +32,34 @@ export default function DiscoveryScreen() {
   }, [offset, loadingMore]);
 
   useEffect(() => {
+    console.log(posts[0]);
     loadMore();
   }, []);
+
+
+
+  // 🔍 FILTER LOGIC
+  const filteredPosts = useMemo(() => {
+    if (!query.trim()) return posts;
+
+    const lowerQuery = query.toLowerCase();
+
+    return posts.filter((post) =>
+      post.description?.toLowerCase().includes(lowerQuery) ||
+      post.display_name?.toLowerCase().includes(lowerQuery) ||
+      post.username?.toLowerCase().includes(lowerQuery)
+    );
+  }, [posts, query]);
 
   return (
     <Box className="flex-1 bg-gray-100">
       {/* Search Bar */}
       <Box className="p-3 bg-white shadow-sm border-b border-gray-200">
         <HStack className="items-center px-3 py-1 gap-2">
-          <Input variant="outline" className="flex-1 border border-gray-300 rounded-lg p-1 bg-transparent">
+          <Input
+            variant="outline"
+            className="flex-1 border border-gray-300 rounded-lg p-1 bg-transparent"
+          >
             <InputField
               className="p-0"
               placeholder="Search..."
@@ -58,11 +74,10 @@ export default function DiscoveryScreen() {
       </Box>
 
       <FlatList
-        data={posts}
+        data={filteredPosts}
         keyExtractor={(item) => String(item.id_posts)}
         renderItem={({ item }) => <FeedPost post={item} />}
 
-        // pagination
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
 
