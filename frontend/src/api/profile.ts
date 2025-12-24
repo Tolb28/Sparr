@@ -112,7 +112,7 @@ export async function getForeignProfile(id : number) {
   // read token from keychain
   const token = await getToken();
 
-  const response = await fetch(`${BASE_URL}/auth/profile/${id}`, {
+  const response = await fetch(`${BASE_URL}/auth/profile/foreign/${id}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

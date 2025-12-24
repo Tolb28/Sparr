@@ -16,7 +16,7 @@ router.get("/user", authenticate, getUser);
 router.put("/user", authenticate, updateUser);
 router.post("/profile", authenticate, createProfile); // Placeholder for profile creation/updation
 router.get("/profile", authenticate, getProfile);
-router.get("/profile/:id", authenticate, getForeignProfile);
+router.get("/profile/foreign/:id", authenticate, getForeignProfile);
 router.put("/profile", authenticate, updateProfile);
 router.delete("/profile", authenticate, deleteProfile);
 router.get("/profile/posts/:id", authenticate, getProfilePosts);

@@ -15,6 +15,7 @@ import {
   MessageCircle,
 } from "lucide-react-native";
 import { Pressable } from "@/components/ui/pressable";
+import { useNavigation } from "@react-navigation/core";
 
 interface FeedPostProps {
   post: {
@@ -26,10 +27,14 @@ interface FeedPostProps {
     comments_count?: number;
     display_name: string;
     dislikes_count?: number;
+    id_profiles: number;
   };
 }
 
 function FeedPost({ post }: FeedPostProps) {
+  const navigation = useNavigation();
+  
+  console.log('Rendering post', post);
   // fallbacks
   const [likes, setLikes] = useState(post.likes_count || 0);
   const [comments, setComments] = useState(post.comments_count || 0);
@@ -81,11 +86,12 @@ function FeedPost({ post }: FeedPostProps) {
   return (
     <Box className="bg-white mx-3 mb-3 p-3 rounded-lg border border-gray-200">
       {/* User row */}
-      <HStack className="items-center mb-3 gap-2">
-        <Icon as={User} size="lg" className="text-gray-700" />
-        <Text className="font-bold text-base">{post.display_name}</Text>
-      </HStack>
-
+      <Pressable onPress={() => (navigation as any).navigate('ForeignProfile', { foreign_profile_id: post.id_profiles })}>
+        <HStack className="items-center mb-3 gap-2">
+          <Icon as={User} size="lg" className="text-gray-700" />
+          <Text className="font-bold text-base">{post.display_name}</Text>
+        </HStack>
+      </Pressable>
       {/* Post media */}
       {post.source && (
         <Box className="rounded-md mb-3 justify-center items-center aspect-square bg-gray-200">
@@ -113,14 +119,14 @@ function FeedPost({ post }: FeedPostProps) {
       <HStack className="gap-6 items-center mb-3">
         <Pressable onPress={handleLike}>
           <HStack className="items-center gap-1">
-            <Icon as={ThumbsUp} size="md" className="text-blue-600" />
+            <ThumbsUp className="text-blue-600" size={18}></ThumbsUp>
             <Text className="text-sm text-gray-800">{likes}</Text>
           </HStack>
         </Pressable>
 
         <Pressable onPress={handleDislike}>
           <HStack className="items-center gap-1">
-            <Icon as={ThumbsDown} size="md" className="text-red-600" />
+            <ThumbsDown className="text-red-600" size={18}></ThumbsDown>
             <Text className="text-sm text-gray-800">{dislikes}</Text>
           </HStack>
         </Pressable>

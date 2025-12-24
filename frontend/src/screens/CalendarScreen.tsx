@@ -126,6 +126,7 @@ export default function CalendarScreen() {
   return (
     <Box className="flex-1 bg-white">
       <ScrollView contentContainerStyle={{ paddingBottom: 110 }}>
+        <Text className="text-2xl font-bold px-4 pt-6 text-center">{calendar?.title || 'No Calendar Selected'}</Text>
         {/* Day header */}
         <VStack className="px-4 py-6 gap-4">
           <MyTrainingCalendar onSelectDate={(d) => setSelectedDate(d)} items={items} selectedDate={selectedDate} />

@@ -16,7 +16,7 @@ export const getPosts = async ({
       p.id_posts,
       p.description,
       p.source,
-      pr.id_profiles as user_id,
+      pr.id_profiles as id_profiles,
       pr.display_name,
       pr.avatar,
       COUNT(i.posts_id_posts) FILTER (WHERE it.title = 'like') AS likes_count,
