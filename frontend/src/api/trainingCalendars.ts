@@ -1,13 +1,10 @@
 import { Platform } from 'react-native';
-import { getToken } from './tokenHandler';
+import { getToken, ServerIP } from './tokenHandler';
 
-const BASE_URL = Platform.OS === 'web'
-  ? 'http://localhost:4000/api'
-  : 'http://10.0.2.2:4000/api';
 
 async function authFetch(path: string, opts: RequestInit = {}) {
   const token = await getToken();
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const response = await fetch(`${ServerIP}${path}`, {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     ...opts,
   });
@@ -24,7 +21,7 @@ export async function getSelectedCalendarForProfile() {
 
 export async function listPublicCalendars() {
   const token = await getToken();
-  const response = await fetch(`${BASE_URL}/auth/training/calendars/public`, {
+  const response = await fetch(`${ServerIP}/auth/training/calendars/public`, {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
   if (!response.ok) throw new Error('Failed to list public calendars');
@@ -41,7 +38,7 @@ export async function selectCalendar(id: number) {
 
 export async function getCalendarById(id: number) {
   const token = await getToken();
-  const response = await fetch(`${BASE_URL}/auth/training/calendars/${id}`, {
+  const response = await fetch(`${ServerIP}/auth/training/calendars/${id}`, {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
   if (!response.ok) throw new Error('Failed to fetch calendar');
@@ -50,7 +47,7 @@ export async function getCalendarById(id: number) {
 
 export async function getTraining(id: number) {
   const token = await getToken();
-  const response = await fetch(`${BASE_URL}/auth/training/trainings/${id}`, {
+  const response = await fetch(`${ServerIP}/auth/training/trainings/${id}`, {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
   if (!response.ok) throw new Error('Failed to fetch training');
@@ -59,7 +56,7 @@ export async function getTraining(id: number) {
 
 export async function getTrainings() {
   const token = await getToken();
-  const response = await fetch(`${BASE_URL}/auth/training/trainings`, {
+  const response = await fetch(`${ServerIP}/auth/training/trainings`, {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
   if (!response.ok) throw new Error('Failed to fetch trainings');
@@ -68,7 +65,7 @@ export async function getTrainings() {
 
 export async function listDrills() {
   const token = await getToken();
-  const response = await fetch(`${BASE_URL}/auth/training/drills`, {
+  const response = await fetch(`${ServerIP}/auth/training/drills`, {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
   if (!response.ok) throw new Error('Failed to fetch drills');
@@ -77,7 +74,7 @@ export async function listDrills() {
 
 export async function listTechniques() {
   const token = await getToken();
-  const response = await fetch(`${BASE_URL}/auth/training/techniques`, {
+  const response = await fetch(`${ServerIP}/auth/training/techniques`, {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
   if (!response.ok) throw new Error('Failed to fetch techniques');
@@ -86,7 +83,7 @@ export async function listTechniques() {
 
 export async function listCombinations() {
   const token = await getToken();
-  const response = await fetch(`${BASE_URL}/auth/training/combinations`, {
+  const response = await fetch(`${ServerIP}/auth/training/combinations`, {
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
   });
   if (!response.ok) throw new Error('Failed to fetch combinations');

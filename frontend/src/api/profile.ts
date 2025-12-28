@@ -1,15 +1,12 @@
 import { Platform } from 'react-native';
-import { getToken } from './tokenHandler';
+import { getToken, ServerIP } from './tokenHandler';
 
-const BASE_URL = Platform.OS === 'web'
-  ? 'http://localhost:4000/api'
-  : 'http://10.0.2.2:4000/api'; // Android fix if needed
 
 export async function getUserProfile() {
   // read token from keychain
   const token = await getToken();
 
-  const response = await fetch(`${BASE_URL}/auth/profile`, {
+  const response = await fetch(`${ServerIP}/auth/profile`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -34,7 +31,7 @@ export async function getUserProfile() {
 export async function updateProfile(updates: any) {
   const token = await getToken();
 
-  const response = await fetch(`${BASE_URL}/auth/profile`, {
+  const response = await fetch(`${ServerIP}/auth/profile`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -60,7 +57,7 @@ export async function updateProfile(updates: any) {
 export async function deleteProfile() {
   const token = await getToken();
 
-  const response = await fetch(`${BASE_URL}/auth/profile`, {
+  const response = await fetch(`${ServerIP}/auth/profile`, {
     method: 'DELETE',
     headers: {
       'Content-Type': 'application/json',
@@ -85,7 +82,7 @@ export async function deleteProfile() {
 export async function createProfile(payload: any) {
   const token = await getToken();
 
-  const response = await fetch(`${BASE_URL}/auth/profile`, {
+  const response = await fetch(`${ServerIP}/auth/profile`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -112,7 +109,7 @@ export async function getForeignProfile(id : number) {
   // read token from keychain
   const token = await getToken();
 
-  const response = await fetch(`${BASE_URL}/auth/profile/foreign/${id}`, {
+  const response = await fetch(`${ServerIP}/auth/profile/foreign/${id}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

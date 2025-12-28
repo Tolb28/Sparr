@@ -1,13 +1,11 @@
 // src/api/login.ts
 import { Platform } from 'react-native';
 import * as Keychain from "react-native-keychain";
+import {ServerIP} from './tokenHandler';
 
-const BASE_URL = Platform.OS === 'web'
-  ? 'http://localhost:4000/api'
-  : 'http://10.0.2.2:4000/api'; // Android fix if needed
 
 export async function login(email: string, password: string) {
-  const response = await fetch(`${BASE_URL}/auth/login`, {
+  const response = await fetch(`${ServerIP}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),

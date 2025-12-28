@@ -52,10 +52,9 @@ export default function DiscoveryScreen() {
   }, [posts, query]);
 
   return (
-    <Box className="flex-1 bg-gray-100">
+    <Box className="flex-1 bg-gray-100 py-4">
       {/* Search Bar */}
-      <Box className="p-3 bg-white shadow-sm border-b border-gray-200">
-        <HStack className="items-center px-3 py-1 gap-2">
+        <HStack className="items-center px-3 py-5 gap-2">
           <Input
             variant="outline"
             className="flex-1 border border-gray-300 rounded-lg p-1 bg-transparent"
@@ -71,7 +70,6 @@ export default function DiscoveryScreen() {
             </InputSlot>
           </Input>
         </HStack>
-      </Box>
 
       <FlatList
         data={filteredPosts}

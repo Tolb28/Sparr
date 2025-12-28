@@ -113,7 +113,7 @@ export default function LoginScreen({ navigation }: Props) {
         <Button
           onPress={handleLogin}
           disabled={loading}
-          className="bg-blue-500 rounded py-3 mt-4"
+          className="bg-blue-500 rounded py-2 mt-4"
         >
           <ButtonText>{loading ? 'Logging in...' : 'Login'}</ButtonText>
         </Button>

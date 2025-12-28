@@ -1,8 +1,5 @@
 import { Platform } from 'react-native';
-
-const BASE_URL = Platform.OS === 'web'
-  ? 'http://localhost:4000/api'
-  : 'http://10.0.2.2:4000/api'; // Android emulator fix
+import { ServerIP } from './tokenHandler';
 
 interface RegisterResponse {
   token: string;
@@ -11,7 +8,7 @@ interface RegisterResponse {
 
 export async function register(email: string, password: string): Promise<RegisterResponse> {
   const payload: any = { email, password };
-  const response = await fetch(`${BASE_URL}/auth/register`, {
+  const response = await fetch(`${ServerIP}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

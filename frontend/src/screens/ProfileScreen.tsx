@@ -101,7 +101,7 @@ export default function ProfileScreen() {
   );
 
   return (
-    <Box className="flex-1 bg-white">
+    <Box className="flex-1 bg-white py-4">
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Profile Header */}
         <VStack className=" p-5 gap-4">

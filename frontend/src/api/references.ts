@@ -1,14 +1,10 @@
 import { Platform } from 'react-native';
-import { getToken } from './tokenHandler';
-
-const BASE_URL = Platform.OS === 'web'
-  ? 'http://localhost:4000/api'
-  : 'http://10.0.2.2:4000/api'; // Android fix if needed
+import { getToken, ServerIP } from './tokenHandler';
 
 
 export async function getProfileReferences() {
   const token = await getToken();
-    const response = await fetch(`${BASE_URL}/auth/profile/references`, {
+    const response = await fetch(`${ServerIP}/auth/profile/references`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
