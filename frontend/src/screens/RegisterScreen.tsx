@@ -103,7 +103,7 @@ export default function RegisterScreen({ navigation }: Props) {
         <Button
           onPress={handleRegister}
           disabled={loading}
-          className="bg-blue-500 rounded py-3 mt-4"
+          className="bg-blue-500 rounded py-2 mt-4"
         >
           <ButtonText>
             {loading ? 'Creating...' : 'Create Account'}

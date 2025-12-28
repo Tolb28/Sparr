@@ -35,9 +35,8 @@ export default function FriendsScreen() {
   });
 
   return (
-    <Box className="flex-1 bg-gray-100">
-      <Box className="p-3 bg-white shadow-sm border-b border-gray-200">
-        <HStack className="items-center px-3 py-1 gap-2">
+    <Box className="flex-1 bg-gray-100 py-4">
+        <HStack className="items-center px-3 py-5 gap-2">
           <Input variant="outline" className="flex-1 border border-gray-300 rounded-lg p-1 bg-transparent">
             <InputField
               className="p-0"
@@ -50,7 +49,6 @@ export default function FriendsScreen() {
             </InputSlot>
           </Input>
         </HStack>
-      </Box>
 
       <FlatList
         data={filtered}

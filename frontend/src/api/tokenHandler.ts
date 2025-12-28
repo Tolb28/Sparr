@@ -1,13 +1,11 @@
 import { Platform } from "react-native";
-import * as Keychain from "react-native-keychain";
+import * as SecureStore from "expo-secure-store";
 
-export async function storeToken(token : any) {
+export async function storeToken(token: string) {
   if (Platform.OS === "web") {
-    // Use localStorage on web
     localStorage.setItem("token", token);
   } else {
-    // Use secure storage on mobile
-    await Keychain.setGenericPassword("authToken", token);
+    await SecureStore.setItemAsync("authToken", token);
   }
 }
 
@@ -15,7 +13,11 @@ export async function getToken() {
   if (Platform.OS === "web") {
     return localStorage.getItem("token");
   } else {
-    const creds = await Keychain.getGenericPassword();
-    return creds ? creds.password : null;
+    return await SecureStore.getItemAsync("authToken");
   }
 }
+
+
+export const ServerIP = Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.0.0.38:4000/api";
+
+
