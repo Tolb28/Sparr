@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { getToken, ServerIP } from './tokenHandler';
+import { storeProfile } from './profileHandler';
 
 
 export async function getUserProfile() {
@@ -25,7 +26,10 @@ export async function getUserProfile() {
     throw new Error(errorMessage || 'Failed to fetch profile');
   }
 
-  return response.json();
+  const data = await response.json();
+  await storeProfile(data?.profile ?? data);
+
+  return data;
 }
 
 export async function updateProfile(updates: any) {

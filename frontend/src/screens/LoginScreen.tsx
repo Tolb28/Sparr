@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { login } from '../api/login';
-import { storeToken } from '../api/tokenHandler';
+import { getToken, storeToken } from '../api/tokenHandler';
 import { getUserProfile } from '../api/profile';
 import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
@@ -13,6 +13,7 @@ import { Input, InputField, InputIcon, InputSlot } from '@/components/ui/input';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Pressable } from '@/components/ui/pressable';
 import { Ionicons } from '@expo/vector-icons';
+import { getProfile, removeProfile } from '../api/profileHandler';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
@@ -22,6 +23,18 @@ export default function LoginScreen({ navigation }: Props) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // If already logged in, redirect to Main
+    (async () => {
+      const token = await getToken();
+      console.log('existing token', token);
+      const profile = await getProfile();
+      if (profile) {
+        navigation.replace('Main');
+      }
+    })();
+    }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -34,6 +47,7 @@ export default function LoginScreen({ navigation }: Props) {
       const resp = await login(email, password);
       console.log('login success', resp);
       setError(null);
+        console.log('storing token', resp.token);
         await storeToken(resp.token);
         // Check whether profile exists yet
         try {
@@ -45,6 +59,7 @@ export default function LoginScreen({ navigation }: Props) {
           }
         } catch (e: any) {
           // If profile not found (or any get profile error), route to create profile
+          console.log('error fetching profile after login', e);
           navigation.replace('CreateProfile');
         }
     } catch (err: any) {

@@ -1,12 +1,14 @@
 // Post.tsx
-
-import React, { useState } from "react";
+import { getCommentsForPost } from "../api/discovery";
+import PostComment from "./Comment";
+import React, { useState, useCallback, useEffect } from "react";
 import { getToken, ServerIP } from '../api/tokenHandler';
 import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
 import { Image } from "@/components/ui/image";
+import { Modal } from "react-native";
 import {
   User,
   ThumbsUp,
@@ -15,8 +17,9 @@ import {
 } from "lucide-react-native";
 import { Pressable } from "@/components/ui/pressable";
 import { useNavigation } from "@react-navigation/core";
+import { getProfile } from "../api/profileHandler";
 
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 
 interface FeedPostProps {
   post: {
@@ -29,18 +32,28 @@ interface FeedPostProps {
     display_name: string;
     dislikes_count?: number;
     id_profiles: number;
+    user_interaction?: 'like' | 'dislike' | null;
   };
+}
+
+interface UserProfile {
+  id_profiles: number;
+  display_name: string;
+  avatar?: string | null;
 }
 
 function FeedPost({ post }: FeedPostProps) {
   const navigation = useNavigation();
 
+  console.log("Post:", post);
+
   const [likes, setLikes] = useState(post.likes_count || 0);
-  const [comments, setComments] = useState(post.comments_count || 0);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [dislikes, setDislikes] = useState(post.dislikes_count || 0);
-  const [interaction, setInteraction] = useState<'like' | 'dislike' | null>(null);
+  const [interaction, setInteraction] = useState<'like' | 'dislike' | null>(post.user_interaction || null);
   const [loading, setLoading] = useState(false);
 
+  const [showComments, setShowComments] = useState(false);
   // Reanimated shared values for scale
   const likeScale = useSharedValue(1);
   const dislikeScale = useSharedValue(1);
@@ -52,6 +65,7 @@ function FeedPost({ post }: FeedPostProps) {
   const dislikeStyle = useAnimatedStyle(() => ({
     transform: [{ scale: dislikeScale.value }],
   }));
+
 
   // Isolated animation function
   const animatePress = (scale: typeof likeScale) => {
@@ -131,9 +145,17 @@ function FeedPost({ post }: FeedPostProps) {
     callInteraction('dislike');
   };
 
-  const handleComment = () => setComments(prev => prev + 1);
+  const handleCommentOpen = () => {
+    setShowComments(true);
+  };
+
+  const handleNewComment = useCallback(() => {
+    setCommentsCount((prev) => prev + 1);
+  }, []);
+
 
   return (
+    <>
     <Box className="bg-white mx-3 mb-3 p-3 rounded-lg border border-gray-200">
       {/* User row */}
       <Pressable onPress={() => (navigation as any).navigate('ForeignProfile', { foreign_profile_id: post.id_profiles })}>
@@ -192,14 +214,24 @@ function FeedPost({ post }: FeedPostProps) {
           </Animated.View>
         </Pressable>
 
-        <Pressable onPress={handleComment}>
+        <Pressable onPress={handleCommentOpen}>
           <HStack className="items-center gap-1">
             <Icon as={MessageCircle} size="md" className="text-gray-700" />
-            <Text className="text-sm text-gray-800">{comments}</Text>
+            <Text className="text-sm text-gray-800">{commentsCount}</Text>
           </HStack>
         </Pressable>
       </HStack>
     </Box>
+
+    {/* COMMENTS MODAL */}
+    <Modal visible={showComments} animationType="slide">
+      <PostComment
+        postId={post.id_posts}
+        onClose={() => setShowComments(false)}
+        onNewComment={handleNewComment}
+      />
+    </Modal>
+    </>
   );
 }
 
