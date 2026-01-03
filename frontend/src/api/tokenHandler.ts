@@ -17,6 +17,13 @@ export async function getToken() {
   }
 }
 
+export async function deleteToken() {
+  if (Platform.OS === "web") {
+    localStorage.removeItem("token");
+  } else {
+    await SecureStore.deleteItemAsync("authToken");
+  }
+}
 
 export const ServerIP = Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.0.0.38:4000/api";
 

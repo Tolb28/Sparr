@@ -2,7 +2,7 @@ import { Router } from "express";
 import { register, login, getUser, updateUser } from "../controllers/userController";
 import { authenticate } from "../middleware/authMiddleware";
 import { createProfile, updateProfile, deleteProfile, getProfile, getProfilePosts, getForeignProfile } from "../controllers/profileController";
-import { getDiscoveryFeed } from "../controllers/discoveryController";
+import { getCommentsForPost, getDiscoveryFeed } from "../controllers/discoveryController";
 import { toggleInteraction } from "../controllers/interactionsController";
 import { getFriends } from "../controllers/friendsController";
 import { getProfileReferences } from "../controllers/referenceController";
@@ -23,7 +23,8 @@ router.get("/profile/posts/:id", authenticate, getProfilePosts);
 router.get("/discovery", authenticate, getDiscoveryFeed);
 router.post("/interactions", authenticate, toggleInteraction);
 router.get("/friends", authenticate, getFriends);
-router.get("/profile/references", authenticate, getProfileReferences); 
+router.get("/profile/references", authenticate, getProfileReferences);
+router.get("/discovery/:postId/comments", authenticate, getCommentsForPost);
 
 // Mount training routes under /auth/training
 router.use('/training', trainingRouter);

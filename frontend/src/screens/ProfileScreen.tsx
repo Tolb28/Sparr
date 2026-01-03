@@ -14,6 +14,7 @@ import { Pressable } from '@/components/ui/pressable';
 import { Image } from '@/components/ui/image';
 import { Avatar, AvatarBadge, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Grid } from '@/components/ui/grid';
+import { removeProfile } from '../api/profileHandler';
 
 type Profile = { 
   display_name?: string;
@@ -38,6 +39,7 @@ export default function ProfileScreen() {
   const [activeTab, setActiveTab] = useState('personalized');
 
   useEffect(() => {
+    console.log('loading profile');
     let mounted = true;
     const load = async () => {
       setLoading(true);
@@ -103,6 +105,16 @@ export default function ProfileScreen() {
   return (
     <Box className="flex-1 bg-white py-4">
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+        <Pressable
+          className=" z-10 p-2 bg-white rounded-full shadow self-end mr-4 mb-2"
+          onPress={() => {
+            removeProfile().then(() => {
+              navigation.replace('Login');
+            });}}
+        >
+        
+          <Text>Log out</Text>
+        </Pressable>
         {/* Profile Header */}
         <VStack className=" p-5 gap-4">
           <HStack className="justify-start items-center gap-4">
