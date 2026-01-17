@@ -10,7 +10,7 @@ dotenv.config();
 
 // TESTING DATABASE CONNECTION
 
-import { pool } from './db';
+import { pool } from './config/db';
 
 pool
   .connect()

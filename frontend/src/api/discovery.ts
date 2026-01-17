@@ -31,8 +31,11 @@ export async function getDiscoveryFeed(limit: number = 20, offset: number = 0) {
 
 export async function getCommentsForPost(postId: number, limit: number = 20, offset: number = 0) {
   const token = await getToken();
+  const profileData = await getProfile();
+  const profile = profileData ? JSON.parse(profileData) : null;
+  const profileId = profile ? profile.id_profiles : null;
   const response = await fetch(
-    `${ServerIP}/auth/discovery/${postId}/comments?limit=${limit}&offset=${offset}`,
+    `${ServerIP}/auth/discovery/${postId}/comments?limit=${limit}&offset=${offset}&profileId=${profileId}`,
     {
       method: "GET",
       headers: {

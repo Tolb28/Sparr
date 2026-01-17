@@ -1,15 +1,17 @@
-import { pool } from "../db";
+import { pool } from "../config/db";
 
 interface GetPostsOptions {
   limit?: number;
   offset?: number;
   profileId?: number | null;
+  ownerId?: number | null;
 }
 
 export const getPosts = async ({
   limit = 10,
   offset = 0,
   profileId = null,
+  ownerId = null
 }: GetPostsOptions) => {
   const query = `
     SELECT
@@ -27,12 +29,12 @@ export const getPosts = async ({
 
       i.user_interaction
 
-    FROM posts p
+    FROM posts p 
 
     /* -------- POST OWNER -------- */
-    LEFT JOIN profiles_posts pp
+    JOIN profiles_posts pp
       ON pp.posts_id_posts = p.id_posts
-    LEFT JOIN profiles pr
+    JOIN profiles pr
       ON pr.id_profiles = pp.profiles_id_profiles
 
     /* -------- INTERACTIONS AGGREGATE -------- */
@@ -61,6 +63,7 @@ export const getPosts = async ({
     ) c
       ON c.posts_id_posts = p.id_posts
 
+    WHERE pr.id_profiles IS DISTINCT FROM $1
     ORDER BY p.created_at DESC
     LIMIT $2 OFFSET $3;
   `;

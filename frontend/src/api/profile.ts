@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
-import { getToken, ServerIP } from './tokenHandler';
-import { storeProfile } from './profileHandler';
+import { getToken, ServerIP, deleteToken } from './tokenHandler';
+import { storeProfile, removeProfile } from './profileHandler';
 
 
 export async function getUserProfile() {
@@ -35,6 +35,7 @@ export async function getUserProfile() {
 export async function updateProfile(updates: any) {
   const token = await getToken();
 
+  console.log('Updating profile with data:', updates);
   const response = await fetch(`${ServerIP}/auth/profile`, {
     method: 'PUT',
     headers: {

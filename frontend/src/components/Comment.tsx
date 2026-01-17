@@ -1,30 +1,28 @@
+// Comment.tsx
 import React, { useEffect, useState } from "react";
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  ListRenderItem,
-  View
-} from "react-native";
+import { Pressable } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSequence,
+  withTiming,
+  SharedValue,
+} from "react-native-reanimated";
+
 import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
-import { Text } from "@/components/ui/text";
-import { Input, InputField } from "@/components/ui/input";
-import { Pressable } from "@/components/ui/pressable";
-import { Ionicons } from "@expo/vector-icons";
-import { getCommentsForPost } from "../api/discovery";
-import { getToken, ServerIP } from "../api/tokenHandler";
 import { VStack } from "@/components/ui/vstack";
-import { Icon } from "@/components/ui/icon/index.web";
-import { User} from "lucide-react-native";
+import { Text } from "@/components/ui/text";
 import { Avatar, AvatarFallbackText, AvatarImage } from "@/components/ui/avatar";
-import { getProfile } from "../api/profileHandler";
+import { ThumbsUp, ThumbsDown } from "lucide-react-native";
+
+import { getToken, ServerIP } from "../api/tokenHandler";
 
 /* =======================
    TYPES
 ======================= */
 
-interface Comment {
+export interface Comment {
   id_comments: number;
   display_name: string;
   content: string;
@@ -32,159 +30,177 @@ interface Comment {
   likes_count?: number;
   dislikes_count?: number;
   id_profiles: number;
-  user_interaction?: 'like' | 'dislike' | null;
+  user_interaction?: "like" | "dislike" | null;
 }
 
-interface PostCommentProps {
-  postId: number;
-  onClose: () => void;
-  onNewComment: () => void;
-}
-
-interface CommentUser {
-  content: string;
-  display_name: string;
-  avatar?: string | null;
-}
-
-interface UserProfile {
-  id_profiles: number;
-  display_name: string;
-  avatar?: string | null;
+interface CommentProps {
+  comment: Comment;
 }
 
 /* =======================
    COMPONENT
+   - owns animation + interactions + network calls
 ======================= */
 
-export default function PostComment({
-  postId,
-  onClose,
-  onNewComment,
-}: PostCommentProps) {
-  const [comments, setComments] = useState<CommentUser[]>([]);
-  const [text, setText] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(true);
+export default function Comment({ comment }: CommentProps) {
+  // keep internal state so this component can be fully self-contained
+  const [likes, setLikes] = useState<number>(comment.likes_count ?? 0);
+  const [dislikes, setDislikes] = useState<number>(comment.dislikes_count ?? 0);
+  const [interaction, setInteraction] = useState<"like" | "dislike" | null>(
+    comment.user_interaction ?? null
+  );
+  const [loading, setLoading] = useState<boolean>(false);
 
+  // keep in-sync if parent replaces the comment object (e.g. after re-fetch)
   useEffect(() => {
-    loadComments();
-  }, []);
+    setLikes(comment.likes_count ?? 0);
+    setDislikes(comment.dislikes_count ?? 0);
+    setInteraction(comment.user_interaction ?? null);
+  }, [comment]);
 
-  /* =======================
-     LOAD COMMENTS
-  ======================= */
+  // Reanimated values & styles
+  const likeScale: SharedValue<number> = useSharedValue(1);
+  const dislikeScale: SharedValue<number> = useSharedValue(1);
 
-  const loadComments = async (): Promise<void> => {
-    try {
-      const data = (await getCommentsForPost(postId)) as Comment[];
-      console.log("Comments loaded:", data);
-      setComments(data);
-    } catch (e) {
-      console.log("Comments error:", e);
-    } finally {
-      setLoading(false);
-    }
+  const likeStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: likeScale.value }],
+  }));
+
+  const dislikeStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: dislikeScale.value }],
+  }));
+
+  const animatePress = (scale: SharedValue<number>) => {
+    // small press animation
+    scale.value = 1;
+    scale.value = withSequence(
+      withTiming(1.2, { duration: 200 }),
+      withTiming(1, { duration: 200 })
+    );
   };
 
-  /* =======================
-     SEND COMMENT
-  ======================= */
+  // performs optimistic update and calls server
+  const callInteraction = async (type: "like" | "dislike") => {
+    if (loading) return;
+    setLoading(true);
 
-  const sendComment = async (): Promise<void> => {
-    if (!text.trim()) return;
+    const prevInteraction = interaction;
+    const prevLikes = likes;
+    const prevDislikes = dislikes;
 
-    const data = (await getProfile());
-    const profile = data ? JSON.parse(data) as UserProfile : null;
+    // optimistic update locally
+    setInteraction((cur) => (cur === type ? null : type));
 
-    const optimistic = { 
-      display_name: profile?.display_name ?? "Error", // Placeholder name for optimistic comment
-      content: text.trim(),
-    };
+    setLikes((prev) => {
+      if (type === "like") {
+        if (prevInteraction === "like") return prev - 1;
+        return prevInteraction === "dislike" ? prev + 1 : prev + 1;
+      }
+      return prev;
+    });
 
-    setComments((prev) => [optimistic, ...prev]);
-    setText("");
-    onNewComment();
+    setDislikes((prev) => {
+      if (type === "dislike") {
+        if (prevInteraction === "dislike") return prev - 1;
+        return prevInteraction === "like" ? prev + 1 : prev + 1;
+      }
+      return prev;
+    });
 
     try {
+      console.log("Sending interaction:", {commentId: comment.id_comments, type});
       const token = await getToken();
-      await fetch(`${ServerIP}/auth/comments`, {
+
+      const resp = await fetch(`${ServerIP}/auth/interactions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          postId,
-          content: optimistic.content,
-          profileId: profile?.id_profiles,
+          targetId: comment.id_comments,
+          type,
+          parent: "comment",
         }),
       });
+
+      if (!resp.ok) throw new Error("Interaction failed");
+
+      const data = await resp.json();
+
+      // authoritative update from server (if provided)
+      if (typeof data.likes_count === "number") setLikes(data.likes_count);
+      if (typeof data.dislikes_count === "number")
+        setDislikes(data.dislikes_count);
+
+      // update interaction state if server returns something authoritative
+      if ("user_interaction" in data) {
+        setInteraction(data.user_interaction ?? null);
+      }
     } catch (e) {
-      console.log("Send comment failed:", e);
+      // rollback on error
+      console.error("Comment interaction error:", e);
+      setInteraction(prevInteraction);
+      setLikes(prevLikes);
+      setDislikes(prevDislikes);
+    } finally {
+      setLoading(false);
     }
   };
 
-  /* =======================
-     RENDER ITEM
-  ======================= */
-
-  const renderItem: ListRenderItem<Comment> = ({ item }) => (
+  return (
     <Box className="mb-4">
-      <HStack className="items-center mb-3 gap-2">
-          <Avatar className="bg-indigo-600" size="md">
-              <AvatarFallbackText className="text-white">{item?.display_name ?? '?'}</AvatarFallbackText>
-              <AvatarImage source={{ uri: item?.avatar || undefined }} />
-          </Avatar>
-          <VStack>
-            <Text className="font-bold text-base">{item.display_name}</Text>
-            <Text className="text-gray-700">{item.content}</Text>
-          </VStack>
+      <HStack className="items-center mb-2 gap-2">
+        <Avatar className="bg-indigo-600" size="md">
+          <AvatarFallbackText className="text-white">
+            {comment?.display_name?.[0] ?? "?"}
+          </AvatarFallbackText>
+          <AvatarImage source={{ uri: comment?.avatar || undefined }} />
+        </Avatar>
+
+        <VStack className="flex-1">
+          <Text className="font-bold text-base">{comment.display_name}</Text>
+          <Text className="text-gray-700">{comment.content}</Text>
+
+          <HStack className="gap-4 mt-2 items-center">
+            <Pressable
+              onPress={() => {
+                animatePress(likeScale);
+                callInteraction("like");
+              }}
+            >
+              <Animated.View style={likeStyle}>
+                <HStack className="items-center gap-1">
+                  <ThumbsUp
+                    size={16}
+                    color={interaction === "like" ? "#2563eb" : "#6b7280"}
+                    fill={interaction === "like" ? "#2563eb" : "transparent"}
+                  />
+                  <Text className="text-sm">{likes}</Text>
+                </HStack>
+              </Animated.View>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                animatePress(dislikeScale);
+                callInteraction("dislike");
+              }}
+            >
+              <Animated.View style={dislikeStyle}>
+                <HStack className="items-center gap-1">
+                  <ThumbsDown
+                    size={16}
+                    color={interaction === "dislike" ? "#dc2626" : "#6b7280"}
+                    fill={interaction === "dislike" ? "#dc2626" : "transparent"}
+                  />
+                  <Text className="text-sm">{dislikes}</Text>
+                </HStack>
+              </Animated.View>
+            </Pressable>
+          </HStack>
+        </VStack>
       </HStack>
     </Box>
-  );
-
-  /* =======================
-     UI
-  ======================= */
-
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1 }}
-    >
-      <Box className="flex-1 bg-white">
-        {/* Header */}
-        <HStack className="items-center justify-between p-4 border-b border-gray-200">
-          <Text className="font-bold text-lg">Comments</Text>
-          <Pressable onPress={onClose}>
-            <Ionicons name="close" size={24} />
-          </Pressable>
-        </HStack>
-
-        {/* Comments */}
-        <View className=" px-2 py-3">
-          <FlatList<Comment | any>
-            data={comments}
-            keyExtractor={(item) => item.id_comments?.toString() || Math.random().toString()}
-            renderItem={renderItem}
-            inverted
-            contentContainerStyle={{ padding: 16 }}
-          />
-        </View>
-        {/* Input */}
-        <HStack className="items-center p-3 border-t border-gray-200">
-          <Input className="flex-1 mr-2">
-            <InputField
-              placeholder="Add a comment..."
-              value={text}
-              onChangeText={setText}
-            />
-          </Input>
-          <Pressable onPress={sendComment}>
-            <Ionicons name="send" size={22} color="#2563eb" />
-          </Pressable>
-        </HStack>
-      </Box>
-    </KeyboardAvoidingView>
   );
 }
