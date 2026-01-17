@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { getPosts } from "../services/postsService";
-import { pool } from "../db";
+import { pool } from "../config/db";
 
 /**
  * CREATE PROFILE (usually called once)
@@ -96,27 +96,28 @@ export const updateProfile = async (req: Request, res: Response) => {
     const userId = req.userId;
 
     const {
-      id_weight_class,
-      id_boxing_style,
+      weight_class_id,
+      boxing_style_id,
       bio,
       img_path,
       display_name,
       username,
       location // (NOTE: future migration to structured type)
     } = req.body;
+    console.log('Update profile request body:', req.body);
 
     const updates: string[] = [];
     const values: any[] = [];
     let idx = 1;
 
-    if (id_weight_class !== undefined) {
+    if (weight_class_id !== undefined) {
       updates.push(`weight_class_id_weight_class = $${idx}`);
-      values.push(id_weight_class);
+      values.push(weight_class_id);
       idx++;
     }
-    if (id_boxing_style !== undefined) {
+    if (boxing_style_id !== undefined) {
       updates.push(`boxing_style_id_boxing_style = $${idx}`);
-      values.push(id_boxing_style);
+      values.push(boxing_style_id);
       idx++;
     }
     if (bio !== undefined) {
@@ -193,7 +194,7 @@ export const getProfilePosts = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = parseInt(req.query.offset as string) || 0;
 
-    const posts = await getPosts({ userId, limit, offset });
+    const posts = await getPosts({ ownerId: userId, limit, offset });
 
     res.json({
       success: true,

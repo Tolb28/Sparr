@@ -15,6 +15,7 @@ import { Image } from '@/components/ui/image';
 import { Avatar, AvatarBadge, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Grid } from '@/components/ui/grid';
 import { removeProfile } from '../api/profileHandler';
+import { deleteToken } from '../api/tokenHandler';
 
 type Profile = { 
   display_name?: string;
@@ -49,6 +50,9 @@ export default function ProfileScreen() {
         if (mounted) setProfile(p);
       } catch (err : any) {
         if (mounted) setError(err?.message ?? 'Failed to load profile');
+        await deleteToken();
+        await removeProfile();
+        navigation.navigate('Login')
       } finally {
         if (mounted) setLoading(false);
       }
@@ -103,8 +107,8 @@ export default function ProfileScreen() {
   );
 
   return (
-    <Box className="flex-1 bg-white py-4">
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+    <Box className="flex-1 bg-white">
+      <ScrollView className='pt-4' contentContainerStyle={{ paddingBottom: 100 }}>
         <Pressable
           className=" z-10 p-2 bg-white rounded-full shadow self-end mr-4 mb-2"
           onPress={() => {

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { pool } from "../db";
+import { pool } from "../config/db";
 
 async function getProfileIdForUser(userId: number) {
   const { rows } = await pool.query("SELECT id_profiles FROM profiles WHERE user_id=$1", [userId]);

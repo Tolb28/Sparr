@@ -1,6 +1,6 @@
 // Post.tsx
 import { getCommentsForPost } from "../api/discovery";
-import PostComment from "./Comment";
+import CommentSection from "./CommentSection";
 import React, { useState, useCallback, useEffect } from "react";
 import { getToken, ServerIP } from '../api/tokenHandler';
 import { Box } from "@/components/ui/box";
@@ -111,8 +111,9 @@ function FeedPost({ post }: FeedPostProps) {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          postId: post.id_posts,
+          targetId: post.id_posts,
           type,
+          parent: 'post',
         }),
       });
 
@@ -225,7 +226,7 @@ function FeedPost({ post }: FeedPostProps) {
 
     {/* COMMENTS MODAL */}
     <Modal visible={showComments} animationType="slide">
-      <PostComment
+      <CommentSection
         postId={post.id_posts}
         onClose={() => setShowComments(false)}
         onNewComment={handleNewComment}

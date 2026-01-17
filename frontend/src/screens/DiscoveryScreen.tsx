@@ -32,7 +32,6 @@ export default function DiscoveryScreen() {
   }, [offset, loadingMore]);
 
   useEffect(() => {
-    console.log(posts[0]);
     loadMore();
   }, []);
 

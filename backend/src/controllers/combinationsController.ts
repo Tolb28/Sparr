@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { pool } from "../db";
+import { pool } from "../config/db";
 
 export const createCombination = async (req: Request, res: Response) => {
   try {

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { pool } from "../db";
+import { pool } from "../config/db";
 
 export const createTechnique = async (req: Request, res: Response) => {
   try {

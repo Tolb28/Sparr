@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { pool } from '../db';
+import { pool } from '../config/db';
 
 /**
  * Return all accepted friends (profiles) for the authenticated user.

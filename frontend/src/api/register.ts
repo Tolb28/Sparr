@@ -5,7 +5,7 @@ interface RegisterResponse {
   token: string;
   user: { id: string; email: string; username?: string };
 }
-
+ 
 export async function register(email: string, password: string): Promise<RegisterResponse> {
   const payload: any = { email, password };
   const response = await fetch(`${ServerIP}/auth/register`, {
