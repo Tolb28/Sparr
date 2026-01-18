@@ -84,3 +84,35 @@ export const deleteTechnique = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+export const getTechniquesGrouped = async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT 
+        t.*,
+        COALESCE(c.name, 'Unclassified') as category_name
+      FROM techniques t
+      LEFT JOIN category c ON t.category_id_category = c.id_category
+      ORDER BY COALESCE(c.name, 'Unclassified') ASC, t.id_techniques ASC
+    `);
+
+    // Group by category
+    const grouped: { [key: string]: any[] } = {};
+    rows.forEach((tech) => {
+      const catName = tech.category_name;
+      if (!grouped[catName]) grouped[catName] = [];
+      grouped[catName].push(tech);
+    });
+
+    // Convert to array of {categoryName, items}
+    const result = Object.entries(grouped).map(([categoryName, items]) => ({
+      categoryName,
+      items,
+    }));
+
+    res.json({ grouped: result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};

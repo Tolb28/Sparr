@@ -1,22 +1,31 @@
-// ProfileCreateScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import {
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  Modal,
+  FlatList,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
+
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { createProfile } from '../api/profile'; // updated helper below
+import { createProfile } from '../api/profile';
+import { getProfileReferences } from '../api/references';
+
 import { Box } from '@/components/ui/box';
 import { VStack } from '@/components/ui/vstack';
 import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
 import { Input, InputField } from '@/components/ui/input';
 import { Button, ButtonText } from '@/components/ui/button';
-import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
-import { Select, SelectTrigger, SelectInput, SelectIcon, SelectPortal, SelectBackdrop, SelectContent, SelectItem} from "@/components/ui/select";
+import {
+  Avatar,
+  AvatarFallbackText,
+  AvatarImage,
+} from '@/components/ui/avatar';
 import { ChevronDownIcon } from '@/components/ui/icon';
-import { getProfileReferences } from '../api/references';
-
-// image picker
-import { launchImageLibrary, ImageLibraryOptions } from 'react-native-image-picker';
 
 interface ProfileForm {
   display_name?: string;
@@ -25,85 +34,85 @@ interface ProfileForm {
   bio?: string;
   id_weight_class?: number | null;
   id_boxing_style?: number | null;
-  avatar?: string | null; // will hold preview uri
+  avatar?: string | null; // preview URI
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateProfile'>;
 
 export default function ProfileCreateScreen({ navigation }: Props) {
   const [form, setForm] = useState<ProfileForm>({});
-  const [loading, setLoading] = useState(false);
-  const [loadingRefs, setLoadingRefs] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedBoxingStyle, setSelectedBoxingStyle] = useState<number | null>(null);
-  const [selectedWeightClass, setSelectedWeightClass] = useState<number | null>(null);
-  const [boxingStyles, setBoxingStyles] = useState<any[]>([]);
-  const [weightClasses, setWeightClasses] = useState<any[]>([]);
 
-  // local file object for upload
+  const [weightClasses, setWeightClasses] = useState<any[]>([]);
+  const [boxingStyles, setBoxingStyles] = useState<any[]>([]);
+
+  const [selectedWeightClassTitle, setSelectedWeightClassTitle] = useState<string | null>(null);
+  const [selectedBoxingStyleTitle, setSelectedBoxingStyleTitle] = useState<string | null>(null);
+  const [weightDropdownOpen, setWeightDropdownOpen] = useState(false);
+  const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
+
   const [avatarFile, setAvatarFile] = useState<null | {
     uri: string;
-    fileName?: string;
-    type?: string;
+    name: string;
+    type: string;
   }>(null);
 
   useEffect(() => {
     let mounted = true;
+
     const load = async () => {
-      setLoading(true);
-      setLoadingRefs(true);
       try {
-        // If profile exists (rare while creating) redirect to Main
-        // (getUserProfile left out for brevity — add back if needed)
-        // const data = await getUserProfile();
-        // if (mounted && data?.profile) navigation.replace('Main');
-      } catch (err) {
+        const refs = await getProfileReferences();
+        if (!mounted) return;
+        setWeightClasses(refs.weight_classes || []);
+        setBoxingStyles(refs.boxing_styles || []);
+      } catch (e) {
+        console.error(e);
       } finally {
         if (mounted) setLoading(false);
       }
-
-      try {
-        const refs = await getProfileReferences();
-        if (mounted) {
-          setWeightClasses(refs.weight_classes || []);
-          setBoxingStyles(refs.boxing_styles || []);
-        }
-      } catch (err) {
-        console.error('Failed to load profile references', err);
-      } finally {
-        if (mounted) setLoadingRefs(false);
-      }
     };
+
     load();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const pickImage = async () => {
-    const options: ImageLibraryOptions = {
-      mediaType: 'photo',
-      quality: 0.8,
-      includeBase64: false,
-    };
+    const permission =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-    const result = await launchImageLibrary(options);
-
-    if (result.didCancel) return;
-    if (result.errorCode) {
-      Alert.alert('Image picker error', result.errorMessage || 'Unknown error');
+    if (!permission.granted) {
+      Alert.alert(
+        'Permission required',
+        'We need access to your photos to set an avatar.'
+      );
       return;
     }
 
-    const asset = result.assets && result.assets[0];
-    if (!asset || !asset.uri) return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
 
-    // On iOS the uri is fine; Android sometimes gives content://
-    const uri = asset.uri;
-    setForm(prev => ({ ...prev, avatar: uri }));
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+
+    setForm((prev) => ({
+      ...prev,
+      avatar: asset.uri,
+    }));
+
     setAvatarFile({
-      uri,
-      fileName: asset.fileName,
-      type: asset.type,
+      uri: asset.uri,
+      name: 'avatar.jpg',
+      type: asset.mimeType ?? 'image/jpeg',
     });
   };
 
@@ -112,41 +121,33 @@ export default function ProfileCreateScreen({ navigation }: Props) {
     setError(null);
 
     try {
-      // If user picked an image file, send multipart/form-data
+      const fd = new FormData();
+
+      if (form.display_name) fd.append('display_name', form.display_name);
+      if (form.username) fd.append('username', form.username);
+      if (form.location) fd.append('location', form.location);
+      if (form.bio) fd.append('bio', form.bio);
+      if (form.id_weight_class != null)
+        fd.append('id_weight_class', String(form.id_weight_class));
+      if (form.id_boxing_style != null)
+        fd.append('id_boxing_style', String(form.id_boxing_style));
+
       if (avatarFile) {
-        const fd = new FormData();
-
-        // append string fields
-        if (form.display_name) fd.append('display_name', form.display_name);
-        if (form.username) fd.append('username', form.username);
-        if (form.location) fd.append('location', form.location);
-        if (form.bio) fd.append('bio', form.bio);
-        if (form.id_weight_class != null) fd.append('id_weight_class', String(form.id_weight_class));
-        if (form.id_boxing_style != null) fd.append('id_boxing_style', String(form.id_boxing_style));
-
-        // The file object for RN: { uri, name, type }
-        // Ensure the filename exists
-        const name = avatarFile.fileName ?? `avatar.${avatarFile.type?.split('/')[1] ?? 'jpg'}`;
-
-        // On Android keep uri as-is; in some server setups you might need to remove file:// prefix.
+        // React Native FormData expects a file object with uri, name, and type
         fd.append('avatar', {
-          uri: Platform.OS === 'ios' ? avatarFile.uri : avatarFile.uri,
-          name,
-          type: avatarFile.type ?? 'image/jpeg',
+          uri: avatarFile.uri,
+          name: avatarFile.name,
+          type: avatarFile.type,
         } as any);
-
-        // createProfile helper will detect FormData vs JSON
-        await createProfile(fd);
-      } else {
-        // No file chosen — send JSON (avatar may be string or null)
-        await createProfile(form);
       }
+
+      await createProfile(fd);
 
       Alert.alert('Success', 'Profile created successfully');
       navigation.replace('Main');
-    } catch (err: any) {
-      console.error('Create profile failed', err);
-      setError(err?.message ?? 'Failed to create profile');
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? 'Failed to create profile');
     } finally {
       setSaving(false);
     }
@@ -164,24 +165,21 @@ export default function ProfileCreateScreen({ navigation }: Props) {
     <Box className="flex-1 bg-white">
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         <VStack className="p-5 gap-4">
-          <HStack className="justify-center mb-4">
-            <Avatar className="bg-indigo-600" size="xl">
-              <AvatarFallbackText className="text-white">?</AvatarFallbackText>
-              {/* AvatarImage will accept both remote (https) and local file URIs */}
-              <AvatarImage source={{ uri: form.avatar || undefined }} />
-            </Avatar>
+          {/* Avatar Picker */}
+          <HStack className="justify-center">
+            <Pressable onPress={pickImage}>
+              <Avatar size="xl" className="bg-indigo-600">
+                <AvatarFallbackText className="text-white text-xl">
+                  +
+                </AvatarFallbackText>
+                <AvatarImage source={{ uri: form.avatar || undefined }} />
+              </Avatar>
+            </Pressable>
           </HStack>
 
-          <HStack className="justify-center gap-2">
-            <Button onPress={pickImage} disabled={saving}>
-              <ButtonText>Choose Photo</ButtonText>
-            </Button>
-
-            {/* optional: clear photo */}
-            <Button onPress={() => { setForm({ ...form, avatar: undefined }); setAvatarFile(null); }} variant="outline">
-              <ButtonText>Remove</ButtonText>
-            </Button>
-          </HStack>
+          <Text className="text-center text-gray-500 text-sm">
+            Tap to change photo
+          </Text>
 
           {error && (
             <Box className="bg-red-100 p-3 rounded">
@@ -190,101 +188,152 @@ export default function ProfileCreateScreen({ navigation }: Props) {
           )}
 
           <VStack className="gap-3">
+            <Input>
+              <InputField
+                placeholder="Display name"
+                value={form.display_name ?? ''}
+                onChangeText={(t) =>
+                  setForm({ ...form, display_name: t })
+                }
+              />
+            </Input>
+
+            <Input>
+              <InputField
+                placeholder="Username"
+                value={form.username ?? ''}
+                onChangeText={(t) =>
+                  setForm({ ...form, username: t })
+                }
+              />
+            </Input>
+
+            <Input>
+              <InputField
+                placeholder="Location"
+                value={form.location ?? ''}
+                onChangeText={(t) =>
+                  setForm({ ...form, location: t })
+                }
+              />
+            </Input>
+
             <VStack className="gap-1">
-              <Text className="font-semibold text-gray-700">Display Name</Text>
-              <Input className="border border-gray-300 rounded px-3 py-2">
-                <InputField
-                  placeholder="Display name"
-                  value={form.display_name ?? ''}
-                  onChangeText={(text) => setForm({ ...form, display_name: text })}
-                />
-              </Input>
+              <Text className="font-semibold text-gray-700">Weight Class</Text>
+              <Pressable
+                className="border border-gray-300 rounded px-4 py-2.5 flex-row items-center justify-between active:bg-gray-50"
+                onPress={() => setWeightDropdownOpen(true)}
+              >
+                <Text className="text-gray-700">{selectedWeightClassTitle || 'Weight class'}</Text>
+              </Pressable>
+
+              <Modal
+                visible={weightDropdownOpen}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setWeightDropdownOpen(false)}
+              >
+                <Pressable
+                  className="flex-1"
+                  onPress={() => setWeightDropdownOpen(false)}
+                >
+                  <VStack className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-96 overflow-hidden">
+                    <VStack className="p-4 border-b border-gray-200">
+                      <Text className="text-lg font-semibold text-gray-900">Select Weight Class</Text>
+                    </VStack>
+                    <FlatList
+                      data={[{ id_weight_class: null, title_weight: 'None' }, ...weightClasses]}
+                      keyExtractor={(item) => String(item.id_weight_class)}
+                      scrollEnabled={true}
+                      renderItem={({ item }) => (
+                        <Pressable
+                          className="px-4 py-3 border-b border-gray-100 active:bg-gray-50"
+                          onPress={() => {
+                            setSelectedWeightClassTitle(item.title_weight);
+                            setForm({
+                              ...form,
+                              id_weight_class: item.id_weight_class,
+                            });
+                            setWeightDropdownOpen(false);
+                          }}
+                        >
+                          <Text className="text-gray-900">{item.title_weight}</Text>
+                        </Pressable>
+                      )}
+                    />
+                  </VStack>
+                </Pressable>
+              </Modal>
             </VStack>
 
             <VStack className="gap-1">
-              <Text className="font-semibold text-gray-700">Username</Text>
-              <Input className="border border-gray-300 rounded px-3 py-2">
-                <InputField
-                  placeholder="Username"
-                  value={form.username ?? ''}
-                  onChangeText={(text) => setForm({ ...form, username: text })}
-                />
-              </Input>
+              <Text className="font-semibold text-gray-700">Boxing Style</Text>
+              <Pressable
+                className="border border-gray-300 rounded px-4 py-2.5 flex-row items-center justify-between active:bg-gray-50"
+                onPress={() => setStyleDropdownOpen(true)}
+              >
+                <Text className="text-gray-700">{selectedBoxingStyleTitle || 'Boxing style'}</Text>
+              </Pressable>
+
+              <Modal
+                visible={styleDropdownOpen}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setStyleDropdownOpen(false)}
+              >
+                <Pressable
+                  className="flex-1"
+                  onPress={() => setStyleDropdownOpen(false)}
+                >
+                  <VStack className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-96 overflow-hidden">
+                    <VStack className="p-4 border-b border-gray-200">
+                      <Text className="text-lg font-semibold text-gray-900">Select Boxing Style</Text>
+                    </VStack>
+                    <FlatList
+                      data={[{ id_boxing_style: null, title_style: 'None' }, ...boxingStyles]}
+                      keyExtractor={(item) => String(item.id_boxing_style)}
+                      scrollEnabled={true}
+                      renderItem={({ item }) => (
+                        <Pressable
+                          className="px-4 py-3 border-b border-gray-100 active:bg-gray-50"
+                          onPress={() => {
+                            setSelectedBoxingStyleTitle(item.title_style);
+                            setForm({
+                              ...form,
+                              id_boxing_style: item.id_boxing_style,
+                            });
+                            setStyleDropdownOpen(false);
+                          }}
+                        >
+                          <Text className="text-gray-900">{item.title_style}</Text>
+                        </Pressable>
+                      )}
+                    />
+                  </VStack>
+                </Pressable>
+              </Modal>
             </VStack>
 
-            <VStack className="gap-1">
-              <Text className="font-semibold text-gray-700">Location</Text>
-              <Input className="border border-gray-300 rounded px-3 py-2">
-                <InputField
-                  placeholder="Location"
-                  value={form.location ?? ''}
-                  onChangeText={(text) => setForm({ ...form, location: text })}
-                />
-              </Input>
-            </VStack>
-
-            <Text className="font-semibold text-gray-700">Weight Class</Text>
-            <Select selectedValue={selectedWeightClass ? String(selectedWeightClass) : ''} onValueChange={(value) => { setSelectedWeightClass(value ? Number(value) : null); setForm({...form, id_weight_class: value ? Number(value) : null}); }}>
-              <SelectTrigger>
-                <SelectInput placeholder="-- select weight class --" />
-                <SelectIcon>
-                  <ChevronDownIcon />
-                </SelectIcon>
-              </SelectTrigger>
-
-              <SelectPortal>
-                <SelectBackdrop />
-                <SelectContent>
-                  <SelectItem label="None" value="" />
-                  {weightClasses.map((wc) => (
-                    <SelectItem key={wc.id_weight_class} label={wc.title_weight} value={String(wc.id_weight_class)} />
-                  ))}
-                </SelectContent>
-              </SelectPortal>
-            </Select>
-
-            <Text className="font-semibold text-gray-700">Boxing Style</Text>
-            <Select selectedValue={selectedBoxingStyle ? String(selectedBoxingStyle) : ''} onValueChange={(value) => { setSelectedBoxingStyle(value ? Number(value) : null); setForm({...form, id_boxing_style: value ? Number(value) : null}); }}>
-              <SelectTrigger>
-                <SelectInput placeholder="-- select boxing style --" />
-                <SelectIcon>
-                  <ChevronDownIcon />
-                </SelectIcon>
-              </SelectTrigger>
-
-              <SelectPortal>
-                <SelectBackdrop />
-                <SelectContent>
-                  <SelectItem label="None" value="" />
-                  {boxingStyles.map((bs) => (
-                    <SelectItem key={bs.id_boxing_style} label={bs.title_style} value={String(bs.id_boxing_style)} />
-                  ))}
-                </SelectContent>
-              </SelectPortal>
-            </Select>
-
-            <VStack className="gap-1">
-              <Text className="font-semibold text-gray-700">Bio</Text>
-              <Input className="border border-gray-300 rounded px-3 py-2 h-32">
-                <InputField
-                  placeholder="Bio"
-                  value={form.bio ?? ''}
-                  onChangeText={(text) => setForm({ ...form, bio: text })}
-                  multiline
-                  numberOfLines={4}
-                />
-              </Input>
-            </VStack>
-
+            <Input className="h-32">
+              <InputField
+                placeholder="Bio"
+                multiline
+                numberOfLines={4}
+                value={form.bio ?? ''}
+                onChangeText={(t) => setForm({ ...form, bio: t })}
+              />
+            </Input>
           </VStack>
 
           <Button
             onPress={handleCreate}
             disabled={saving}
-            className="bg-white-100 mt-6"
             variant="outline"
+            className="mt-6"
           >
-            <ButtonText>{saving ? 'Creating...' : 'Create Profile'}</ButtonText>
+            <ButtonText>
+              {saving ? 'Creating...' : 'Create Profile'}
+            </ButtonText>
           </Button>
         </VStack>
       </ScrollView>

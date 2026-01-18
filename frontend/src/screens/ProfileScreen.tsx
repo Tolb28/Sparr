@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, ActivityIndicator } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ import { Avatar, AvatarBadge, AvatarFallbackText, AvatarImage } from '@/componen
 import { Grid } from '@/components/ui/grid';
 import { removeProfile } from '../api/profileHandler';
 import { deleteToken } from '../api/tokenHandler';
+import ProfilePosts from '../components/ProfilePosts';
 
 type Profile = { 
   display_name?: string;
@@ -27,6 +28,7 @@ type Profile = {
   avatar?: string | null; 
   title_weight?: string | null; 
   title_style?: string | null; 
+  avatar_url?: string | null;
 };
 
 type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -36,8 +38,35 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [activeTab, setActiveTab] = useState('personalized');
+
+  const loadProfile = async () => {
+    setLoading(true);
+    try {
+      console.log('ProfileScreen: Loading fresh profile data...');
+      const data = await getUserProfile();
+      const p = data?.profile ?? data;
+      console.log('ProfileScreen: Received profile:', p);
+      setProfile(p);
+    } catch (err : any) {
+      setError(err?.message ?? 'Failed to load profile');
+      await deleteToken();
+      await removeProfile();
+      navigation.navigate('Login')
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadProfile();
+    setRefreshTrigger(prev => prev + 1);
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     console.log('loading profile');
@@ -62,6 +91,14 @@ export default function ProfileScreen() {
       mounted = false;
     };
   }, []);
+
+  // Reload profile whenever the screen comes into focus (e.g., after editing)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('ProfileScreen: Focus effect triggered, reloading profile');
+      loadProfile();
+    }, [])
+  );
 
   if (loading) {
     return (
@@ -94,21 +131,14 @@ export default function ProfileScreen() {
   );
 
   const renderPhotos = () => (
-    <Grid className="gap-1 items-center" _extra={{ className: 'grid-cols-3' }}>
-      {[...Array(12)].map((_, index) => (
-        <Box
-          key={index}
-          className="aspect-square bg-gray-200 rounded justify-center items-center"
-        >
-          <Image size="xl" />
-        </Box>
-      ))}
-    </Grid>
+    profile?.id_profiles ? <ProfilePosts profileId={profile.id_profiles} refreshTrigger={refreshTrigger} /> : null
   );
 
   return (
     <Box className="flex-1 bg-white">
-      <ScrollView className='pt-4' contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView className='pt-4 pt-10' contentContainerStyle={{ paddingBottom: 100 }} refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }>
         <Pressable
           className=" z-10 p-2 bg-white rounded-full shadow self-end mr-4 mb-2"
           onPress={() => {
@@ -122,22 +152,22 @@ export default function ProfileScreen() {
         {/* Profile Header */}
         <VStack className=" p-5 gap-4">
           <HStack className="justify-start items-center gap-4">
-            <Avatar className="bg-indigo-600" size="xl">
+            <Avatar className="bg-indigo-600" size="xl" key={profile?.avatar_url}>
               <AvatarFallbackText className="text-white">{profile?.display_name ?? '?'}</AvatarFallbackText>
-              <AvatarImage source={{ uri: profile?.avatar || undefined }} />
+              <AvatarImage source={{ uri: profile?.avatar_url || undefined }} />
             </Avatar>
 
             <VStack className="items-start">
               <Text className="text-2xl font-bold">{profile?.display_name ?? 'Nickname'}</Text>
               <Text className="text-gray-600">@{profile?.username ?? 'username'}</Text>
-              <Text className="text-gray-500">{profile?.location ?? 'Affiliated Club'}</Text>
+              {profile?.location && <Text className="text-gray-500">{profile.location}</Text>}
             </VStack>
           </HStack>
 
           <VStack className="w-full gap-2 mt-2">
-            <Text className="text-sm text-gray-700"><Text className="font-bold">Bio: </Text>{profile?.bio ?? 'No bio provided.'}</Text>
-            <Text className="text-sm text-gray-700"><Text className="font-bold">Weightclass: </Text>{profile?.title_weight ?? '—'}</Text>
-            <Text className="text-sm text-gray-700"><Text className="font-bold">Boxing style: </Text>{profile?.title_style ?? '—'}</Text>
+            {profile?.bio && <Text className="text-sm text-gray-700"><Text className="font-bold">Bio: </Text>{profile.bio}</Text>}
+            {profile?.title_weight && <Text className="text-sm text-gray-700"><Text className="font-bold">Weightclass: </Text>{profile.title_weight}</Text>}
+            {profile?.title_style && <Text className="text-sm text-gray-700"><Text className="font-bold">Boxing style: </Text>{profile.title_style}</Text>}
           </VStack>
 
           <Button 
@@ -161,7 +191,15 @@ export default function ProfileScreen() {
         </HStack>
 
         {activeTab === 'personalized' ? renderPersonalized() : renderPhotos()}
+
       </ScrollView>
+    {/* Floating Action Button */}
+        <Pressable
+          onPress={() => (navigation as any).navigate('CreatePost')}
+          className="absolute bottom-5 right-4 w-14 h-14 bg-blue-600 rounded-full justify-center items-center shadow-lg"
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </Pressable>
     </Box>
   );
 }

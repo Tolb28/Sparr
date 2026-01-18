@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { getCommentsForPost } from "../api/discovery";
 import { getToken, ServerIP } from "../api/tokenHandler";
+import { useNavigation } from "@react-navigation/native";
 
 import Comment, { Comment as CommentType } from "./Comment";
 
@@ -27,6 +28,7 @@ interface CommentSectionProps {
   postId: number;
   onClose: () => void;
   onNewComment: () => void;
+  onNavigateAway?: () => void;
 }
 
 /* =======================
@@ -39,7 +41,9 @@ export default function CommentSection({
   postId,
   onClose,
   onNewComment,
+  onNavigateAway,
 }: CommentSectionProps) {
+  const navigation = useNavigation();
   const [comments, setComments] = useState<CommentType[]>([]);
   const [text, setText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -117,9 +121,11 @@ export default function CommentSection({
           <FlatList
             data={comments}
             keyExtractor={(item) => item.id_comments.toString()}
-            inverted
             contentContainerStyle={{ padding: 16 }}
-            renderItem={({ item }) => <Comment comment={item} />}
+            renderItem={({ item }) => <Comment comment={item} navigation={navigation} onNavigate={() => {
+              onNavigateAway?.();
+              onClose();
+            }} />}
           />
         </View>
 

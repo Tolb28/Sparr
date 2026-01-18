@@ -47,14 +47,7 @@ export class CloudinaryService {
       eager: [
         {
           transformation: [
-            { width: 256, height: 256, crop: "fill", gravity: "face" },
-            { quality: "auto" },
-            { fetch_format: "auto" },
-          ],
-        },
-        {
-          transformation: [
-            { width: 1080, crop: "limit" },
+            { width: 1920, crop: "limit" },
             { quality: "auto" },
             { fetch_format: "auto" },
           ],
@@ -141,6 +134,34 @@ export class CloudinaryService {
 
   generateUrl(publicId: string, options: Record<string, unknown> = {}): string {
     return this.cloud.url(publicId, { secure: true, ...options });
+  }
+
+  /**
+   * Generate avatar URL with cache-busting to prevent browser from serving stale images
+   * when avatars are overwritten in Cloudinary
+   */
+  generateAvatarUrl(publicId: string, updatedAt?: Date | string): string {
+    // Generate a cache-busting token based on updated_at
+    let cacheBuster = '';
+    if (updatedAt) {
+      const timestamp = typeof updatedAt === 'string' 
+        ? new Date(updatedAt).getTime() 
+        : updatedAt.getTime();
+      // Create a short hash from the timestamp to use as cache buster
+      cacheBuster = Math.floor(timestamp / 1000).toString();
+    }
+    
+    const baseUrl = this.cloud.url(publicId, {
+      secure: true,
+      width: 256,
+      height: 256,
+      crop: 'fill',
+      gravity: 'face',
+      // Add version parameter for aggressive cache busting
+      ...(cacheBuster ? { version: cacheBuster } : {})
+    });
+    
+    return baseUrl;
   }
 }
 

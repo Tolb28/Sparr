@@ -25,6 +25,6 @@ export async function deleteToken() {
   }
 }
 
-export const ServerIP = Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.0.0.24:4000/api";
+export const ServerIP = Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.0.0.119:4000/api";
 
 

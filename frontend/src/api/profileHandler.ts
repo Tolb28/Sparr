@@ -7,7 +7,8 @@ type ProfileData = {
   display_name?: string;
   username?: string; 
   location?: string; 
-  avatar?: string | null; 
+  avatar?: string | null;
+  avatar_url?: string | null;
 }
 
 export async function storeProfile(profile: ProfileData) {

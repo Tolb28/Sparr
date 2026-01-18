@@ -121,3 +121,35 @@ export const deleteCombination = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+export const getCombinationsGrouped = async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT 
+        c.*,
+        COALESCE(cat.name, 'Unclassified') as category_name
+      FROM combinations c
+      LEFT JOIN category cat ON c.category_id_category = cat.id_category
+      ORDER BY COALESCE(cat.name, 'Unclassified') ASC, c.id_combinations ASC
+    `);
+
+    // Group by category
+    const grouped: { [key: string]: any[] } = {};
+    rows.forEach((combo) => {
+      const catName = combo.category_name;
+      if (!grouped[catName]) grouped[catName] = [];
+      grouped[catName].push(combo);
+    });
+
+    // Convert to array of {categoryName, items}
+    const result = Object.entries(grouped).map(([categoryName, items]) => ({
+      categoryName,
+      items,
+    }));
+
+    res.json({ grouped: result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};

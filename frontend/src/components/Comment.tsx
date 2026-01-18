@@ -17,6 +17,7 @@ import { Avatar, AvatarFallbackText, AvatarImage } from "@/components/ui/avatar"
 import { ThumbsUp, ThumbsDown } from "lucide-react-native";
 
 import { getToken, ServerIP } from "../api/tokenHandler";
+import { useNavigation } from "@react-navigation/core";
 
 /* =======================
    TYPES
@@ -27,6 +28,7 @@ export interface Comment {
   display_name: string;
   content: string;
   avatar?: string | null;
+  avatar_url?: string | null;
   likes_count?: number;
   dislikes_count?: number;
   id_profiles: number;
@@ -35,6 +37,8 @@ export interface Comment {
 
 interface CommentProps {
   comment: Comment;
+  navigation?: any;
+  onNavigate?: () => void;
 }
 
 /* =======================
@@ -42,10 +46,11 @@ interface CommentProps {
    - owns animation + interactions + network calls
 ======================= */
 
-export default function Comment({ comment }: CommentProps) {
+export default function Comment({ comment, navigation: navigationProp, onNavigate }: CommentProps) {
+  const navigation = navigationProp || useNavigation();
   // keep internal state so this component can be fully self-contained
-  const [likes, setLikes] = useState<number>(comment.likes_count ?? 0);
-  const [dislikes, setDislikes] = useState<number>(comment.dislikes_count ?? 0);
+  const [likes, setLikes] = useState<number>(Number(comment.likes_count) ?? 0);
+  const [dislikes, setDislikes] = useState<number>(Number(comment.dislikes_count) ?? 0);
   const [interaction, setInteraction] = useState<"like" | "dislike" | null>(
     comment.user_interaction ?? null
   );
@@ -53,9 +58,10 @@ export default function Comment({ comment }: CommentProps) {
 
   // keep in-sync if parent replaces the comment object (e.g. after re-fetch)
   useEffect(() => {
-    setLikes(comment.likes_count ?? 0);
-    setDislikes(comment.dislikes_count ?? 0);
+    setLikes(Number(comment.likes_count) ?? 0);
+    setDislikes(Number(comment.dislikes_count) ?? 0);
     setInteraction(comment.user_interaction ?? null);
+    console.log("Comment object:", comment);
   }, [comment]);
 
   // Reanimated values & styles
@@ -92,19 +98,21 @@ export default function Comment({ comment }: CommentProps) {
     setInteraction((cur) => (cur === type ? null : type));
 
     setLikes((prev) => {
+      const numPrev = Number(prev) || 0;
       if (type === "like") {
-        if (prevInteraction === "like") return prev - 1;
-        return prevInteraction === "dislike" ? prev + 1 : prev + 1;
+        if (prevInteraction === "like") return numPrev - 1;
+        return prevInteraction === "dislike" ? numPrev + 1 : numPrev + 1;
       }
-      return prev;
+      return numPrev;
     });
 
     setDislikes((prev) => {
+      const numPrev = Number(prev) || 0;
       if (type === "dislike") {
-        if (prevInteraction === "dislike") return prev - 1;
-        return prevInteraction === "like" ? prev + 1 : prev + 1;
+        if (prevInteraction === "dislike") return numPrev - 1;
+        return prevInteraction === "like" ? numPrev + 1 : numPrev + 1;
       }
-      return prev;
+      return numPrev;
     });
 
     try {
@@ -150,16 +158,40 @@ export default function Comment({ comment }: CommentProps) {
 
   return (
     <Box className="mb-4">
+      
       <HStack className="items-center mb-2 gap-2">
-        <Avatar className="bg-indigo-600" size="md">
+        {/* User row */}
+      <Pressable onPress={() => {
+        console.log("Avatar pressed, id_profiles:", comment.id_profiles);
+        if (comment.id_profiles) {
+          onNavigate?.();
+          setTimeout(() => {
+            (navigation as any).navigate('ForeignProfile', { foreign_profile_id: comment.id_profiles });
+          }, 200);
+        }
+      }}>
+        <HStack className="items-center mb-3 gap-2">
+          <Avatar className="bg-indigo-600" size="md">
           <AvatarFallbackText className="text-white">
             {comment?.display_name?.[0] ?? "?"}
           </AvatarFallbackText>
-          <AvatarImage source={{ uri: comment?.avatar || undefined }} />
+          <AvatarImage source={{ uri: comment?.avatar_url || undefined }} />
         </Avatar>
+        </HStack>
+      </Pressable>
 
         <VStack className="flex-1">
-          <Text className="font-bold text-base">{comment.display_name}</Text>
+          <Pressable onPress={() => {
+            console.log("Display name pressed, id_profiles:", comment.id_profiles);
+            if (comment.id_profiles) {
+              onNavigate?.();
+              setTimeout(() => {
+                (navigation as any).navigate('ForeignProfile', { foreign_profile_id: comment.id_profiles });
+              }, 200);
+            }
+          }}>
+            <Text className="font-bold text-base">{comment.display_name}</Text>
+          </Pressable>
           <Text className="text-gray-700">{comment.content}</Text>
 
           <HStack className="gap-4 mt-2 items-center">

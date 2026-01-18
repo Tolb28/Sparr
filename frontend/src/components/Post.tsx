@@ -1,14 +1,15 @@
 // Post.tsx
 import { getCommentsForPost } from "../api/discovery";
 import CommentSection from "./CommentSection";
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { getToken, ServerIP } from '../api/tokenHandler';
 import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { Image } from "@/components/ui/image";
+import { Image as RNImage, View } from "react-native";
 import { Modal } from "react-native";
+import { useVideoPlayer, VideoView } from 'expo-video';
 import {
   User,
   ThumbsUp,
@@ -16,10 +17,11 @@ import {
   MessageCircle,
 } from "lucide-react-native";
 import { Pressable } from "@/components/ui/pressable";
-import { useNavigation } from "@react-navigation/core";
+import { useNavigation, useFocusEffect } from "@react-navigation/core";
 import { getProfile } from "../api/profileHandler";
 
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
+import { Avatar, AvatarFallbackText, AvatarImage } from "@/components/ui/avatar";
 
 interface FeedPostProps {
   post: {
@@ -33,6 +35,8 @@ interface FeedPostProps {
     dislikes_count?: number;
     id_profiles: number;
     user_interaction?: 'like' | 'dislike' | null;
+    avatar?: string | null;
+    avatar_url?: string | null;
   };
 }
 
@@ -40,6 +44,7 @@ interface UserProfile {
   id_profiles: number;
   display_name: string;
   avatar?: string | null;
+  avatar_url?: string | null;
 }
 
 function FeedPost({ post }: FeedPostProps) {
@@ -47,13 +52,53 @@ function FeedPost({ post }: FeedPostProps) {
 
   console.log("Post:", post);
 
-  const [likes, setLikes] = useState(post.likes_count || 0);
-  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
-  const [dislikes, setDislikes] = useState(post.dislikes_count || 0);
+  const [likes, setLikes] = useState(Number(post.likes_count) || 0);
+  const [commentsCount, setCommentsCount] = useState(Number(post.comments_count) || 0);
+  const [dislikes, setDislikes] = useState(Number(post.dislikes_count) || 0);
   const [interaction, setInteraction] = useState<'like' | 'dislike' | null>(post.user_interaction || null);
   const [loading, setLoading] = useState(false);
 
   const [showComments, setShowComments] = useState(false);
+  const [mediaDimensions, setMediaDimensions] = useState<{ width: number; height: number } | null>(null);
+  const commentsWereOpenRef = useRef(false);
+  
+  // Create video player if source is a video
+  const isVideo = post.source && (post.source.includes('.mp4') || post.source.includes('video'));
+  const player = useVideoPlayer(isVideo ? post.source || null : null, player => {
+    player.play();
+  });
+
+  // Load image dimensions
+  useEffect(() => {
+    if (post.source && !isVideo) {
+      RNImage.getSize(
+        post.source,
+        (width, height) => {
+          setMediaDimensions({ width, height });
+        },
+        (error) => {
+          console.log("Error loading image dimensions:", error);
+          // Fallback to default if loading fails
+          setMediaDimensions({ width: 1, height: 1 });
+        }
+      );
+    } else if (isVideo) {
+      // For videos, try to get dimensions from metadata or use a default vertical aspect ratio
+      // Most videos are vertical, so we default to 9:16 aspect ratio
+      setMediaDimensions({ width: 9, height: 16 });
+    }
+  }, [post.source, isVideo]);
+
+  // Restore comments modal when returning from navigation
+  useFocusEffect(
+    useCallback(() => {
+      if (commentsWereOpenRef.current) {
+        setShowComments(true);
+        commentsWereOpenRef.current = false;
+      }
+    }, [])
+  );
+  
   // Reanimated shared values for scale
   const likeScale = useSharedValue(1);
   const dislikeScale = useSharedValue(1);
@@ -86,19 +131,21 @@ function FeedPost({ post }: FeedPostProps) {
     setInteraction(current => (current === type ? null : type));
 
     setLikes(prev => {
+      const numPrev = Number(prev) || 0;
       if (type === 'like') {
-        if (prevInteraction === 'like') return prev - 1;
-        return prevInteraction === 'dislike' ? prev + 1 : prev + 1;
+        if (prevInteraction === 'like') return numPrev - 1;
+        return prevInteraction === 'dislike' ? numPrev + 1 : numPrev + 1;
       }
-      return prev;
+      return numPrev;
     });
 
     setDislikes(prev => {
+      const numPrev = Number(prev) || 0;
       if (type === 'dislike') {
-        if (prevInteraction === 'dislike') return prev - 1;
-        return prevInteraction === 'like' ? prev + 1 : prev + 1;
+        if (prevInteraction === 'dislike') return numPrev - 1;
+        return prevInteraction === 'like' ? numPrev + 1 : numPrev + 1;
       }
-      return prev;
+      return numPrev;
     });
 
     try {
@@ -161,19 +208,34 @@ function FeedPost({ post }: FeedPostProps) {
       {/* User row */}
       <Pressable onPress={() => (navigation as any).navigate('ForeignProfile', { foreign_profile_id: post.id_profiles })}>
         <HStack className="items-center mb-3 gap-2">
-          <Icon as={User} size="lg" className="text-gray-700" />
+          <Avatar className="bg-indigo-600" size="md">
+          <AvatarFallbackText className="text-white">
+            {post?.display_name?.[0] ?? "?"}
+          </AvatarFallbackText>
+          <AvatarImage source={{ uri: post?.avatar_url || undefined }} />
+        </Avatar>
           <Text className="font-bold text-base">{post.display_name}</Text>
         </HStack>
       </Pressable>
 
       {/* Post media */}
       {post.source && (
-        <Box className="rounded-md mb-3 justify-center items-center aspect-square bg-gray-200">
-          <Image
-            source={{ uri: post.source }}
-            className="rounded-md aspect-square"
-            resizeMode="cover"
-          />
+        <Box className="rounded-md mb-3 w-full bg-gray-200 overflow-hidden" style={{ aspectRatio: mediaDimensions ? mediaDimensions.width / mediaDimensions.height : 1 }}>
+          {isVideo ? (
+            <VideoView
+              player={player}
+              style={{ width: '100%', height: '100%' }}
+              nativeControls={true}
+              allowsFullscreen={true}
+              allowsPictureInPicture={true}
+            />
+          ) : (
+            <RNImage
+              source={{ uri: post.source }}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          )}
         </Box>
       )}
 
@@ -230,6 +292,9 @@ function FeedPost({ post }: FeedPostProps) {
         postId={post.id_posts}
         onClose={() => setShowComments(false)}
         onNewComment={handleNewComment}
+        onNavigateAway={() => {
+          commentsWereOpenRef.current = true;
+        }}
       />
     </Modal>
     </>

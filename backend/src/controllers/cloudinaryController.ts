@@ -1,5 +1,6 @@
 import fs from "fs";
 import { cloudinaryService } from "../services/cloudinaryService";
+import { pool } from "../config/db";
 
 export type MediaResponse = {
   public_id: string;
@@ -14,8 +15,17 @@ function safeUnlink(filePath: string) {
   });
 }
 
-async function setUserAvatarSrc(userId: string | number, publicId: string): Promise<void> {
-  console.log(`DB: set users.avatar_src = "${publicId}" for user ${userId}`);
+async function setProfileAvatarSrc(profileId: string | number, publicId: string): Promise<void> {
+  try {
+    await pool.query(
+      "UPDATE profiles SET avatar = $1 WHERE id_profiles = $2",
+      [publicId, profileId]
+    );
+    console.log(`✅ Updated profile avatar to "${publicId}" for profile ${profileId}`);
+  } catch (err) {
+    console.error(`❌ Failed to update avatar in database:`, err);
+    throw err;
+  }
 }
 
 async function setPostSrc(postId: string | number, publicId: string): Promise<void> {
@@ -23,20 +33,20 @@ async function setPostSrc(postId: string | number, publicId: string): Promise<vo
 }
 
 export const cloudinaryController = {
-  async changeAvatar(userId: string | number, localFilePath: string, mimetype: string): Promise<MediaResponse> {
+  async changeAvatar(profileId: string | number, localFilePath: string, mimetype: string): Promise<MediaResponse> {
     if (!mimetype.startsWith("image/")) {
       safeUnlink(localFilePath);
       throw new Error("Avatar must be an image");
     }
 
-    const folder = `users/avatars/${userId}`;
+    const folder = `avatars/${profileId}`;
     const publicId = "main";
 
     try {
       const result = await cloudinaryService.uploadImage(localFilePath, { folder, publicId });
       const fullPublicId = `${folder}/${publicId}`;
 
-      await setUserAvatarSrc(userId, fullPublicId);
+      await setProfileAvatarSrc(profileId, fullPublicId);
 
       return {
         public_id: fullPublicId,
@@ -80,10 +90,10 @@ export const cloudinaryController = {
     }
   },
 
-  async deleteAvatar(userId: string | number): Promise<void> {
-    const prefix = `users/avatars/${userId}`;
+  async deleteAvatar(profileId: string | number): Promise<void> {
+    const prefix = `avatars/${profileId}`;
     await cloudinaryService.deleteResourcesByPrefix(prefix);
-    await setUserAvatarSrc(userId, "");
+    await setProfileAvatarSrc(profileId, "");
   },
 
   async deletePostMedia(postId: string | number): Promise<void> {

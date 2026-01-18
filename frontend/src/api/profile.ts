@@ -11,6 +11,7 @@ export async function getUserProfile() {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
@@ -27,15 +28,47 @@ export async function getUserProfile() {
   }
 
   const data = await response.json();
+  console.log('Fetched profile from server:', data);
   await storeProfile(data?.profile ?? data);
 
   return data;
 }
 
+
 export async function updateProfile(updates: any) {
   const token = await getToken();
 
   console.log('Updating profile with data:', updates);
+
+  // If updates is FormData (contains a file), send it as multipart/form-data
+  if (updates instanceof FormData) {
+    const response = await fetch(`${ServerIP}/auth/profile`, {
+      method: 'PUT',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // Don't set Content-Type header for FormData - the browser will set it with boundary
+      },
+      body: updates,
+    });
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
+      const errorMessage = errorData?.error || errorData?.message;
+      throw new Error(errorMessage || 'Failed to update profile');
+    }
+
+    const data = await response.json();
+    // Store the updated profile
+    await storeProfile(data?.profile ?? data);
+    return data;
+  }
+
+  // Otherwise, send as JSON
   const response = await fetch(`${ServerIP}/auth/profile`, {
     method: 'PUT',
     headers: {
@@ -56,7 +89,10 @@ export async function updateProfile(updates: any) {
     throw new Error(errorMessage || 'Failed to update profile');
   }
 
-  return response.json();
+  const data = await response.json();
+  // Store the updated profile
+  await storeProfile(data?.profile ?? data);
+  return data;
 }
 
 export async function deleteProfile() {
@@ -87,6 +123,32 @@ export async function deleteProfile() {
 export async function createProfile(payload: any) {
   const token = await getToken();
 
+  // If payload is FormData (contains a file), send it as multipart/form-data
+  if (payload instanceof FormData) {
+    const response = await fetch(`${ServerIP}/auth/profile`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // Don't set Content-Type header for FormData - the browser will set it with boundary
+      },
+      body: payload,
+    });
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
+      const errorMessage = errorData?.error || errorData?.message;
+      throw new Error(errorMessage || 'Failed to create profile');
+    }
+
+    return response.json();
+  }
+
+  // Otherwise, send as JSON
   const response = await fetch(`${ServerIP}/auth/profile`, {
     method: 'POST',
     headers: {
