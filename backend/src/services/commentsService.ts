@@ -1,4 +1,5 @@
 import { pool } from "../config/db";
+import { cloudinaryService } from "./cloudinaryService";
 
 interface GetCommentsOptions {
   postId: number;
@@ -6,6 +7,28 @@ interface GetCommentsOptions {
   offset?: number;
   profileId?: number | null;
 }
+
+export const createComment = async (
+  postId: number,
+  profileId: number,
+  content: string
+): Promise<any> => {
+  const query = `
+    INSERT INTO comments (id_profile, posts_id_posts, content, created_at)
+    VALUES ($1, $2, $3, NOW())
+    RETURNING 
+      id_comments,
+      content,
+      created_at,
+      id_profile AS user_id,
+      posts_id_posts;
+  `;
+
+  const values = [profileId, postId, content];
+  const { rows } = await pool.query(query, values);
+  
+  return rows[0];
+};
 
 export const getComments = async ({
   postId,
@@ -19,9 +42,10 @@ export const getComments = async ({
       c.content,
       c.created_at,
 
-      pr.id_profiles        AS user_id,
+      pr.id_profiles,
       pr.display_name,
       pr.avatar,
+      pr.updated_at,
 
       COALESCE(i.likes_count, 0)    AS likes_count,
       COALESCE(i.dislikes_count, 0) AS dislikes_count,
@@ -58,5 +82,10 @@ export const getComments = async ({
   const values = [profileId, postId, limit, offset];
 
   const { rows } = await pool.query(query, values);
-  return rows;
+  
+  // Generate avatar URLs for each comment with cache-busting
+  return rows.map(row => ({
+    ...row,
+    avatar_url: row.avatar ? cloudinaryService.generateAvatarUrl(row.avatar, row.updated_at) : null
+  }));
 };

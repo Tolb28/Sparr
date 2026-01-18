@@ -1,26 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import { GestureResponderEvent, View } from 'react-native';
 import ProfileScreen from '../screens/ProfileScreen';
 import CalendarScreen from '../screens/CalendarScreen'; // replaced inline placeholder with real screen
 import DiscoveryScreen from '../screens/DiscoveryScreen'; // replaced inline placeholder with real screen
+import TechniqueScreen from '../screens/TechniqueScreen';
 import { Box } from '@/components/ui/box';
 import { Pressable} from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
 import FriendsScreen from '../screens/FriendsScreen';
+import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
+import { getUserProfile } from '../api/profile';
 
 const Tab = createBottomTabNavigator();
 
 const ICONS: Record<string, string> = {
   Calendar: 'calendar-outline',
-  Workouts: 'barbell-outline',
+  Techniques: 'barbell-outline',
   Friends: 'people-outline',
   Discovery: 'clipboard-outline',
-  Profile: 'person-circle-outline',
+  Profile: 'profile',
 };
 
-function CustomTabBar({ state, descriptors, navigation }: any) {
+function CustomTabBar({ state, descriptors, navigation, profile }: any) {
   return (
     <Box
       style={{
@@ -67,7 +71,10 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
             accessibilityRole="button"
             style={{ alignItems: 'center', justifyContent: 'center' }}
           >
-            <Ionicons name={iconName as any} size={size} color={color} />
+            {iconName === 'profile' ? <Avatar className="bg-indigo-600" size="md" key={profile?.avatar_url}>
+              <AvatarFallbackText className="text-white">{profile?.display_name ?? '?'}</AvatarFallbackText>
+              <AvatarImage source={{ uri: profile?.avatar_url || undefined }} />
+            </Avatar> : <Ionicons name={iconName as any} size={size} color={color} />}
           </Pressable>
         );
       })}
@@ -76,14 +83,38 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 }
 
 export default function BottomTabNavigator() {
+  const [profile, setProfile] = useState<any>(null);
+
+  const loadProfile = async () => {
+    try {
+      const data = await getUserProfile();
+      const parsedProfile = data?.profile ?? data;
+      setProfile(parsedProfile);
+    } catch (err) {
+      console.error('Failed to load profile for tab bar:', err);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  // Reload profile whenever the navigator comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadProfile();
+    }, [])
+  );
+
   return (
     <Tab.Navigator
       initialRouteName="Profile"
       screenOptions={{ headerShown: false }}
-      tabBar={(props) => <CustomTabBar {...props} />}
+      tabBar={(props) => <CustomTabBar {...props} profile={profile} />}
     >
       <Tab.Screen name="Calendar" component={CalendarScreen} />
-      <Tab.Screen name="Workouts" component={() => <View />} />
+      <Tab.Screen name="Techniques" component={TechniqueScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Discovery" component={DiscoveryScreen} />
       <Tab.Screen name="Friends" component={FriendsScreen} />

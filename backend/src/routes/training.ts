@@ -6,6 +6,7 @@ import {
   getDrill,
   updateDrill,
   deleteDrill,
+  getDrillsGrouped,
 } from "../controllers/drillsController";
 import {
   createTechnique,
@@ -13,6 +14,7 @@ import {
   getTechnique,
   updateTechnique,
   deleteTechnique,
+  getTechniquesGrouped,
 } from "../controllers/techniquesController";
 import {
   createCombination,
@@ -20,6 +22,7 @@ import {
   getCombination,
   updateCombination,
   deleteCombination,
+  getCombinationsGrouped,
 } from "../controllers/combinationsController";
 import {
   createTraining,
@@ -47,6 +50,7 @@ const router = Router();
 
 // Drills
 router.get("/drills", getDrills);
+router.get("/drills/grouped", getDrillsGrouped);
 router.post("/drills", authenticate, createDrill);
 router.get("/drills/:id", getDrill);
 router.put("/drills/:id", authenticate, updateDrill);
@@ -54,6 +58,7 @@ router.delete("/drills/:id", authenticate, deleteDrill);
 
 // Techniques
 router.get("/techniques", getTechniques);
+router.get("/techniques/grouped", getTechniquesGrouped);
 router.post("/techniques", authenticate, createTechnique);
 router.get("/techniques/:id", getTechnique);
 router.put("/techniques/:id", authenticate, updateTechnique);
@@ -61,6 +66,7 @@ router.delete("/techniques/:id", authenticate, deleteTechnique);
 
 // Combinations
 router.get("/combinations", getCombinations);
+router.get("/combinations/grouped", getCombinationsGrouped);
 router.post("/combinations", authenticate, createCombination);
 router.get("/combinations/:id", getCombination);
 router.put("/combinations/:id", authenticate, updateCombination);
@@ -76,7 +82,7 @@ router.delete("/trainings/components/:compId", authenticate, deleteTrainingCompo
 
 // Training calendars
 router.post("/calendars", authenticate, createCalendar);
-router.get("/calendars/public", listPublicCalendars);
+router.get("/calendars/public", authenticate, listPublicCalendars);
 router.get("/calendars/selected", authenticate, getSelectedCalendarForProfile);
 router.get("/calendars/:id", getCalendar);
 router.post("/calendars/:id/trainings", authenticate, addTrainingToCalendar);

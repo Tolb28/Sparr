@@ -13,6 +13,7 @@ interface FriendProps {
     display_name?: string;
     username?: string;
     avatar?: string | null;
+    avatar_url?: string | null;
     location?: string | null;
   };
 }
@@ -25,8 +26,8 @@ export default function Friend({ friend }: FriendProps) {
     <Box className="bg-white mx-3 mb-3 p-3 rounded-lg border border-gray-200">
       <HStack className="items-center gap-3">
         <Avatar size="md">
-          {friend.avatar ? (
-            <AvatarImage source={{ uri: friend.avatar }} />
+          {friend.avatar_url ? (
+            <AvatarImage source={{ uri: friend.avatar_url }} />
           ) : (
             <AvatarFallbackText>{(friend.display_name || 'U')}</AvatarFallbackText>
           )}

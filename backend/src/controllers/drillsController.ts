@@ -86,3 +86,35 @@ export const deleteDrill = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+export const getDrillsGrouped = async (_req: Request, res: Response) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT 
+        d.*,
+        COALESCE(c.name, 'Unclassified') as category_name
+      FROM drills d
+      LEFT JOIN category c ON d.category_id_category = c.id_category
+      ORDER BY COALESCE(c.name, 'Unclassified') ASC, d.id_drills ASC
+    `);
+
+    // Group by category
+    const grouped: { [key: string]: any[] } = {};
+    rows.forEach((drill) => {
+      const catName = drill.category_name;
+      if (!grouped[catName]) grouped[catName] = [];
+      grouped[catName].push(drill);
+    });
+
+    // Convert to array of {categoryName, items}
+    const result = Object.entries(grouped).map(([categoryName, items]) => ({
+      categoryName,
+      items,
+    }));
+
+    res.json({ grouped: result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};

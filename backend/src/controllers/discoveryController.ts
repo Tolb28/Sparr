@@ -7,8 +7,10 @@ export const getDiscoveryFeed = async (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = parseInt(req.query.offset as string) || 0;
     const profileId = req.query.profileId ? parseInt(req.query.profileId as string) : null;
+    const ownerId = req.query.ownerId ? parseInt(req.query.ownerId as string) : null;
+    const search = req.query.search ? (req.query.search as string) : null;
 
-    const posts = await getPosts({ limit, offset, profileId });
+    const posts = await getPosts({ limit, offset, profileId, ownerId, search });
 
     res.json({
       success: true,

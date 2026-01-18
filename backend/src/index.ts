@@ -21,7 +21,9 @@ pool
 
 const app = express();
 app.use(cors());
+// Only parse JSON for non-multipart requests
 app.use(express.json());
+// For file uploads, we let multer handle the body parsing in the routes
 
 app.get("/", (req, res) => res.send("Boxing App API is running!"));
 app.use("/api/auth", authRouter);
