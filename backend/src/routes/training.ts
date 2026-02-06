@@ -7,6 +7,7 @@ import {
   updateDrill,
   deleteDrill,
   getDrillsGrouped,
+  getDrillPreview,
 } from "../controllers/drillsController";
 import {
   createTechnique,
@@ -15,6 +16,7 @@ import {
   updateTechnique,
   deleteTechnique,
   getTechniquesGrouped,
+  getTechniquePreview,
 } from "../controllers/techniquesController";
 import {
   createCombination,
@@ -23,6 +25,7 @@ import {
   updateCombination,
   deleteCombination,
   getCombinationsGrouped,
+  getCombinationPreview,
 } from "../controllers/combinationsController";
 import {
   createTraining,
@@ -51,6 +54,7 @@ const router = Router();
 // Drills
 router.get("/drills", getDrills);
 router.get("/drills/grouped", getDrillsGrouped);
+router.get("/drills/:id/preview", getDrillPreview);
 router.post("/drills", authenticate, createDrill);
 router.get("/drills/:id", getDrill);
 router.put("/drills/:id", authenticate, updateDrill);
@@ -59,6 +63,7 @@ router.delete("/drills/:id", authenticate, deleteDrill);
 // Techniques
 router.get("/techniques", getTechniques);
 router.get("/techniques/grouped", getTechniquesGrouped);
+router.get("/techniques/:id/preview", getTechniquePreview);
 router.post("/techniques", authenticate, createTechnique);
 router.get("/techniques/:id", getTechnique);
 router.put("/techniques/:id", authenticate, updateTechnique);
@@ -67,6 +72,7 @@ router.delete("/techniques/:id", authenticate, deleteTechnique);
 // Combinations
 router.get("/combinations", getCombinations);
 router.get("/combinations/grouped", getCombinationsGrouped);
+router.get("/combinations/:id/preview", getCombinationPreview);
 router.post("/combinations", authenticate, createCombination);
 router.get("/combinations/:id", getCombination);
 router.put("/combinations/:id", authenticate, updateCombination);

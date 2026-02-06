@@ -37,4 +37,4 @@ export async function removeProfile() {
   }
 }
 
-export const ServerIP = Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.0.0.38:4000/api";
+export const ServerIP = Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.20.4.17:4000/api";

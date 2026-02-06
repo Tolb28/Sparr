@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { pool } from "../config/db";
+import { cloudinaryService } from "../services/cloudinaryService";
 
 export const createTechnique = async (req: Request, res: Response) => {
   try {
@@ -19,7 +20,12 @@ export const createTechnique = async (req: Request, res: Response) => {
 export const getTechniques = async (_req: Request, res: Response) => {
   try {
     const { rows } = await pool.query("SELECT * FROM techniques ORDER BY id_techniques ASC");
-    res.json({ techniques: rows });
+    const techniquesWithUrls = rows.map((tech: any) => ({
+      ...tech,
+      source_url: tech.source ? cloudinaryService.generateDrillUrl(`${tech.source}/preview`) : undefined,
+      video_url: tech.source ? cloudinaryService.generateVideoUrl(`${tech.source}/video`) : undefined,
+    }));
+    res.json({ techniques: techniquesWithUrls });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -31,7 +37,9 @@ export const getTechnique = async (req: Request, res: Response) => {
     const id = parseInt(req.params.id as string, 10);
     const { rows } = await pool.query("SELECT * FROM techniques WHERE id_techniques=$1", [id]);
     if (!rows[0]) return res.status(404).json({ error: "Not found" });
-    res.json({ technique: rows[0] });
+    const technique = rows[0];
+    if (technique.source) technique.video_url = cloudinaryService.generateVideoUrl(`${technique.source}/video`);
+    res.json({ technique });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -100,6 +108,10 @@ export const getTechniquesGrouped = async (_req: Request, res: Response) => {
     const grouped: { [key: string]: any[] } = {};
     rows.forEach((tech) => {
       const catName = tech.category_name;
+      if (tech.source) {
+        tech.source_url = cloudinaryService.generateDrillUrl(`${tech.source}/preview`);
+        tech.video_url = cloudinaryService.generateVideoUrl(`${tech.source}/video`);
+      }
       if (!grouped[catName]) grouped[catName] = [];
       grouped[catName].push(tech);
     });
@@ -113,6 +125,28 @@ export const getTechniquesGrouped = async (_req: Request, res: Response) => {
     res.json({ grouped: result });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getTechniquePreview = async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string, 10);
+    const { rows } = await pool.query("SELECT source FROM techniques WHERE id_techniques=$1", [id]);
+    if (!rows[0]) return res.status(404).json({ error: "Technique not found" });
+
+    const source = rows[0].source;
+    if (!source) return res.status(404).json({ error: "No preview available" });
+
+    // source is the Cloudinary public_id (e.g., "techniques/1")
+    // Add /preview suffix to get the actual preview public_id
+    const previewPublicId = `${source}/preview`;
+    // Generate the Cloudinary URL via cloudinaryService
+    const cloudinaryUrl = cloudinaryService.generateDrillUrl(previewPublicId);
+    
+    res.json({ url: cloudinaryUrl });
+  } catch (err) {
+    console.error('Error in getTechniquePreview:', err);
     res.status(500).json({ error: "Server error" });
   }
 };

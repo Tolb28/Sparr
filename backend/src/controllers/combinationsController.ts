@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { pool } from "../config/db";
+import { cloudinaryService } from "../services/cloudinaryService";
 
 export const createCombination = async (req: Request, res: Response) => {
   try {
@@ -11,8 +12,9 @@ export const createCombination = async (req: Request, res: Response) => {
       [title, description || null, source || null]
     );
 
-    const combo = rows[0];
-
+    const combo = rows[0];    if (combo.source) {
+      combo.source_url = cloudinaryService.generateDrillUrl(`${combo.source}/preview`);
+    }
     if (Array.isArray(techniques) && techniques.length > 0) {
       const insertVals: any[] = [];
       const placeholders: string[] = [];
@@ -33,7 +35,12 @@ export const createCombination = async (req: Request, res: Response) => {
 export const getCombinations = async (_req: Request, res: Response) => {
   try {
     const { rows } = await pool.query("SELECT * FROM combinations ORDER BY id_combinations ASC");
-    res.json({ combinations: rows });
+    const combinationsWithUrls = rows.map((combo) => ({
+      ...combo,
+      source_url: combo.source ? cloudinaryService.generateDrillUrl(`${combo.source}/preview`) : undefined,
+      video_url: combo.source ? cloudinaryService.generateVideoUrl(`${combo.source}/video`) : undefined,
+    }));
+    res.json({ combinations: combinationsWithUrls });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -47,6 +54,11 @@ export const getCombination = async (req: Request, res: Response) => {
     if (!rows[0]) return res.status(404).json({ error: "Not found" });
 
     const combo = rows[0];
+    if (combo.source) {
+      combo.source_url = cloudinaryService.generateDrillUrl(`${combo.source}/preview`);
+      combo.video_url = cloudinaryService.generateVideoUrl(`${combo.source}/video`);
+    }
+
     const { rows: techRows } = await pool.query(
       `SELECT t.* FROM combinations_techniques ct JOIN techniques t ON ct.techniques_id_techniques = t.id_techniques WHERE ct.combinations_id_combinations = $1`,
       [id]
@@ -137,6 +149,10 @@ export const getCombinationsGrouped = async (_req: Request, res: Response) => {
     const grouped: { [key: string]: any[] } = {};
     rows.forEach((combo) => {
       const catName = combo.category_name;
+      if (combo.source) {
+        combo.source_url = cloudinaryService.generateDrillUrl(`${combo.source}/preview`);
+        combo.video_url = cloudinaryService.generateVideoUrl(`${combo.source}/video`);
+      }
       if (!grouped[catName]) grouped[catName] = [];
       grouped[catName].push(combo);
     });
@@ -150,6 +166,28 @@ export const getCombinationsGrouped = async (_req: Request, res: Response) => {
     res.json({ grouped: result });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getCombinationPreview = async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string, 10);
+    const { rows } = await pool.query("SELECT source FROM combinations WHERE id_combinations=$1", [id]);
+    if (!rows[0]) return res.status(404).json({ error: "Combination not found" });
+
+    const source = rows[0].source;
+    if (!source) return res.status(404).json({ error: "No preview available" });
+
+    // source is the Cloudinary public_id (e.g., "combinations/1")
+    // Add /preview suffix to get the actual preview public_id
+    const previewPublicId = `${source}/preview`;
+    // Generate the Cloudinary URL via cloudinaryService
+    const cloudinaryUrl = cloudinaryService.generateDrillUrl(previewPublicId);
+    
+    res.json({ url: cloudinaryUrl });
+  } catch (err) {
+    console.error('Error in getCombinationPreview:', err);
     res.status(500).json({ error: "Server error" });
   }
 };

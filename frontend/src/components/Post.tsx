@@ -220,7 +220,7 @@ function FeedPost({ post }: FeedPostProps) {
 
       {/* Post media */}
       {post.source && (
-        <Box className="rounded-md mb-3 w-full bg-gray-200 overflow-hidden" style={{ aspectRatio: mediaDimensions ? mediaDimensions.width / mediaDimensions.height : 1 }}>
+        <Box className="rounded-md mb-3 bg-gray-200 overflow-hidden" style={{ width: '95%', aspectRatio: mediaDimensions ? mediaDimensions.width / mediaDimensions.height : 1, alignSelf: 'center' }}>
           {isVideo ? (
             <VideoView
               player={player}

@@ -119,6 +119,7 @@ export const getProfile = async (req: Request, res: Response) => {
     // Generate avatar URL with cache-busting if it exists
     if (profile.avatar) {
       profile.avatar_url = cloudinaryService.generateAvatarUrl(profile.avatar, profile.updated_at);
+      console.log("Generated avatar URL: ", profile.avatar_url);
     }
 
     res.json({ profile });

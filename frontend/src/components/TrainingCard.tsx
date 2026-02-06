@@ -5,12 +5,19 @@ import { VStack } from '@/components/ui/vstack';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
+
+type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface TrainingCardProps {
   title: string;
   description?: string;
   length?: string;
   components?: string[];
+  trainingComponents?: any[];
+  trainingName?: string;
   onStartPress?: () => void;
   onEditPress?: () => void;
   isLoading?: boolean;
@@ -22,11 +29,14 @@ export default function TrainingCard({
   description = 'No training selected for this day',
   length = '—',
   components = [],
+  trainingComponents = [],
+  trainingName = '',
   onStartPress = () => {},
   onEditPress = () => {},
   isLoading = false,
   isEmpty = false,
 }: TrainingCardProps) {
+  const navigation = useNavigation<RootNavigationProp>();
   const [descExpanded, setDescExpanded] = useState(false);
   const [contentExpanded, setContentExpanded] = useState(false);
 
@@ -42,6 +52,14 @@ export default function TrainingCard({
     : components;
 
   const isButtonsDisabled = isEmpty || isLoading;
+
+  const handleStartPress = () => {
+    if (trainingComponents && trainingComponents.length > 0) {
+      navigation.navigate('Training', { components: trainingComponents, trainingName });
+    } else {
+      onStartPress();
+    }
+  };
 
   return (
     <Box className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
@@ -130,7 +148,7 @@ export default function TrainingCard({
               ? 'bg-gray-200' 
               : 'bg-blue-600 active:bg-blue-700'
           }`}
-          onPress={onStartPress}
+          onPress={handleStartPress}
           disabled={isButtonsDisabled}
         >
           <Text className={`font-semibold ${isButtonsDisabled ? 'text-gray-500' : 'text-white'}`}>

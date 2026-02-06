@@ -163,7 +163,7 @@ export default function ProfileCreateScreen({ navigation }: Props) {
 
   return (
     <Box className="flex-1 bg-white">
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className='pt-5'>
         <VStack className="p-5 gap-4">
           {/* Avatar Picker */}
           <HStack className="justify-center">

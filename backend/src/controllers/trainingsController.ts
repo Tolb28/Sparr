@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { pool } from "../config/db";
+import { cloudinaryService } from "../services/cloudinaryService";
 
 export const createTraining = async (req: Request, res: Response) => {
   try {
@@ -31,7 +32,7 @@ export const getTraining = async (req: Request, res: Response) => {
 
     const training = rows[0];
     const { rows: components } = await pool.query(
-      `SELECT tc.*, d.title AS drill_title, c.title AS combination_title
+      `SELECT tc.*, d.title AS drill_title, d.source AS drill_source, c.title AS combination_title, c.source AS combination_source
        FROM trainings_components tc
        LEFT JOIN drills d ON tc.id_drills = d.id_drills
        LEFT JOIN combinations c ON tc.id_combinations = c.id_combinations
@@ -39,7 +40,18 @@ export const getTraining = async (req: Request, res: Response) => {
       [id]
     );
 
-    res.json({ training, components });
+    // Generate proper source/video URLs for any referenced component so the frontend can play videos
+    const componentsWithUrls = components.map((comp: any) => {
+      const source = comp.drill_source || comp.combination_source || comp.source;
+      if (source) {
+        comp.source = source;
+        comp.source_url = cloudinaryService.generateDrillUrl(`${source}/preview`);
+        comp.video_url = cloudinaryService.generateVideoUrl(`${source}/video`);
+      }
+      return comp;
+    });
+
+    res.json({ training, components: componentsWithUrls });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

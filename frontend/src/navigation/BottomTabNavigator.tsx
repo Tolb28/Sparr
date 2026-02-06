@@ -11,6 +11,7 @@ import { Pressable} from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
 import FriendsScreen from '../screens/FriendsScreen';
+import ConversationsScreen from '../screens/ConversationsScreen';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { getUserProfile } from '../api/profile';
 
@@ -21,6 +22,7 @@ const ICONS: Record<string, string> = {
   Techniques: 'barbell-outline',
   Friends: 'people-outline',
   Discovery: 'clipboard-outline',
+  Messages: 'chatbubble-outline',
   Profile: 'profile',
 };
 
@@ -117,6 +119,7 @@ export default function BottomTabNavigator() {
       <Tab.Screen name="Techniques" component={TechniqueScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Discovery" component={DiscoveryScreen} />
+      <Tab.Screen name="Messages" component={ConversationsScreen} />
       <Tab.Screen name="Friends" component={FriendsScreen} />
     </Tab.Navigator>
   );
