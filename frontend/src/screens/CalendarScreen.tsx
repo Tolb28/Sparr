@@ -75,8 +75,9 @@ export default function CalendarScreen() {
       const dayNum = Number(selectedDate.substring(8, 10));
       const orders = Array.from(new Set(items.map((it) => Number(it.order)))).sort((a, b) => a - b);
       const n = orders.length || 1;
-      const idx = ((dayNum - 1) % n) + 1;
-      const found = items.find((it) => Number(it.order) === idx || String(it.order) === String(idx));
+      const positionInCycle = (dayNum - 1) % n;
+      const actualOrder = orders[positionInCycle];
+      const found = items.find((it) => Number(it.order) === actualOrder);
       if (!found || !found.id_trainings) {
         setCurrentTraining(null);
         setTrainingComponents([]);
@@ -275,6 +276,8 @@ export default function CalendarScreen() {
             })() : description}
             length={trainingDuration}
             components={generatedContent}
+            trainingComponents={trainingComponents}
+            trainingName={currentTraining?.title || ''}
             isEmpty={items.length === 0}
             onStartPress={() => {}}
             onEditPress={() => {}}

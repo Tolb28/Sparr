@@ -5,6 +5,7 @@ import { HStack } from '@/components/ui/hstack';
 import { Input, InputField } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
+import { colors, theme } from '../theme';
 import {
   createCalendar,
   selectCalendar,
@@ -319,15 +320,16 @@ export default function CreateCalendarScreen() {
                   </Modal>
 
                   <Pressable
-                    className={`rounded-lg px-4 py-3 items-center justify-center active:scale-95 transition-transform ${
-                      selectedExistingTraining
-                        ? 'bg-indigo-600 active:bg-indigo-700'
-                        : 'bg-gray-300'
-                    }`}
+                    className="rounded-lg px-4 py-4 items-center justify-center active:scale-95 transition-all"
+                    style={{
+                      backgroundColor: selectedExistingTraining ? colors.primary.main : colors.neutral[300],
+                      opacity: selectedExistingTraining ? 1 : 0.5,
+                      transform: [{ scale: selectedExistingTraining ? 1.02 : 1 }],
+                    }}
                     onPress={addTrainingToList}
                     disabled={!selectedExistingTraining}
                   >
-                    <Text className="text-white font-semibold">
+                    <Text className="text-white font-bold text-base">
                       Add to Schedule
                     </Text>
                   </Pressable>
@@ -377,9 +379,12 @@ export default function CreateCalendarScreen() {
                         <Pressable
                           className={`px-3 py-2 rounded-lg transition-all font-semibold ${
                             i > 0
-                              ? 'bg-slate-500 active:bg-slate-600'
-                              : 'bg-gray-300 opacity-60'
+                              ? 'active:opacity-90'
+                              : 'opacity-60'
                           }`}
+                          style={{
+                            backgroundColor: i > 0 ? colors.neutral[600] : colors.neutral[300],
+                          }}
                           onPress={() => moveTraining(i, 'up')}
                           disabled={i === 0}
                         >
@@ -388,16 +393,22 @@ export default function CreateCalendarScreen() {
                         <Pressable
                           className={`px-3 py-2 rounded-lg transition-all font-semibold ${
                             i < selectedTrainings.length - 1
-                              ? 'bg-slate-500 active:bg-slate-600'
-                              : 'bg-gray-300 opacity-60'
+                              ? 'active:opacity-90'
+                              : 'opacity-60'
                           }`}
+                          style={{
+                            backgroundColor: i < selectedTrainings.length - 1 ? colors.neutral[600] : colors.neutral[300],
+                          }}
                           onPress={() => moveTraining(i, 'down')}
                           disabled={i === selectedTrainings.length - 1}
                         >
                           <Text className="text-white text-sm">▼</Text>
                         </Pressable>
                         <Pressable
-                          className="px-3 py-2 rounded-lg bg-red-600 active:bg-red-700"
+                          className="px-3 py-2 rounded-lg active:opacity-90 transition-opacity"
+                          style={{
+                            backgroundColor: colors.error.main,
+                          }}
                           onPress={() => removeTraining(i)}
                         >
                           <Text className="text-white font-semibold text-sm">×</Text>
@@ -436,20 +447,22 @@ export default function CreateCalendarScreen() {
             {/* Create Button */}
             <VStack className="gap-2 mt-4">
               <Pressable
-                className={`rounded-lg px-6 py-4 items-center justify-center active:scale-95 transition-all ${
-                  creatingCalendarLoading || selectedTrainings.length === 0
-                    ? 'bg-gray-300'
-                    : 'bg-gradient-to-r from-green-600 to-green-700 shadow-md'
-                }`}
+                className="rounded-xl px-6 py-5 items-center justify-center"
+                style={{
+                  backgroundColor: creatingCalendarLoading || selectedTrainings.length === 0
+                    ? colors.neutral[300]
+                    : colors.success.dark,
+                  opacity: creatingCalendarLoading || selectedTrainings.length === 0 ? 0.65 : 1,
+                }}
                 onPress={finalizeCalendarCreation}
                 disabled={
                   creatingCalendarLoading || selectedTrainings.length === 0
                 }
               >
                 {creatingCalendarLoading ? (
-                  <HStack className="gap-2 items-center">
-                    <ActivityIndicator size="small" color="#ffffff" />
-                    <Text className="text-white font-semibold">Creating…</Text>
+                  <HStack className="gap-3 items-center justify-center">
+                    <ActivityIndicator size="large" color="#ffffff" />
+                    <Text className="text-white font-bold text-base">Creating…</Text>
                   </HStack>
                 ) : (
                   <Text className="text-white font-bold text-lg">
@@ -458,11 +471,15 @@ export default function CreateCalendarScreen() {
                 )}
               </Pressable>
               <Pressable
-                className="rounded-lg px-6 py-3 items-center justify-center bg-gray-200 active:bg-gray-300"
+                className="rounded-lg px-6 py-3 items-center justify-center"
+                style={{
+                  backgroundColor: colors.neutral[200],
+                  opacity: creatingCalendarLoading ? 0.5 : 1,
+                }}
                 onPress={() => nav.goBack()}
                 disabled={creatingCalendarLoading}
               >
-                <Text className="text-gray-900 font-semibold">Cancel</Text>
+                <Text style={{ color: colors.text.primary }} className="font-semibold">Cancel</Text>
               </Pressable>
             </VStack>
           </VStack>

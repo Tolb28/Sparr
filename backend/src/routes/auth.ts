@@ -10,6 +10,7 @@ import { getFriends, getPendingRequests, acceptFriendRequest, declineFriendReque
 import { getProfileReferences } from "../controllers/referenceController";
 import { createPostHandler } from "../controllers/postsController";
 import trainingRouter from "./training";
+import chatRouter from "./chat";
 
 const router = Router();
 
@@ -47,5 +48,8 @@ router.post("/posts", authenticate, uploadFields, createPostHandler);
 
 // Mount training routes under /auth/training
 router.use('/training', trainingRouter);
+
+// Mount chat routes under /auth/chat
+router.use('/chat', chatRouter);
 
 export default router;

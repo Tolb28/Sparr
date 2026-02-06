@@ -1,6 +1,7 @@
 import fs from "fs";
 import { cloudinaryService } from "../services/cloudinaryService";
 import { pool } from "../config/db";
+import { get } from "http";
 
 export type MediaResponse = {
   public_id: string;
@@ -108,5 +109,5 @@ export const cloudinaryController = {
 
   getUrl(publicId: string, options: Record<string, unknown> = {}) {
     return cloudinaryService.generateUrl(publicId, options);
-  },
+  }
 };

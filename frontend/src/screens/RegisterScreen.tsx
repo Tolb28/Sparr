@@ -12,6 +12,7 @@ import { Text } from '@/components/ui/text';
 import { Input, InputField } from '@/components/ui/input';
 import { Button, ButtonText } from '@/components/ui/button';
 import { Pressable } from '@/components/ui/pressable';
+import { colors, theme } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
@@ -52,22 +53,22 @@ export default function RegisterScreen({ navigation }: Props) {
   };
 
   return (
-    <Box className="flex-1 bg-white justify-center items-center px-4">
+    <Box className="flex-1 justify-center items-center px-4" style={{ backgroundColor: colors.background.primary }}>
       <VStack className="w-full max-w-sm gap-6">
         {/* Title */}
-        <Text className="text-3xl font-bold text-center">Register</Text>
+        <Text className="text-3xl font-bold text-center" style={{ color: colors.text.primary }}>Register</Text>
 
         {/* Error Message */}
         {error && (
-          <Box className="bg-red-100 rounded p-3">
-            <Text className="text-red-700 text-center text-sm">{error}</Text>
+          <Box className="rounded p-3" style={{ backgroundColor: colors.error.light }}>
+            <Text className="text-center text-sm" style={{ color: colors.error.main }}>{error}</Text>
           </Box>
         )}
 
         {/* Email Input */}
         <VStack className="gap-2">
-          <Text className="text-sm font-semibold">Email</Text>
-          <Input className="border border-gray-300 rounded">
+          <Text className="text-sm font-semibold" style={{ color: colors.text.primary }}>Email</Text>
+          <Input className="border rounded" style={{ borderColor: colors.border.medium }}>
             <InputField
               placeholder="Enter your email"
               value={email}
@@ -77,6 +78,7 @@ export default function RegisterScreen({ navigation }: Props) {
               }}
               keyboardType="email-address"
               autoCapitalize="none"
+              placeholderTextColor={colors.text.tertiary}
             />
           </Input>
         </VStack>
@@ -85,8 +87,8 @@ export default function RegisterScreen({ navigation }: Props) {
 
         {/* Password Input */}
         <VStack className="gap-2">
-          <Text className="text-sm font-semibold">Password</Text>
-          <Input className="border border-gray-300 rounded">
+          <Text className="text-sm font-semibold" style={{ color: colors.text.primary }}>Password</Text>
+          <Input className="border rounded" style={{ borderColor: colors.border.medium }}>
             <InputField
               placeholder="Enter your password"
               value={password}
@@ -95,6 +97,7 @@ export default function RegisterScreen({ navigation }: Props) {
                 setError(null);
               }}
               secureTextEntry
+              placeholderTextColor={colors.text.tertiary}
             />
           </Input>
         </VStack>
@@ -103,23 +106,24 @@ export default function RegisterScreen({ navigation }: Props) {
         <Button
           onPress={handleRegister}
           disabled={loading}
-          className="bg-blue-500 rounded py-2 mt-4"
+          className="rounded py-2 mt-4"
+          style={{ backgroundColor: theme.primary }}
         >
-          <ButtonText>
+          <ButtonText style={{ color: theme.buttonText }}>
             {loading ? 'Creating...' : 'Create Account'}
           </ButtonText>
         </Button>
 
         {/* Login Link */}
         <HStack className="justify-center gap-1">
-          <Text className="text-gray-600">Already have an account? </Text>
+          <Text style={{ color: colors.text.secondary }}>Already have an account? </Text>
           <Pressable onPress={() => navigation.navigate('Login')}>
-            <Text className="text-blue-500 font-semibold">Log in</Text>
+            <Text className="font-semibold" style={{ color: theme.primary }}>Log in</Text>
           </Pressable>
         </HStack>
 
         {/* Platform Info */}
-        <Text className="text-gray-500 text-center text-sm mt-6">
+        <Text className="text-center text-sm mt-6" style={{ color: colors.text.tertiary }}>
           Running on {Platform.OS}
         </Text>
       </VStack>

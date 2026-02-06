@@ -17,8 +17,10 @@ import { Grid } from '@/components/ui/grid';
 import { removeProfile } from '../api/profileHandler';
 import { deleteToken } from '../api/tokenHandler';
 import ProfilePosts from '../components/ProfilePosts';
+import { colors, theme } from '../theme';
 
 type Profile = { 
+  id_profiles?: number;
   display_name?: string;
   username?: string; 
   location?: string; 
@@ -102,30 +104,30 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <Box className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" />
+      <Box className="flex-1 justify-center items-center" style={{ backgroundColor: colors.background.primary }}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box className="flex-1 justify-center items-center bg-white p-5">
-        <Text className="text-red-600 text-center">{error}</Text>
+      <Box className="flex-1 justify-center items-center p-5" style={{ backgroundColor: colors.background.primary }}>
+        <Text className="text-center" style={{ color: colors.error.main }}>{error}</Text>
       </Box>
     );
   }
 
   const renderPersonalized = () => (
     <VStack className="px-4 py-4 gap-4">
-      <Box className="bg-gray-200 p-5 rounded-xl">
-        <Text className="font-semibold mb-1">Training Calendar</Text>
-        <Text className="text-gray-600 text-sm">No training data yet.</Text>
+      <Box className="p-5 rounded-xl" style={{ backgroundColor: colors.neutral[200] }}>
+        <Text className="font-semibold mb-1" style={{ color: colors.text.primary }}>Training Calendar</Text>
+        <Text className="text-sm" style={{ color: colors.text.secondary }}>No training data yet.</Text>
       </Box>
 
-      <Box className="bg-gray-200 p-5 rounded-xl">
-        <Text className="font-semibold mb-1">Favourite Photos</Text>
-        <Text className="text-gray-600 text-sm">No favourites added yet.</Text>
+      <Box className="p-5 rounded-xl" style={{ backgroundColor: colors.neutral[200] }}>
+        <Text className="font-semibold mb-1" style={{ color: colors.text.primary }}>Favourite Photos</Text>
+        <Text className="text-sm" style={{ color: colors.text.secondary }}>No favourites added yet.</Text>
       </Box>
     </VStack>
   );
@@ -135,22 +137,23 @@ export default function ProfileScreen() {
   );
 
   return (
-    <Box className="flex-1 bg-white">
+    <Box className="flex-1" style={{ backgroundColor: colors.background.primary }}>
       <ScrollView className='pt-4 pt-10' contentContainerStyle={{ paddingBottom: 100 }} refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.primary} />
       }>
         <Pressable
-          className=" z-10 p-2 bg-white rounded-full shadow self-end mr-4 mb-2"
+          className="z-10 p-2 rounded-full shadow self-end mr-4 mb-2 mt-10"
+          style={{ backgroundColor: colors.background.primary }}
           onPress={() => {
             removeProfile().then(() => {
               navigation.replace('Login');
             });}}
         >
         
-          <Text>Log out</Text>
+          <Text style={{ color: colors.text.primary }}>Log out</Text>
         </Pressable>
         {/* Profile Header */}
-        <VStack className=" p-5 gap-4">
+        <VStack className="p-5 gap-4">
           <HStack className="justify-start items-center gap-4">
             <Avatar className="bg-indigo-600" size="xl" key={profile?.avatar_url}>
               <AvatarFallbackText className="text-white">{profile?.display_name ?? '?'}</AvatarFallbackText>
@@ -158,35 +161,36 @@ export default function ProfileScreen() {
             </Avatar>
 
             <VStack className="items-start">
-              <Text className="text-2xl font-bold">{profile?.display_name ?? 'Nickname'}</Text>
-              <Text className="text-gray-600">@{profile?.username ?? 'username'}</Text>
-              {profile?.location && <Text className="text-gray-500">{profile.location}</Text>}
+              <Text className="text-2xl font-bold" style={{ color: colors.text.primary }}>{profile?.display_name ?? 'Nickname'}</Text>
+              <Text style={{ color: colors.text.secondary }}>@{profile?.username ?? 'username'}</Text>
+              {profile?.location && <Text style={{ color: colors.text.tertiary }}>{profile.location}</Text>}
             </VStack>
           </HStack>
 
           <VStack className="w-full gap-2 mt-2">
-            {profile?.bio && <Text className="text-sm text-gray-700"><Text className="font-bold">Bio: </Text>{profile.bio}</Text>}
-            {profile?.title_weight && <Text className="text-sm text-gray-700"><Text className="font-bold">Weightclass: </Text>{profile.title_weight}</Text>}
-            {profile?.title_style && <Text className="text-sm text-gray-700"><Text className="font-bold">Boxing style: </Text>{profile.title_style}</Text>}
+            {profile?.bio && <Text className="text-sm" style={{ color: colors.text.primary }}><Text className="font-bold">Bio: </Text>{profile.bio}</Text>}
+            {profile?.title_weight && <Text className="text-sm" style={{ color: colors.text.primary }}><Text className="font-bold">Weightclass: </Text>{profile.title_weight}</Text>}
+            {profile?.title_style && <Text className="text-sm" style={{ color: colors.text.primary }}><Text className="font-bold">Boxing style: </Text>{profile.title_style}</Text>}
           </VStack>
 
           <Button 
             variant="outline" 
-            className="mt-4 border border-gray-400 rounded px-6 py-2"
+            className="mt-4 rounded px-6 py-2"
+            style={{ borderColor: colors.border.medium }}
             onPress={() => navigation.navigate('EditProfile')}
           >
-            <ButtonText className="text-gray-800 font-semibold">Edit profile</ButtonText>
+            <ButtonText className="font-semibold" style={{ color: colors.text.primary }}>Edit profile</ButtonText>
           </Button>
         </VStack>
 
         {/* Tabs */}
-        <HStack className="justify-around items-center py-3 border-t border-gray-200">
-          <Pressable onPress={() => setActiveTab('personalized')} className={activeTab === 'personalized' ? 'border-b-2 border-black pb-1' : ''}>
-            <Ionicons name="person-outline" size={26} />
+        <HStack className="justify-around items-center py-3" style={{ borderTopColor: colors.border.light, borderTopWidth: 1 }}>
+          <Pressable onPress={() => setActiveTab('personalized')} style={{ borderBottomWidth: activeTab === 'personalized' ? 2 : 0, borderBottomColor: colors.text.primary, paddingBottom: 4 }}>
+            <Ionicons name="person-outline" size={26} color={colors.text.primary} />
           </Pressable>
 
-          <Pressable onPress={() => setActiveTab('photos')} className={activeTab === 'photos' ? 'border-b-2 border-black pb-1' : ''}>
-            <MaterialCommunityIcons name="grid" size={26} />
+          <Pressable onPress={() => setActiveTab('photos')} style={{ borderBottomWidth: activeTab === 'photos' ? 2 : 0, borderBottomColor: colors.text.primary, paddingBottom: 4 }}>
+            <MaterialCommunityIcons name="grid" size={26} color={colors.text.primary} />
           </Pressable>
         </HStack>
 
@@ -196,9 +200,10 @@ export default function ProfileScreen() {
     {/* Floating Action Button */}
         <Pressable
           onPress={() => (navigation as any).navigate('CreatePost')}
-          className="absolute bottom-5 right-4 w-14 h-14 bg-blue-600 rounded-full justify-center items-center shadow-lg"
+          className="absolute bottom-5 right-4 w-14 h-14 rounded-full justify-center items-center shadow-lg"
+          style={{ backgroundColor: theme.primary }}
         >
-          <Ionicons name="add" size={28} color="#fff" />
+          <Ionicons name="add" size={28} color={theme.buttonText} />
         </Pressable>
     </Box>
   );

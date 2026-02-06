@@ -12,6 +12,13 @@ import BrowseCalendarsScreen from '../screens/BrowseCalendarsScreen'; // Import 
 import CreateCalendarScreen from '../screens/CreateCalendarScreen';   // Import this
 import ForeignProfileScreen from '../screens/ForeignProfileScreen';   // Import this
 import TechniqueScreen from '../screens/TechniqueScreen';
+import TechniqueDetailScreen from '../screens/TechniqueDetailScreen';
+import DrillDetailScreen from '../screens/DrillDetailScreen';
+import CombinationDetailScreen from '../screens/CombinationDetailScreen';
+import TrainingScreen from '../screens/TrainingScreen';
+import ConversationsScreen from '../screens/ConversationsScreen';
+import ChatDetailScreen from '../screens/ChatDetailScreen';
+import NewConversationScreen from '../screens/NewConversationScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -24,6 +31,13 @@ export type RootStackParamList = {
   CreateCalendar: undefined;
   ForeignProfile: { foreign_profile_id: number };
   Technique: undefined;
+  TechniqueDetail: { technique_id: number; category?: string; items?: any[]; initialIndex?: number };
+  DrillDetail: { drill_id: number; category?: string; items?: any[]; initialIndex?: number };
+  CombinationDetail: { combination_id: number; category?: string; items?: any[]; initialIndex?: number };
+  Training: { components: any[]; trainingName?: string };
+  Conversations: undefined;
+  ChatDetail: { conversationId: number; otherParticipantName: string; otherParticipantAvatar: string | null };
+  NewConversation: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -84,6 +98,41 @@ export default function AppNavigator() {
         name="Technique"
         component={TechniqueScreen}
         options={{ title: 'Technique' }}
+      />
+      <Stack.Screen
+        name="TechniqueDetail"
+        component={TechniqueDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="DrillDetail"
+        component={DrillDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CombinationDetail"
+        component={CombinationDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Training"
+        component={TrainingScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Conversations"
+        component={ConversationsScreen}
+        options={{ title: 'Messages', headerShown: false }}
+      />
+      <Stack.Screen
+        name="ChatDetail"
+        component={ChatDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="NewConversation"
+        component={NewConversationScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

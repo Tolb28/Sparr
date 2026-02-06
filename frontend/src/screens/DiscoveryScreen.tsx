@@ -77,7 +77,7 @@ export default function DiscoveryScreen() {
   return (
     <Box className="flex-1 bg-gray-100 py-4">
       {/* Search Bar */}
-      <HStack className="items-center px-3 py-5 gap-2">
+      <HStack className="items-center px-3 py-5 pt-10 gap-2">
         <Input
           variant="outline"
           className="flex-1 border border-gray-300 rounded-lg p-1 bg-transparent"

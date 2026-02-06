@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { pool } from "../config/db";
+import cloudinary from "cloudinary";
+import { cloudinaryService } from "../services/cloudinaryService";
 
 export const createDrill = async (req: Request, res: Response) => {
   try {
@@ -21,7 +23,16 @@ export const createDrill = async (req: Request, res: Response) => {
 export const getDrills = async (_req: Request, res: Response) => {
   try {
     const { rows } = await pool.query("SELECT * FROM drills ORDER BY id_drills ASC");
-    res.json({ drills: rows });
+    // 1. Map through the rows to add the new property
+    const drillsWithUrls = rows.map((drill) => ({
+      ...drill,                               // Keep all original database columns
+      source_url: drill.source ? cloudinaryService.generateDrillUrl(`${drill.source}/preview`) : undefined,
+      video_url: drill.source ? cloudinaryService.generateVideoUrl(`${drill.source}/video`) : undefined,
+    }));
+    console.log('Drills with URLs:', drillsWithUrls);
+
+    // 2. Return the new, updated array
+    res.json({ drills: drillsWithUrls });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -33,7 +44,9 @@ export const getDrill = async (req: Request, res: Response) => {
     const id = parseInt(req.params.id as string, 10);
     const { rows } = await pool.query("SELECT * FROM drills WHERE id_drills=$1", [id]);
     if (!rows[0]) return res.status(404).json({ error: "Not found" });
-    res.json({ drill: rows[0] });
+    const drill = rows[0];
+    if (drill.source) drill.video_url = cloudinaryService.generateVideoUrl(`${drill.source}/video`);
+    res.json({ drill });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -102,8 +115,13 @@ export const getDrillsGrouped = async (_req: Request, res: Response) => {
     const grouped: { [key: string]: any[] } = {};
     rows.forEach((drill) => {
       const catName = drill.category_name;
+      if (drill.source) {
+        drill.source_url = cloudinaryService.generateDrillUrl(`${drill.source}/preview`);
+        drill.video_url = cloudinaryService.generateVideoUrl(`${drill.source}/video`);
+      }
       if (!grouped[catName]) grouped[catName] = [];
       grouped[catName].push(drill);
+      console.log("drill source_url: ", drill.source_url);
     });
 
     // Convert to array of {categoryName, items}
@@ -115,6 +133,28 @@ export const getDrillsGrouped = async (_req: Request, res: Response) => {
     res.json({ grouped: result });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getDrillPreview = async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string, 10);
+    const { rows } = await pool.query("SELECT source FROM drills WHERE id_drills=$1", [id]);
+    if (!rows[0]) return res.status(404).json({ error: "Drill not found" });
+
+    const source = rows[0].source;
+    if (!source) return res.status(404).json({ error: "No preview available" });
+
+    // source is the Cloudinary public_id (e.g., "drills/1")
+    // Add /preview suffix to get the actual preview public_id
+    const previewPublicId = `${source}/preview`;
+    // Generate the Cloudinary URL via cloudinaryService
+    const cloudinaryUrl = cloudinaryService.generateDrillUrl(previewPublicId);
+    
+    res.json({ url: cloudinaryUrl });
+  } catch (err) {
+    console.error('Error in getDrillPreview:', err);
     res.status(500).json({ error: "Server error" });
   }
 };

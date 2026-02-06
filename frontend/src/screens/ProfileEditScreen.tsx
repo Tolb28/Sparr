@@ -19,6 +19,7 @@ import {
   AvatarImage,
 } from '@/components/ui/avatar';
 import { ChevronDownIcon } from '@/components/ui/icon';
+import { colors, theme } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
 
@@ -208,14 +209,14 @@ export default function EditProfileScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <Box className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" />
+      <Box className="flex-1 justify-center items-center" style={{ backgroundColor: colors.background.primary }}>
+        <ActivityIndicator size="large" color={theme.primary} />
       </Box>
     );
   }
 
   return (
-    <Box className="flex-1 bg-white">
+    <Box className="flex-1" style={{ backgroundColor: colors.background.primary }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className="pt-10">
         <VStack className="p-5 gap-4">
           <HStack className="justify-center mb-4">
@@ -228,57 +229,61 @@ export default function EditProfileScreen({ navigation }: Props) {
               </Avatar>
             </Pressable>
           </HStack>
-          <Text className="text-center text-gray-500 text-sm">Tap to change photo</Text>
+          <Text className="text-center text-sm" style={{ color: colors.text.tertiary }}>Tap to change photo</Text>
 
           {error && (
-            <Box className="bg-red-100 p-3 rounded">
-              <Text className="text-red-600">{error}</Text>
+            <Box className="p-3 rounded" style={{ backgroundColor: colors.error.light }}>
+              <Text style={{ color: colors.error.main }}>{error}</Text>
             </Box>
           )}
 
           <VStack className="gap-3">
              {/* ... (Display Name, Username, Location Inputs remain unchanged) */}
              <VStack className="gap-1">
-              <Text className="font-semibold text-gray-700">Display Name</Text>
-              <Input>
+              <Text className="font-semibold" style={{ color: colors.text.primary }}>Display Name</Text>
+              <Input style={{ borderColor: colors.border.medium }}>
                 <InputField
                   placeholder="Display name"
                   value={form.display_name ?? ''}
                   onChangeText={(text) => setForm({ ...form, display_name: text })}
+                  placeholderTextColor={colors.input.placeholder}
                 />
               </Input>
             </VStack>
 
             <VStack className="gap-1">
-              <Text className="font-semibold text-gray-700">Username</Text>
-              <Input>
+              <Text className="font-semibold" style={{ color: colors.text.primary }}>Username</Text>
+              <Input style={{ borderColor: colors.border.medium }}>
                 <InputField
                   placeholder="Username"
                   value={form.username ?? ''}
                   onChangeText={(text) => setForm({ ...form, username: text })}
+                  placeholderTextColor={colors.input.placeholder}
                 />
               </Input>
             </VStack>
 
             <VStack className="gap-1">
-              <Text className="font-semibold text-gray-700">Location</Text>
-              <Input>
+              <Text className="font-semibold" style={{ color: colors.text.primary }}>Location</Text>
+              <Input style={{ borderColor: colors.border.medium }}>
                 <InputField
                   placeholder="Location"
                   value={form.location ?? ''}
                   onChangeText={(text) => setForm({ ...form, location: text })}
+                  placeholderTextColor={colors.input.placeholder}
                 />
               </Input>
             </VStack>
 
             {/* --- FIX 1: Weight Class Modal --- */}
             <VStack className="gap-1">
-              <Text className="font-semibold text-gray-700">Weight Class</Text>
+              <Text className="font-semibold" style={{ color: colors.text.primary }}>Weight Class</Text>
               <Pressable
-                className="border border-gray-300 rounded px-4 py-2.5 flex-row items-center justify-between active:bg-gray-50"
+                className="rounded px-4 py-2.5 flex-row items-center justify-between active:bg-gray-50"
+                style={{ borderColor: colors.border.medium, borderWidth: 1 }}
                 onPress={() => setWeightDropdownOpen(true)}
               >
-                <Text className="text-gray-700">{selectedWeightClassTitle || '-- select weight class --'}</Text>
+                <Text style={{ color: selectedWeightClassTitle ? colors.text.primary : colors.text.tertiary }}>{selectedWeightClassTitle || '-- select weight class --'}</Text>
               </Pressable>
 
               <Modal
@@ -291,9 +296,9 @@ export default function EditProfileScreen({ navigation }: Props) {
                   className="flex-1"
                   onPress={() => setWeightDropdownOpen(false)}
                 >
-                  <VStack className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-96 overflow-hidden">
-                    <VStack className="p-4 border-b border-gray-200">
-                      <Text className="text-lg font-semibold text-gray-900">Select Weight Class</Text>
+                  <VStack className="absolute bottom-0 left-0 right-0 rounded-t-2xl max-h-96 overflow-hidden" style={{ backgroundColor: colors.background.primary }}>
+                    <VStack className="p-4" style={{ borderBottomColor: colors.border.light, borderBottomWidth: 1 }}>
+                      <Text className="text-lg font-semibold" style={{ color: colors.text.primary }}>Select Weight Class</Text>
                     </VStack>
                     <FlatList
                       data={[{ id_weight_class: null, title_weight: 'None' }, ...weightClasses]}
@@ -301,7 +306,8 @@ export default function EditProfileScreen({ navigation }: Props) {
                       scrollEnabled={true}
                       renderItem={({ item }) => (
                         <Pressable
-                          className="px-4 py-4 border-b border-gray-100 active:bg-gray-50"
+                          className="px-4 py-4 active:bg-gray-50"
+                          style={{ borderBottomColor: colors.border.light, borderBottomWidth: 1 }}
                           onPress={() => {
                             setSelectedWeightClassTitle(item.title_weight);
                             setSelectedWeightClass(item.id_weight_class);
@@ -309,7 +315,7 @@ export default function EditProfileScreen({ navigation }: Props) {
                             setWeightDropdownOpen(false);
                           }}
                         >
-                          <Text className="text-gray-900">{item.title_weight}</Text>
+                          <Text style={{ color: colors.text.primary }}>{item.title_weight}</Text>
                         </Pressable>
                       )}
                     />

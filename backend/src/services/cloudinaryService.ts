@@ -163,6 +163,34 @@ export class CloudinaryService {
     
     return baseUrl;
   }
+  generateDrillUrl(publicId: string): string {
+    const cacheBuster = Math.floor(Date.now() / 1000).toString();
+    const baseUrl = this.cloud.url(publicId, {
+      secure: true,
+      width: 400,
+      height: 300,
+      crop: 'fill',
+      ...(cacheBuster ? { version: cacheBuster } : {})
+    });
+    return baseUrl;
+  }
+
+  /**
+   * Generate a Cloudinary video URL for the given public id.
+   * Adds MP4 fetch_format and sensible scaling/quality transforms.
+   */
+  generateVideoUrl(publicId: string, options: Record<string, unknown> = {}): string {
+    return this.cloud.url(publicId, {
+      secure: true,
+      resource_type: 'video',
+      transformation: [
+        { width: 1280, crop: 'scale' },
+        { quality: 'auto' },
+        { fetch_format: 'mp4' },
+      ],
+      ...options,
+    });
+  }
 }
 
 export const cloudinaryService = new CloudinaryService();
