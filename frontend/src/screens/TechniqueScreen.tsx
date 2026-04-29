@@ -372,44 +372,46 @@ export default function TechniqueScreen() {
 
       {/* Sidebar Drawer - Outside main view for proper absolute positioning */}
       {sidebarOpen && (
-        <Animated.View 
-          style={[styles.sidebarOverlay, { opacity: sidebarBackdropOpacity }]}
-          onLayout={() => console.log('[SIDEBAR RENDER] Sidebar rendered, categories:', categories.length)}
-        >
-          <Pressable style={StyleSheet.absoluteFill} onPress={closeSidebar} />
-          <Animated.View
-            style={[styles.sidebarDrawer, {
-              transform: [{ translateX: sidebarAnim }],
-            }]}
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }}>
+          <Animated.View 
+            style={[styles.sidebarOverlay, { opacity: sidebarBackdropOpacity }]}
+            onLayout={() => console.log('[SIDEBAR RENDER] Sidebar rendered, categories:', categories.length)}
           >
-            <View style={[styles.sidebarContent, { paddingTop: (insets.top || 0) + 20 }]}>
-              <Pressable
-                onPress={() => { setSelectedCategory(null); closeSidebar(); }}
-                style={[styles.sidebarItem, selectedCategory === null && styles.sidebarItemActive]}
-              >
-                <Text style={[styles.sidebarItemText, selectedCategory === null && styles.sidebarItemTextActive]}>
-                  All Categories
-                </Text>
-              </Pressable>
-              <Text style={styles.sidebarSectionLabel}>CATEGORIES</Text>
-              {categories.length > 0 ? (
-                categories.map((category) => (
-                  <Pressable
-                    key={category}
-                    onPress={() => { setSelectedCategory(category); closeSidebar(); }}
-                    style={[styles.sidebarItem, selectedCategory === category && styles.sidebarItemActive]}
-                  >
-                    <Text style={[styles.sidebarItemText, selectedCategory === category && styles.sidebarItemTextActive]}>
-                      {category}
-                    </Text>
-                  </Pressable>
-                ))
-              ) : (
-                <Text style={styles.sidebarItemText}>No categories</Text>
-              )}
-            </View>
+            <Pressable style={StyleSheet.absoluteFill} onPress={closeSidebar} />
+            <Animated.View
+              style={[styles.sidebarDrawer, {
+                transform: [{ translateX: sidebarAnim }],
+              }]}
+            >
+              <View style={[styles.sidebarContent, { paddingTop: (insets.top || 0) + 20 }]}>
+                <Pressable
+                  onPress={() => { setSelectedCategory(null); closeSidebar(); }}
+                  style={[styles.sidebarItem, selectedCategory === null && styles.sidebarItemActive]}
+                >
+                  <Text style={[styles.sidebarItemText, selectedCategory === null && styles.sidebarItemTextActive]}>
+                    All Categories
+                  </Text>
+                </Pressable>
+                <Text style={styles.sidebarSectionLabel}>CATEGORIES</Text>
+                {categories.length > 0 ? (
+                  categories.map((category) => (
+                    <Pressable
+                      key={category}
+                      onPress={() => { setSelectedCategory(category); closeSidebar(); }}
+                      style={[styles.sidebarItem, selectedCategory === category && styles.sidebarItemActive]}
+                    >
+                      <Text style={[styles.sidebarItemText, selectedCategory === category && styles.sidebarItemTextActive]}>
+                        {category}
+                      </Text>
+                    </Pressable>
+                  ))
+                ) : (
+                  <Text style={styles.sidebarItemText}>No categories</Text>
+                )}
+              </View>
+            </Animated.View>
           </Animated.View>
-        </Animated.View>
+        </View>
       )}
     </>
   );
