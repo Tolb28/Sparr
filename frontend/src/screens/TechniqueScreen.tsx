@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FlatList, RefreshControl, Animated, TextInput, View, Pressable, StyleSheet, Modal } from 'react-native';
+import { FlatList, RefreshControl, Animated, TextInput, View, Pressable, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -34,6 +34,7 @@ export default function TechniqueScreen() {
   const [activeTab, setActiveTab] = useState<'techniques' | 'drills' | 'combinations'>('techniques');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const sidebarAnim = React.useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
+  const sidebarBackdropOpacity = React.useRef(new Animated.Value(0)).current;
 
   const [techniquesData, setTechniquesData] = useState<GroupedItem[]>([]);
   const [drillsData, setDrillsData] = useState<GroupedItem[]>([]);
@@ -47,37 +48,44 @@ export default function TechniqueScreen() {
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   const openSidebar = useCallback(() => {
-    console.log('[SIDEBAR] openSidebar called');
     setSidebarOpen(true);
   }, []);
 
   const closeSidebar = useCallback(() => {
-    console.log('[SIDEBAR] closeSidebar called');
-    Animated.timing(sidebarAnim, {
-      toValue: -SIDEBAR_WIDTH,
-      duration: 200,
-      useNativeDriver: false,
-    }).start(() => setSidebarOpen(false));
-  }, [sidebarAnim]);
+    Animated.parallel([
+      Animated.timing(sidebarAnim, {
+        toValue: -SIDEBAR_WIDTH,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(sidebarBackdropOpacity, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+    ]).start(() => setSidebarOpen(false));
+  }, [sidebarAnim, sidebarBackdropOpacity]);
 
-  // Trigger slide-in animation when sidebar opens
+  // Trigger animations when sidebar opens
   useEffect(() => {
-    console.log('[SIDEBAR] useEffect triggered, sidebarOpen:', sidebarOpen);
     if (sidebarOpen) {
-      console.log('[SIDEBAR] Setting animation start position to:', -SIDEBAR_WIDTH);
       sidebarAnim.setValue(-SIDEBAR_WIDTH);
+      sidebarBackdropOpacity.setValue(0);
       
-      // Small delay to ensure Modal is rendered before animation
-      requestAnimationFrame(() => {
-        console.log('[SIDEBAR] Starting animation from -280 to 0');
+      Animated.parallel([
         Animated.timing(sidebarAnim, {
           toValue: 0,
           duration: 250,
-          useNativeDriver: false,
-        }).start(() => console.log('[SIDEBAR] Animation complete'));
-      });
+          useNativeDriver: true,
+        }),
+        Animated.timing(sidebarBackdropOpacity, {
+          toValue: 1,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
-  }, [sidebarOpen, sidebarAnim]);
+  }, [sidebarOpen, sidebarAnim, sidebarBackdropOpacity]);
 
   const loadData = async (forceRefresh = false) => {
     if (!forceRefresh && activeTab === 'techniques' && techniquesData.length > 0) return;
@@ -352,22 +360,16 @@ export default function TechniqueScreen() {
         )}
       </View>
 
-      {/* Sidebar via Modal for reliable cross-platform touch handling */}
-      <Modal
-        visible={sidebarOpen}
-        transparent
-        animationType="none"
-        onRequestClose={closeSidebar}
-      >
-        <View style={styles.modalContainer}>
-          <Pressable style={styles.sidebarBackdrop} onPress={closeSidebar} />
+      {/* Sidebar Drawer Overlay */}
+      {sidebarOpen && (
+        <Animated.View style={[styles.sidebarOverlay, { opacity: sidebarBackdropOpacity }]}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={closeSidebar} />
           <Animated.View
-            style={[styles.sidebar, {
+            style={[styles.sidebarDrawer, {
               transform: [{ translateX: sidebarAnim }],
-              paddingTop: (insets.top || 0) + 20,
             }]}
           >
-            <View style={styles.sidebarContent}>
+            <View style={[styles.sidebarContent, { paddingTop: (insets.top || 0) + 20 }]}>
               <Pressable
                 onPress={() => { setSelectedCategory(null); closeSidebar(); }}
                 style={[styles.sidebarItem, selectedCategory === null && styles.sidebarItemActive]}
@@ -390,8 +392,8 @@ export default function TechniqueScreen() {
               ))}
             </View>
           </Animated.View>
-        </View>
-      </Modal>
+        </Animated.View>
+      )}
     </View>
   );
 }
@@ -443,16 +445,21 @@ const styles = StyleSheet.create({
   featuredCta: { color: colors.primary.main, fontSize: 12, fontWeight: '600', marginTop: 6 },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyState: { paddingTop: 60 },
-  modalContainer: { width: '100%', height: '100%' },
-  sidebarBackdrop: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10,
-  },  sidebar: {
-    position: 'absolute', left: 0, top: 0, bottom: 0, width: SIDEBAR_WIDTH,
-    zIndex: 20, backgroundColor: colors.background.primary,
+  sidebarOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+  },
+  sidebarDrawer: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: SIDEBAR_WIDTH,
+    zIndex: 101,
+    backgroundColor: colors.background.primary,
     elevation: 5,
   },
-  sidebarContent: { paddingHorizontal: 14 },
+  sidebarContent: { paddingHorizontal: 14, flex: 1 },
   sidebarItem: { paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10, marginBottom: 2 },
   sidebarItemActive: { backgroundColor: colors.background.card },
   sidebarItemText: { color: colors.text.secondary, fontSize: 14 },
