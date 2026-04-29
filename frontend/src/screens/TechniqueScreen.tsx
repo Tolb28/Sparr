@@ -47,30 +47,34 @@ export default function TechniqueScreen() {
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   const openSidebar = useCallback(() => {
+    console.log('[SIDEBAR] openSidebar called');
     setSidebarOpen(true);
   }, []);
 
   const closeSidebar = useCallback(() => {
+    console.log('[SIDEBAR] closeSidebar called');
     Animated.timing(sidebarAnim, {
       toValue: -SIDEBAR_WIDTH,
       duration: 200,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start(() => setSidebarOpen(false));
   }, [sidebarAnim]);
 
   // Trigger slide-in animation when sidebar opens
   useEffect(() => {
+    console.log('[SIDEBAR] useEffect triggered, sidebarOpen:', sidebarOpen);
     if (sidebarOpen) {
-      // Reset animation to start position
+      console.log('[SIDEBAR] Setting animation start position to:', -SIDEBAR_WIDTH);
       sidebarAnim.setValue(-SIDEBAR_WIDTH);
       
       // Small delay to ensure Modal is rendered before animation
       requestAnimationFrame(() => {
+        console.log('[SIDEBAR] Starting animation from -280 to 0');
         Animated.timing(sidebarAnim, {
           toValue: 0,
           duration: 250,
-          useNativeDriver: true,
-        }).start();
+          useNativeDriver: false,
+        }).start(() => console.log('[SIDEBAR] Animation complete'));
       });
     }
   }, [sidebarOpen, sidebarAnim]);
@@ -446,7 +450,7 @@ const styles = StyleSheet.create({
   },  sidebar: {
     position: 'absolute', left: 0, top: 0, bottom: 0, width: SIDEBAR_WIDTH,
     zIndex: 20, backgroundColor: colors.background.primary,
-    borderRightWidth: 1, borderRightColor: colors.border.light, elevation: 5,
+    elevation: 5,
   },
   sidebarContent: { paddingHorizontal: 14 },
   sidebarItem: { paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10, marginBottom: 2 },
