@@ -162,13 +162,13 @@ async function getRecommendationsForType(
         SUM(
           CASE
             WHEN
-              (r.boxing_style_id IS NULL OR ($2 IS NOT NULL AND r.boxing_style_id = $2))
-              AND (r.weight_class_id IS NULL OR ($3 IS NOT NULL AND r.weight_class_id = $3))
-              AND (r.min_height_cm IS NULL OR ($4 IS NOT NULL AND $4 >= r.min_height_cm))
-              AND (r.max_height_cm IS NULL OR ($4 IS NOT NULL AND $4 <= r.max_height_cm))
+              (r.boxing_style_id IS NULL OR ($2::integer IS NOT NULL AND r.boxing_style_id = $2::integer))
+              AND (r.weight_class_id IS NULL OR ($3::integer IS NOT NULL AND r.weight_class_id = $3::integer))
+              AND (r.min_height_cm IS NULL OR ($4::integer IS NOT NULL AND $4::integer >= r.min_height_cm))
+              AND (r.max_height_cm IS NULL OR ($4::integer IS NOT NULL AND $4::integer <= r.max_height_cm))
               AND (
                 r.min_experience_level IS NULL OR (
-                  $5 IS NOT NULL AND $5 >= (
+                  $5::integer IS NOT NULL AND $5::integer >= (
                     CASE r.min_experience_level
                       WHEN 'beginner' THEN 1
                       WHEN 'intermediate' THEN 2
@@ -180,7 +180,7 @@ async function getRecommendationsForType(
               )
               AND (
                 r.max_experience_level IS NULL OR (
-                  $5 IS NOT NULL AND $5 <= (
+                  $5::integer IS NOT NULL AND $5::integer <= (
                     CASE r.max_experience_level
                       WHEN 'beginner' THEN 1
                       WHEN 'intermediate' THEN 2
@@ -196,14 +196,14 @@ async function getRecommendationsForType(
         )::int AS rule_score,
         BOOL_OR(
           r.boxing_style_id IS NOT NULL
-          AND $2 IS NOT NULL
-          AND r.boxing_style_id = $2
-          AND (r.weight_class_id IS NULL OR ($3 IS NOT NULL AND r.weight_class_id = $3))
-          AND (r.min_height_cm IS NULL OR ($4 IS NOT NULL AND $4 >= r.min_height_cm))
-          AND (r.max_height_cm IS NULL OR ($4 IS NOT NULL AND $4 <= r.max_height_cm))
+          AND $2::integer IS NOT NULL
+          AND r.boxing_style_id = $2::integer
+          AND (r.weight_class_id IS NULL OR ($3::integer IS NOT NULL AND r.weight_class_id = $3::integer))
+          AND (r.min_height_cm IS NULL OR ($4::integer IS NOT NULL AND $4::integer >= r.min_height_cm))
+          AND (r.max_height_cm IS NULL OR ($4::integer IS NOT NULL AND $4::integer <= r.max_height_cm))
           AND (
             r.min_experience_level IS NULL OR (
-              $5 IS NOT NULL AND $5 >= (
+              $5::integer IS NOT NULL AND $5::integer >= (
                 CASE r.min_experience_level
                   WHEN 'beginner' THEN 1
                   WHEN 'intermediate' THEN 2
@@ -215,7 +215,7 @@ async function getRecommendationsForType(
           )
           AND (
             r.max_experience_level IS NULL OR (
-              $5 IS NOT NULL AND $5 <= (
+              $5::integer IS NOT NULL AND $5::integer <= (
                 CASE r.max_experience_level
                   WHEN 'beginner' THEN 1
                   WHEN 'intermediate' THEN 2
@@ -228,14 +228,14 @@ async function getRecommendationsForType(
         ) AS reason_style,
         BOOL_OR(
           r.weight_class_id IS NOT NULL
-          AND $3 IS NOT NULL
-          AND r.weight_class_id = $3
-          AND (r.boxing_style_id IS NULL OR ($2 IS NOT NULL AND r.boxing_style_id = $2))
-          AND (r.min_height_cm IS NULL OR ($4 IS NOT NULL AND $4 >= r.min_height_cm))
-          AND (r.max_height_cm IS NULL OR ($4 IS NOT NULL AND $4 <= r.max_height_cm))
+          AND $3::integer IS NOT NULL
+          AND r.weight_class_id = $3::integer
+          AND (r.boxing_style_id IS NULL OR ($2::integer IS NOT NULL AND r.boxing_style_id = $2::integer))
+          AND (r.min_height_cm IS NULL OR ($4::integer IS NOT NULL AND $4::integer >= r.min_height_cm))
+          AND (r.max_height_cm IS NULL OR ($4::integer IS NOT NULL AND $4::integer <= r.max_height_cm))
           AND (
             r.min_experience_level IS NULL OR (
-              $5 IS NOT NULL AND $5 >= (
+              $5::integer IS NOT NULL AND $5::integer >= (
                 CASE r.min_experience_level
                   WHEN 'beginner' THEN 1
                   WHEN 'intermediate' THEN 2
@@ -247,7 +247,7 @@ async function getRecommendationsForType(
           )
           AND (
             r.max_experience_level IS NULL OR (
-              $5 IS NOT NULL AND $5 <= (
+              $5::integer IS NOT NULL AND $5::integer <= (
                 CASE r.max_experience_level
                   WHEN 'beginner' THEN 1
                   WHEN 'intermediate' THEN 2
@@ -260,14 +260,14 @@ async function getRecommendationsForType(
         ) AS reason_weight,
         BOOL_OR(
           (r.min_height_cm IS NOT NULL OR r.max_height_cm IS NOT NULL)
-          AND $4 IS NOT NULL
-          AND (r.min_height_cm IS NULL OR $4 >= r.min_height_cm)
-          AND (r.max_height_cm IS NULL OR $4 <= r.max_height_cm)
-          AND (r.boxing_style_id IS NULL OR ($2 IS NOT NULL AND r.boxing_style_id = $2))
-          AND (r.weight_class_id IS NULL OR ($3 IS NOT NULL AND r.weight_class_id = $3))
+          AND $4::integer IS NOT NULL
+          AND (r.min_height_cm IS NULL OR $4::integer >= r.min_height_cm)
+          AND (r.max_height_cm IS NULL OR $4::integer <= r.max_height_cm)
+          AND (r.boxing_style_id IS NULL OR ($2::integer IS NOT NULL AND r.boxing_style_id = $2::integer))
+          AND (r.weight_class_id IS NULL OR ($3::integer IS NOT NULL AND r.weight_class_id = $3::integer))
           AND (
             r.min_experience_level IS NULL OR (
-              $5 IS NOT NULL AND $5 >= (
+              $5::integer IS NOT NULL AND $5::integer >= (
                 CASE r.min_experience_level
                   WHEN 'beginner' THEN 1
                   WHEN 'intermediate' THEN 2
@@ -279,7 +279,7 @@ async function getRecommendationsForType(
           )
           AND (
             r.max_experience_level IS NULL OR (
-              $5 IS NOT NULL AND $5 <= (
+              $5::integer IS NOT NULL AND $5::integer <= (
                 CASE r.max_experience_level
                   WHEN 'beginner' THEN 1
                   WHEN 'intermediate' THEN 2
@@ -292,9 +292,9 @@ async function getRecommendationsForType(
         ) AS reason_height,
         BOOL_OR(
           (r.min_experience_level IS NOT NULL OR r.max_experience_level IS NOT NULL)
-          AND $5 IS NOT NULL
+          AND $5::integer IS NOT NULL
           AND (
-            r.min_experience_level IS NULL OR $5 >= (
+            r.min_experience_level IS NULL OR $5::integer >= (
               CASE r.min_experience_level
                 WHEN 'beginner' THEN 1
                 WHEN 'intermediate' THEN 2
@@ -304,7 +304,7 @@ async function getRecommendationsForType(
             )
           )
           AND (
-            r.max_experience_level IS NULL OR $5 <= (
+            r.max_experience_level IS NULL OR $5::integer <= (
               CASE r.max_experience_level
                 WHEN 'beginner' THEN 1
                 WHEN 'intermediate' THEN 2
@@ -313,10 +313,10 @@ async function getRecommendationsForType(
               END
             )
           )
-          AND (r.boxing_style_id IS NULL OR ($2 IS NOT NULL AND r.boxing_style_id = $2))
-          AND (r.weight_class_id IS NULL OR ($3 IS NOT NULL AND r.weight_class_id = $3))
-          AND (r.min_height_cm IS NULL OR ($4 IS NOT NULL AND $4 >= r.min_height_cm))
-          AND (r.max_height_cm IS NULL OR ($4 IS NOT NULL AND $4 <= r.max_height_cm))
+          AND (r.boxing_style_id IS NULL OR ($2::integer IS NOT NULL AND r.boxing_style_id = $2::integer))
+          AND (r.weight_class_id IS NULL OR ($3::integer IS NOT NULL AND r.weight_class_id = $3::integer))
+          AND (r.min_height_cm IS NULL OR ($4::integer IS NOT NULL AND $4::integer >= r.min_height_cm))
+          AND (r.max_height_cm IS NULL OR ($4::integer IS NOT NULL AND $4::integer <= r.max_height_cm))
         ) AS reason_experience
       FROM content_personalization_rules r
       WHERE r.content_type = $1
