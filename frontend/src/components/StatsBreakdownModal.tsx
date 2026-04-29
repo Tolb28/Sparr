@@ -111,8 +111,6 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
     };
   }, [isVisible]);
 
-  if (!rendered) return null;
-
   const snapshotMetricKey = isSnapshotMetricKey(metricKey) ? metricKey : null;
   const data = useMemo(
     () => (snapshotMetricKey
@@ -134,6 +132,8 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
     () => chartData.findIndex((value) => value === peakValue),
     [chartData, peakValue]
   );
+
+  if (!rendered) return null;
 
   const chartType = CHART_TYPE_MAP[metricKey] ?? 'line';
   const chartWidth = Math.min(width - (isSmallScreen ? 24 : 32), isTablet ? 520 : 360);

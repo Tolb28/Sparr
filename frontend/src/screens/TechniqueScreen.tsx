@@ -28,6 +28,11 @@ interface GroupedItem {
   items: any[];
 }
 
+type ScrollListItem = 
+  | { type: 'recommended'; items: RecommendedContentItem[] }
+  | { type: 'featured'; item: any; categoryName: string }
+  | { type: 'category'; categoryName: string; items: any[] }
+
 export default function TechniqueScreen() {
   const navigation = useNavigation<RootNavigationProp>();
   const insets = useSafeAreaInsets();
@@ -190,6 +195,51 @@ export default function TechniqueScreen() {
     });
   };
 
+  const getMostPopularItem = (data: GroupedItem[]) => {
+    let mostPopular: any = null;
+    let maxPopularity = -1;
+    let categoryName = '';
+
+    for (const section of data) {
+      for (const item of section.items) {
+        const popularity = item.popularity ?? 0;
+        if (popularity > maxPopularity) {
+          maxPopularity = popularity;
+          mostPopular = item;
+          categoryName = section.categoryName;
+        }
+      }
+    }
+
+    return { item: mostPopular || data[0]?.items?.[0], categoryName: categoryName || data[0]?.categoryName || '' };
+  };
+
+  const buildScrollListData = (): ScrollListItem[] => {
+    const listData: ScrollListItem[] = [];
+
+    if (!loading && filteredData.length > 0) {
+      if (recommendedItems.length > 0) {
+        listData.push({ type: 'recommended', items: recommendedItems });
+      }
+
+      const { item: featuredItem, categoryName: featuredCategory } = getMostPopularItem(filteredData);
+      if (featuredItem) {
+        listData.push({ type: 'featured', item: featuredItem, categoryName: featuredCategory });
+      }
+    }
+
+    for (const section of filteredData) {
+      listData.push({ type: 'category', categoryName: section.categoryName, items: section.items });
+    }
+
+    return listData;
+  };
+
+  const formatReason = (reason: string): string => {
+    if (reason === 'fallback_popularity') return 'Popular now';
+    return reason.replace('match_', '');
+  };
+
   const getCurrentData = () => {
     if (activeTab === 'techniques') return techniquesData;
     if (activeTab === 'drills') return drillsData;
@@ -221,7 +271,59 @@ export default function TechniqueScreen() {
     { key: 'combinations', label: 'Combos' },
   ];
 
-  const featured = currentData[0]?.items?.[0];
+  const scrollListData = buildScrollListData();
+  const renderRecommendedSection = (data: RecommendedContentItem[]) => (
+    <View style={{ marginHorizontal: 14, marginBottom: 12 }}>
+      <View style={styles.recommendedHeader}>
+        <Ionicons name="sparkles-outline" size={16} color={colors.primary.main} />
+        <Text style={styles.recommendedTitle}>Doporučeno pro tebe</Text>
+      </View>
+
+      {recommendationsLoading ? (
+        <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
+          <Text style={styles.recommendedFallbackText}>Načítám personalizovaný obsah...</Text>
+        </GlassCard>
+      ) : data.length === 0 ? (
+        <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
+          <Text style={styles.recommendedFallbackText}>
+            Doplň v profilu styl, váhovou kategorii, výšku a zkušenosti pro přesnější doporučení.
+          </Text>
+        </GlassCard>
+      ) : (
+        <FlatList
+          horizontal
+          data={data}
+          keyExtractor={(item) => `${item.content_type}-${item.content_id}`}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.recommendedListContent}
+          scrollEnabled={false}
+          renderItem={({ item }) => (
+            <Pressable onPress={() => handleRecommendedPress(item)} style={styles.recommendedCardPressable}>
+              <GlassCard variant="medium" radius={14} padding={12} style={styles.recommendedCard}>
+                <View style={styles.recommendedCardHeader}>
+                  <Text style={styles.recommendedCardType}>{item.content_type.toUpperCase()}</Text>
+                  <Text style={styles.recommendedCardScore}>Score {item.score}</Text>
+                </View>
+                <Text style={styles.recommendedCardTitle} numberOfLines={2}>{item.title}</Text>
+                {!!item.category_name && (
+                  <Text style={styles.recommendedCardCategory} numberOfLines={1}>
+                    {item.category_name}
+                  </Text>
+                )}
+                <View style={styles.reasonsRow}>
+                  {item.reasons.slice(0, 2).map((reason) => (
+                    <View key={reason} style={styles.reasonChip}>
+                      <Text style={styles.reasonChipText}>{formatReason(reason)}</Text>
+                    </View>
+                  ))}
+                </View>
+              </GlassCard>
+            </Pressable>
+          )}
+        />
+      )}
+    </View>
+  );
 
   return (
     <View style={styles.root}>
@@ -259,69 +361,6 @@ export default function TechniqueScreen() {
         </View>
 
         <View style={styles.flex1}>
-          <View style={styles.recommendedSection}>
-            <View style={styles.recommendedHeader}>
-              <Ionicons name="sparkles-outline" size={16} color={colors.primary.main} />
-              <Text style={styles.recommendedTitle}>Doporučeno pro tebe</Text>
-            </View>
-
-            {recommendationsLoading ? (
-              <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
-                <Text style={styles.recommendedFallbackText}>Načítám personalizovaný obsah...</Text>
-              </GlassCard>
-            ) : recommendedItems.length === 0 ? (
-              <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
-                <Text style={styles.recommendedFallbackText}>
-                  Doplň v profilu styl, váhovou kategorii, výšku a zkušenosti pro přesnější doporučení.
-                </Text>
-              </GlassCard>
-            ) : (
-              <FlatList
-                horizontal
-                data={recommendedItems}
-                keyExtractor={(item) => `${item.content_type}-${item.content_id}`}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.recommendedListContent}
-                renderItem={({ item }) => (
-                  <Pressable onPress={() => handleRecommendedPress(item)} style={styles.recommendedCardPressable}>
-                    <GlassCard variant="medium" radius={14} padding={12} style={styles.recommendedCard}>
-                      <View style={styles.recommendedCardHeader}>
-                        <Text style={styles.recommendedCardType}>{item.content_type.toUpperCase()}</Text>
-                        <Text style={styles.recommendedCardScore}>Score {item.score}</Text>
-                      </View>
-                      <Text style={styles.recommendedCardTitle} numberOfLines={2}>{item.title}</Text>
-                      {!!item.category_name && (
-                        <Text style={styles.recommendedCardCategory} numberOfLines={1}>
-                          {item.category_name}
-                        </Text>
-                      )}
-                      <View style={styles.reasonsRow}>
-                        {item.reasons.slice(0, 2).map((reason) => (
-                          <View key={reason} style={styles.reasonChip}>
-                            <Text style={styles.reasonChipText}>{reason.replace('match_', '')}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </GlassCard>
-                  </Pressable>
-                )}
-              />
-            )}
-          </View>
-
-          {featured && (
-            <Pressable
-              onPress={() => handleItemPress(featured, currentData[0]?.categoryName || '')}
-              style={styles.featuredPressable}
-            >
-              <GlassCard variant="red" radius={14} padding={14}>
-                <Text style={styles.featuredLabel}>Drill of the Day</Text>
-                <Text style={styles.featuredTitle} numberOfLines={2}>{featured.title}</Text>
-                <Text style={styles.featuredCta}>Watch Now →</Text>
-              </GlassCard>
-            </Pressable>
-          )}
-
           {loading && !refreshing ? (
             <View style={styles.centerContent}>
               <EmptyState icon="hourglass-outline" title="Loading..." />
@@ -330,16 +369,41 @@ export default function TechniqueScreen() {
             <EmptyState icon="library-outline" title="Nothing found" subtitle="Try a different search or category" style={styles.emptyState} />
           ) : (
             <FlatList
-              data={filteredData}
-              keyExtractor={(item) => item.categoryName}
-              renderItem={({ item }) => (
-                <CategorySection
-                  categoryName={item.categoryName}
-                  items={item.items}
-                  itemType={activeTab === 'drills' ? 'drill' : activeTab === 'techniques' ? 'technique' : 'combination'}
-                  onItemPress={handleItemPress}
-                />
-              )}
+              data={scrollListData}
+              keyExtractor={(item, index) => {
+                if (item.type === 'category') return item.categoryName;
+                if (item.type === 'recommended') return 'recommended-section';
+                return 'featured-section';
+              }}
+              renderItem={({ item }) => {
+                if (item.type === 'recommended') {
+                  return renderRecommendedSection(item.items);
+                }
+
+                if (item.type === 'featured') {
+                  return (
+                    <Pressable
+                      onPress={() => handleItemPress(item.item, item.categoryName)}
+                      style={{ marginHorizontal: 14, marginTop: 6, marginBottom: 12 }}
+                    >
+                      <GlassCard variant="red" radius={14} padding={14}>
+                        <Text style={styles.featuredLabel}>Drill of the Day</Text>
+                        <Text style={styles.featuredTitle} numberOfLines={2}>{item.item.title}</Text>
+                        <Text style={styles.featuredCta}>Watch Now →</Text>
+                      </GlassCard>
+                    </Pressable>
+                  );
+                }
+
+                return (
+                  <CategorySection
+                    categoryName={item.categoryName}
+                    items={item.items}
+                    itemType={activeTab === 'drills' ? 'drill' : activeTab === 'techniques' ? 'technique' : 'combination'}
+                    onItemPress={handleItemPress}
+                  />
+                );
+              }}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
               contentContainerStyle={{ paddingBottom: 90, paddingTop: 6 }}
             />
@@ -414,7 +478,6 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: colors.text.primary, paddingVertical: 11, fontSize: 14 },
   tabs: { marginBottom: 0 },
-  recommendedSection: { marginTop: 10, marginHorizontal: 14 },
   recommendedHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   recommendedTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },
   recommendedFallback: { marginBottom: 6 },
@@ -437,7 +500,6 @@ const styles = StyleSheet.create({
     borderColor: colors.glass.border,
   },
   reasonChipText: { color: colors.text.secondary, fontSize: 10, fontWeight: '600' },
-  featuredPressable: { marginHorizontal: 14, marginTop: 12, marginBottom: 4 },
   featuredLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
   featuredTitle: { color: colors.text.primary, fontSize: 15, fontWeight: '700' },
   featuredCta: { color: colors.primary.main, fontSize: 12, fontWeight: '600', marginTop: 6 },
