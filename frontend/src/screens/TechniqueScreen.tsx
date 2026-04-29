@@ -52,39 +52,25 @@ export default function TechniqueScreen() {
   }, [sidebarOpen]);
 
   const closeSidebar = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(sidebarAnim, {
-        toValue: -SIDEBAR_WIDTH,
-        duration: 200,
-        useNativeDriver: false,
-      }),
-      Animated.timing(sidebarBackdropOpacity, {
-        toValue: 0,
-        duration: 200,
-        useNativeDriver: false,
-      }),
-    ]).start(() => {
+    Animated.timing(sidebarBackdropOpacity, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start(() => {
       setSidebarOpen(false);
     });
-  }, [sidebarAnim, sidebarBackdropOpacity]);
+  }, [sidebarBackdropOpacity]);
 
-  // Trigger animations when sidebar opens
+  // Trigger backdrop animation when sidebar opens
   useEffect(() => {
     if (sidebarOpen) {
-      Animated.parallel([
-        Animated.timing(sidebarAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: false,
-        }),
-        Animated.timing(sidebarBackdropOpacity, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: false,
-        }),
-      ]).start();
+      Animated.timing(sidebarBackdropOpacity, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: false,
+      }).start();
     }
-  }, [sidebarOpen, sidebarAnim, sidebarBackdropOpacity]);
+  }, [sidebarOpen, sidebarBackdropOpacity]);
 
   const loadData = async (forceRefresh = false) => {
     if (!forceRefresh && activeTab === 'techniques' && techniquesData.length > 0) return;
@@ -367,11 +353,7 @@ export default function TechniqueScreen() {
         onRequestClose={closeSidebar}
       >
         <View style={{ flex: 1, flexDirection: 'row' }}>
-          <Animated.View
-            style={[styles.sidebarDrawer, {
-              transform: [{ translateX: sidebarAnim }],
-            }]}
-          >
+          <View style={styles.sidebarDrawer}>
             <View style={[styles.sidebarContent, { paddingTop: (insets.top || 0) + 20 }]}>
               <Pressable
                 onPress={() => { setSelectedCategory(null); closeSidebar(); }}
@@ -398,7 +380,7 @@ export default function TechniqueScreen() {
                 <Text style={styles.sidebarItemText}>No categories</Text>
               )}
             </View>
-          </Animated.View>
+          </View>
           <Animated.View
             style={[
               { flex: 1 },
