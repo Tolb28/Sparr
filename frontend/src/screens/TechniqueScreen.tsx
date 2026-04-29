@@ -64,6 +64,7 @@ export default function TechniqueScreen() {
   // Trigger backdrop animation when sidebar opens
   useEffect(() => {
     if (sidebarOpen) {
+      sidebarBackdropOpacity.setValue(0);
       Animated.timing(sidebarBackdropOpacity, {
         toValue: 1,
         duration: 250,
