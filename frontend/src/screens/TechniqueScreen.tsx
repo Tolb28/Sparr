@@ -238,129 +238,131 @@ export default function TechniqueScreen() {
   const featured = currentData[0]?.items?.[0];
 
   return (
-    <View style={styles.root}>
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: (insets.top || 0) + 6 }]}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={() => openSidebar()} style={styles.iconBtn}>
-            <Ionicons name="menu" size={24} color="#ffffff" />
-          </Pressable>
-          <Text style={styles.headerTitle}>Technique Library</Text>
-          <View style={styles.iconBtn} />
-        </View>
+    <>
+      <View style={styles.root}>
+        {/* Header */}
+        <View style={[styles.header, { paddingTop: (insets.top || 0) + 6 }]}>
+          <View style={styles.headerRow}>
+            <Pressable onPress={() => openSidebar()} style={styles.iconBtn}>
+              <Ionicons name="menu" size={24} color="#ffffff" />
+            </Pressable>
+            <Text style={styles.headerTitle}>Technique Library</Text>
+            <View style={styles.iconBtn} />
+          </View>
 
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color={colors.text.tertiary} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search techniques, drills..."
-            placeholderTextColor={colors.text.tertiary}
-            style={styles.searchInput}
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={18} color={colors.text.tertiary} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search techniques, drills..."
+              placeholderTextColor={colors.text.tertiary}
+              style={styles.searchInput}
+            />
+          </View>
+
+          <TabBar
+            tabs={TECHNIQUE_TABS}
+            activeTab={activeTab}
+            onTabChange={(t) => {
+              setActiveTab(t as 'techniques' | 'drills' | 'combinations');
+              setSelectedCategory(null);
+              setSearchQuery('');
+            }}
+            style={styles.tabs}
           />
         </View>
 
-        <TabBar
-          tabs={TECHNIQUE_TABS}
-          activeTab={activeTab}
-          onTabChange={(t) => {
-            setActiveTab(t as 'techniques' | 'drills' | 'combinations');
-            setSelectedCategory(null);
-            setSearchQuery('');
-          }}
-          style={styles.tabs}
-        />
-      </View>
+        <View style={styles.flex1}>
+          <View style={styles.recommendedSection}>
+            <View style={styles.recommendedHeader}>
+              <Ionicons name="sparkles-outline" size={16} color={colors.primary.main} />
+              <Text style={styles.recommendedTitle}>Doporučeno pro tebe</Text>
+            </View>
 
-      <View style={styles.flex1}>
-        <View style={styles.recommendedSection}>
-          <View style={styles.recommendedHeader}>
-            <Ionicons name="sparkles-outline" size={16} color={colors.primary.main} />
-            <Text style={styles.recommendedTitle}>Doporučeno pro tebe</Text>
+            {recommendationsLoading ? (
+              <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
+                <Text style={styles.recommendedFallbackText}>Načítám personalizovaný obsah...</Text>
+              </GlassCard>
+            ) : recommendedItems.length === 0 ? (
+              <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
+                <Text style={styles.recommendedFallbackText}>
+                  Doplň v profilu styl, váhovou kategorii, výšku a zkušenosti pro přesnější doporučení.
+                </Text>
+              </GlassCard>
+            ) : (
+              <FlatList
+                horizontal
+                data={recommendedItems}
+                keyExtractor={(item) => `${item.content_type}-${item.content_id}`}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.recommendedListContent}
+                renderItem={({ item }) => (
+                  <Pressable onPress={() => handleRecommendedPress(item)} style={styles.recommendedCardPressable}>
+                    <GlassCard variant="medium" radius={14} padding={12} style={styles.recommendedCard}>
+                      <View style={styles.recommendedCardHeader}>
+                        <Text style={styles.recommendedCardType}>{item.content_type.toUpperCase()}</Text>
+                        <Text style={styles.recommendedCardScore}>Score {item.score}</Text>
+                      </View>
+                      <Text style={styles.recommendedCardTitle} numberOfLines={2}>{item.title}</Text>
+                      {!!item.category_name && (
+                        <Text style={styles.recommendedCardCategory} numberOfLines={1}>
+                          {item.category_name}
+                        </Text>
+                      )}
+                      <View style={styles.reasonsRow}>
+                        {item.reasons.slice(0, 2).map((reason) => (
+                          <View key={reason} style={styles.reasonChip}>
+                            <Text style={styles.reasonChipText}>{reason.replace('match_', '')}</Text>
+                          </View>
+                        ))}
+                      </View>
+                    </GlassCard>
+                  </Pressable>
+                )}
+              />
+            )}
           </View>
 
-          {recommendationsLoading ? (
-            <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
-              <Text style={styles.recommendedFallbackText}>Načítám personalizovaný obsah...</Text>
-            </GlassCard>
-          ) : recommendedItems.length === 0 ? (
-            <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
-              <Text style={styles.recommendedFallbackText}>
-                Doplň v profilu styl, váhovou kategorii, výšku a zkušenosti pro přesnější doporučení.
-              </Text>
-            </GlassCard>
+          {featured && (
+            <Pressable
+              onPress={() => handleItemPress(featured, currentData[0]?.categoryName || '')}
+              style={styles.featuredPressable}
+            >
+              <GlassCard variant="red" radius={14} padding={14}>
+                <Text style={styles.featuredLabel}>Drill of the Day</Text>
+                <Text style={styles.featuredTitle} numberOfLines={2}>{featured.title}</Text>
+                <Text style={styles.featuredCta}>Watch Now →</Text>
+              </GlassCard>
+            </Pressable>
+          )}
+
+          {loading && !refreshing ? (
+            <View style={styles.centerContent}>
+              <EmptyState icon="hourglass-outline" title="Loading..." />
+            </View>
+          ) : filteredData.length === 0 ? (
+            <EmptyState icon="library-outline" title="Nothing found" subtitle="Try a different search or category" style={styles.emptyState} />
           ) : (
             <FlatList
-              horizontal
-              data={recommendedItems}
-              keyExtractor={(item) => `${item.content_type}-${item.content_id}`}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.recommendedListContent}
+              data={filteredData}
+              keyExtractor={(item) => item.categoryName}
               renderItem={({ item }) => (
-                <Pressable onPress={() => handleRecommendedPress(item)} style={styles.recommendedCardPressable}>
-                  <GlassCard variant="medium" radius={14} padding={12} style={styles.recommendedCard}>
-                    <View style={styles.recommendedCardHeader}>
-                      <Text style={styles.recommendedCardType}>{item.content_type.toUpperCase()}</Text>
-                      <Text style={styles.recommendedCardScore}>Score {item.score}</Text>
-                    </View>
-                    <Text style={styles.recommendedCardTitle} numberOfLines={2}>{item.title}</Text>
-                    {!!item.category_name && (
-                      <Text style={styles.recommendedCardCategory} numberOfLines={1}>
-                        {item.category_name}
-                      </Text>
-                    )}
-                    <View style={styles.reasonsRow}>
-                      {item.reasons.slice(0, 2).map((reason) => (
-                        <View key={reason} style={styles.reasonChip}>
-                          <Text style={styles.reasonChipText}>{reason.replace('match_', '')}</Text>
-                        </View>
-                      ))}
-                    </View>
-                  </GlassCard>
-                </Pressable>
+                <CategorySection
+                  categoryName={item.categoryName}
+                  items={item.items}
+                  itemType={activeTab === 'drills' ? 'drill' : activeTab === 'techniques' ? 'technique' : 'combination'}
+                  onItemPress={handleItemPress}
+                />
               )}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
+              contentContainerStyle={{ paddingBottom: 90, paddingTop: 6 }}
             />
           )}
         </View>
-
-        {featured && (
-          <Pressable
-            onPress={() => handleItemPress(featured, currentData[0]?.categoryName || '')}
-            style={styles.featuredPressable}
-          >
-            <GlassCard variant="red" radius={14} padding={14}>
-              <Text style={styles.featuredLabel}>Drill of the Day</Text>
-              <Text style={styles.featuredTitle} numberOfLines={2}>{featured.title}</Text>
-              <Text style={styles.featuredCta}>Watch Now →</Text>
-            </GlassCard>
-          </Pressable>
-        )}
-
-        {loading && !refreshing ? (
-          <View style={styles.centerContent}>
-            <EmptyState icon="hourglass-outline" title="Loading..." />
-          </View>
-        ) : filteredData.length === 0 ? (
-          <EmptyState icon="library-outline" title="Nothing found" subtitle="Try a different search or category" style={styles.emptyState} />
-        ) : (
-          <FlatList
-            data={filteredData}
-            keyExtractor={(item) => item.categoryName}
-            renderItem={({ item }) => (
-              <CategorySection
-                categoryName={item.categoryName}
-                items={item.items}
-                itemType={activeTab === 'drills' ? 'drill' : activeTab === 'techniques' ? 'technique' : 'combination'}
-                onItemPress={handleItemPress}
-              />
-            )}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
-            contentContainerStyle={{ paddingBottom: 90, paddingTop: 6 }}
-          />
-        )}
       </View>
 
-      {/* Sidebar Drawer Overlay */}
+      {/* Sidebar Drawer - Outside main view for proper absolute positioning */}
       {sidebarOpen && (
         <Animated.View style={[styles.sidebarOverlay, { opacity: sidebarBackdropOpacity }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={closeSidebar} />
@@ -394,7 +396,7 @@ export default function TechniqueScreen() {
           </Animated.View>
         </Animated.View>
       )}
-    </View>
+    </>
   );
 }
 
@@ -448,6 +450,7 @@ const styles = StyleSheet.create({
   sidebarOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 100,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   sidebarDrawer: {
     position: 'absolute',
