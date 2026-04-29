@@ -48,10 +48,12 @@ export default function TechniqueScreen() {
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   const openSidebar = useCallback(() => {
+    console.log('[SIDEBAR DEBUG] openSidebar called, current state:', sidebarOpen);
     setSidebarOpen(true);
-  }, []);
+  }, [sidebarOpen]);
 
   const closeSidebar = useCallback(() => {
+    console.log('[SIDEBAR DEBUG] closeSidebar called');
     Animated.parallel([
       Animated.timing(sidebarAnim, {
         toValue: -SIDEBAR_WIDTH,
@@ -63,14 +65,20 @@ export default function TechniqueScreen() {
         duration: 200,
         useNativeDriver: true,
       }),
-    ]).start(() => setSidebarOpen(false));
+    ]).start(() => {
+      console.log('[SIDEBAR DEBUG] closeSidebar animation complete');
+      setSidebarOpen(false);
+    });
   }, [sidebarAnim, sidebarBackdropOpacity]);
 
   // Trigger animations when sidebar opens
   useEffect(() => {
+    console.log('[SIDEBAR DEBUG] useEffect triggered, sidebarOpen:', sidebarOpen);
     if (sidebarOpen) {
+      console.log('[SIDEBAR DEBUG] Starting open animation sequence');
       sidebarAnim.setValue(-SIDEBAR_WIDTH);
       sidebarBackdropOpacity.setValue(0);
+      console.log('[SIDEBAR DEBUG] Animation values reset');
       
       Animated.parallel([
         Animated.timing(sidebarAnim, {
@@ -83,7 +91,7 @@ export default function TechniqueScreen() {
           duration: 250,
           useNativeDriver: true,
         }),
-      ]).start();
+      ]).start(() => console.log('[SIDEBAR DEBUG] Open animation complete'));
     }
   }, [sidebarOpen, sidebarAnim, sidebarBackdropOpacity]);
 
@@ -364,7 +372,10 @@ export default function TechniqueScreen() {
 
       {/* Sidebar Drawer - Outside main view for proper absolute positioning */}
       {sidebarOpen && (
-        <Animated.View style={[styles.sidebarOverlay, { opacity: sidebarBackdropOpacity }]}>
+        <Animated.View 
+          style={[styles.sidebarOverlay, { opacity: sidebarBackdropOpacity }]}
+          onLayout={() => console.log('[SIDEBAR RENDER] Sidebar rendered, categories:', categories.length)}
+        >
           <Pressable style={StyleSheet.absoluteFill} onPress={closeSidebar} />
           <Animated.View
             style={[styles.sidebarDrawer, {
@@ -381,17 +392,21 @@ export default function TechniqueScreen() {
                 </Text>
               </Pressable>
               <Text style={styles.sidebarSectionLabel}>CATEGORIES</Text>
-              {categories.map((category) => (
-                <Pressable
-                  key={category}
-                  onPress={() => { setSelectedCategory(category); closeSidebar(); }}
-                  style={[styles.sidebarItem, selectedCategory === category && styles.sidebarItemActive]}
-                >
-                  <Text style={[styles.sidebarItemText, selectedCategory === category && styles.sidebarItemTextActive]}>
-                    {category}
-                  </Text>
-                </Pressable>
-              ))}
+              {categories.length > 0 ? (
+                categories.map((category) => (
+                  <Pressable
+                    key={category}
+                    onPress={() => { setSelectedCategory(category); closeSidebar(); }}
+                    style={[styles.sidebarItem, selectedCategory === category && styles.sidebarItemActive]}
+                  >
+                    <Text style={[styles.sidebarItemText, selectedCategory === category && styles.sidebarItemTextActive]}>
+                      {category}
+                    </Text>
+                  </Pressable>
+                ))
+              ) : (
+                <Text style={styles.sidebarItemText}>No categories</Text>
+              )}
             </View>
           </Animated.View>
         </Animated.View>
