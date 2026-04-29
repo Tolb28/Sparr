@@ -56,12 +56,12 @@ export default function TechniqueScreen() {
       Animated.timing(sidebarAnim, {
         toValue: -SIDEBAR_WIDTH,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
       Animated.timing(sidebarBackdropOpacity, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
     ]).start(() => {
       setSidebarOpen(false);
@@ -75,12 +75,12 @@ export default function TechniqueScreen() {
         Animated.timing(sidebarAnim, {
           toValue: 0,
           duration: 250,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(sidebarBackdropOpacity, {
           toValue: 1,
           duration: 250,
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]).start();
     }
