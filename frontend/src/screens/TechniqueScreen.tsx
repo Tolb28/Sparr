@@ -472,6 +472,7 @@ const styles = StyleSheet.create({
   emptyState: { paddingTop: 60 },
   sidebarDrawer: {
     width: SIDEBAR_WIDTH,
+    height: '100%',
     backgroundColor: colors.background.primary,
     elevation: 5,
   },
