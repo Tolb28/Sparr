@@ -276,17 +276,17 @@ export default function TechniqueScreen() {
     <View style={{ marginHorizontal: 14, marginBottom: 12 }}>
       <View style={styles.recommendedHeader}>
         <Ionicons name="sparkles-outline" size={16} color={colors.primary.main} />
-        <Text style={styles.recommendedTitle}>Doporučeno pro tebe</Text>
+        <Text style={styles.recommendedTitle}>Recommended for you</Text>
       </View>
 
       {recommendationsLoading ? (
         <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
-          <Text style={styles.recommendedFallbackText}>Načítám personalizovaný obsah...</Text>
+          <Text style={styles.recommendedFallbackText}>Loading personalized content...</Text>
         </GlassCard>
       ) : data.length === 0 ? (
         <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
           <Text style={styles.recommendedFallbackText}>
-            Doplň v profilu styl, váhovou kategorii, výšku a zkušenosti pro přesnější doporučení.
+            Complete your profile (style, weight class, height, experience) for better recommendations.
           </Text>
         </GlassCard>
       ) : (
@@ -296,7 +296,7 @@ export default function TechniqueScreen() {
           keyExtractor={(item) => `${item.content_type}-${item.content_id}`}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.recommendedListContent}
-          scrollEnabled={false}
+          scrollEnabled={true}
           renderItem={({ item }) => (
             <Pressable onPress={() => handleRecommendedPress(item)} style={styles.recommendedCardPressable}>
               <GlassCard variant="medium" radius={14} padding={12} style={styles.recommendedCard}>
