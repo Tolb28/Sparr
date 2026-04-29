@@ -236,8 +236,15 @@ export default function TechniqueScreen() {
   };
 
   const formatReason = (reason: string): string => {
-    if (reason === 'fallback_popularity') return 'Popular now';
-    return reason.replace('match_', '');
+    const reasonMap: Record<string, string> = {
+      'match_style': 'Your style',
+      'match_weight': 'Your weight class',
+      'match_height': 'Your height',
+      'match_experience': 'Your level',
+      'popular_with_community': 'Popular',
+      'fallback_popularity': 'Trending',
+    };
+    return reasonMap[reason] || reason;
   };
 
   const getCurrentData = () => {
