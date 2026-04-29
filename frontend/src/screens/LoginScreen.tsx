@@ -1,23 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Platform } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TextInput, Pressable } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { login } from '../api/login';
 import { getToken, storeToken } from '../api/tokenHandler';
 import { getUserProfile } from '../api/profile';
-import { Box } from '@/components/ui/box';
-import { VStack } from '@/components/ui/vstack';
-import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
-import { Input, InputField, InputIcon, InputSlot } from '@/components/ui/input';
-import { Button, ButtonText } from '@/components/ui/button';
-import { Pressable } from '@/components/ui/pressable';
 import { Ionicons } from '@expo/vector-icons';
 import { getProfile, removeProfile } from '../api/profileHandler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GlassCard } from '@/components/ui/glass-card';
+import { SparrButton } from '@/components/ui/sparr-button';
+import { colors } from '@/src/theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 export default function LoginScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -25,45 +24,27 @@ export default function LoginScreen({ navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // If already logged in, redirect to Main
     (async () => {
       const token = await getToken();
-      console.log('existing token', token);
       const profile = await getProfile();
-      if (profile) {
-        navigation.replace('Main');
-      }
+      if (profile) navigation.replace('Main');
     })();
-    }, []);
+  }, []);
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Please enter email and password');
-      return;
-    }
-
+    if (!email || !password) { setError('Please enter email and password'); return; }
     setLoading(true);
     try {
       const resp = await login(email, password);
-      console.log('login success', resp);
       setError(null);
-        console.log('storing token', resp.token);
-        await storeToken(resp.token);
-        // Check whether profile exists yet
-        try {
-          const profileResp = await getUserProfile();
-          if (profileResp?.profile) {
-            navigation.replace('Main');
-          } else {
-            navigation.replace('CreateProfile');
-          }
-        } catch (e: any) {
-          // If profile not found (or any get profile error), route to create profile
-          console.log('error fetching profile after login', e);
-          navigation.replace('CreateProfile');
-        }
+      await storeToken(resp.token);
+      try {
+        const profileResp = await getUserProfile();
+        navigation.replace(profileResp?.profile ? 'Main' : 'CreateProfile');
+      } catch {
+        navigation.replace('CreateProfile');
+      }
     } catch (err: any) {
-      console.log('login error', err);
       setError(err?.message ?? 'Login failed');
     } finally {
       setLoading(false);
@@ -71,82 +52,199 @@ export default function LoginScreen({ navigation }: Props) {
   };
 
   return (
-    <Box className="flex-1 bg-white justify-center items-center px-4">
-      <VStack className="w-full max-w-sm gap-6">
-        {/* Title */}
-        <Text className="text-3xl font-bold text-center">Login</Text>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      {/* Background accent glow */}
+      <View style={styles.glowTop} pointerEvents="none" />
+      <View style={styles.glowBottom} pointerEvents="none" />
 
-        {/* Error Message */}
-        {error && (
-          <Box className="bg-red-100 rounded p-3">
-            <Text className="text-red-700 text-center">{error}</Text>
-          </Box>
-        )}
-
-        {/* Email Input */}
-        <VStack className="gap-2">
-          <Text className="text-sm font-semibold">Email</Text>
-          <Input className="border border-gray-300 rounded">
-            <InputField
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setError(null);
-              }}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </Input>
-        </VStack>
-
-        {/* Password Input */}
-        <VStack className="gap-2">
-          <Text className="text-sm font-semibold">Password</Text>
-          <Input className="border border-gray-300 rounded">
-            <InputField
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                setError(null);
-              }}
-              secureTextEntry={!showPassword}
-              type={showPassword ? 'text' : 'password'}
-            />
-            <InputSlot onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons
-                name={showPassword ? 'eye' : 'eye-off'}
-                size={20}
-                color="#6B7280"
-              />
-            </InputSlot>
-          </Input>
-        </VStack>
-
-        {/* Login Button */}
-        <Button
-          onPress={handleLogin}
-          disabled={loading}
-          className="bg-blue-500 rounded py-2 mt-4"
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <ButtonText>{loading ? 'Logging in...' : 'Login'}</ButtonText>
-        </Button>
+          {/* Logo & headline */}
+          <View style={styles.header}>
+            <View style={styles.logoMark}>
+              <Ionicons name="fitness" size={28} color={colors.primary.main} />
+            </View>
+            <Text style={styles.wordmark}>SPARR</Text>
+            <Text style={styles.tagline}>Train. Fight. Connect.</Text>
+          </View>
 
-        {/* Sign Up Link */}
-        <HStack className="justify-center gap-1">
-          <Text className="text-gray-600">Don't have an account yet? </Text>
-          <Pressable onPress={() => navigation.navigate('Register')}>
-            <Text className="text-blue-500 font-semibold">Create one</Text>
-          </Pressable>
-        </HStack>
+          {/* Form card */}
+          <GlassCard style={styles.card} variant="medium" radius={20} padding={24}>
+            <Text style={styles.cardTitle}>Welcome back</Text>
 
-        {/* Platform Info */}
-        <Text className="text-gray-500 text-center text-sm mt-6">
-          Running on {Platform.OS}
-        </Text>
-      </VStack>
-    </Box>
+            {error && (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle-outline" size={15} color={colors.error.main} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <View style={styles.field}>
+              <Text style={styles.label}>Email</Text>
+              <TextInput
+                style={[styles.input, styles.inputText]}
+                placeholder="your@email.com"
+                value={email}
+                onChangeText={(t) => { setEmail(t); setError(null); }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor={colors.input.placeholder}
+              />
+            </View>
+
+            <View style={[styles.field, styles.fieldLast]}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.passwordWrap}>
+                <TextInput
+                  style={[styles.input, styles.inputText, { flex: 1, borderWidth: 0 }]}
+                  placeholder="••••••••"
+                  value={password}
+                  onChangeText={(t) => { setPassword(t); setError(null); }}
+                  secureTextEntry={!showPassword}
+                  placeholderTextColor={colors.input.placeholder}
+                />
+                <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.eyeSlot}>
+                  <Ionicons
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={18}
+                    color={colors.text.secondary}
+                  />
+                </Pressable>
+              </View>
+            </View>
+
+            <SparrButton
+              onPress={handleLogin}
+              loading={loading}
+              fullWidth
+              size="lg"
+              style={styles.loginBtn}
+              accessibilityLabel="Log in"
+            >
+              Log In
+            </SparrButton>
+          </GlassCard>
+
+          {/* Register link */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>New to Sparr? </Text>
+            <Pressable onPress={() => navigation.navigate('Register')} accessibilityRole="link">
+              <Text style={styles.footerLink}>Create an account</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background.secondary },
+  flex: { flex: 1 },
+  glowTop: {
+    position: 'absolute',
+    top: -120,
+    right: -100,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: colors.gradient.accentGlow,
+  },
+  glowBottom: {
+    position: 'absolute',
+    bottom: 60,
+    left: -100,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(242, 13, 13, 0.06)',
+  },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+  },
+  header: { alignItems: 'center', marginBottom: 36 },
+  logoMark: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: colors.glass.redSurface,
+    borderWidth: 1,
+    borderColor: colors.glass.redBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  wordmark: {
+    fontSize: 42,
+    fontWeight: '800',
+    color: colors.text.primary,
+    letterSpacing: 8,
+    lineHeight: 52,
+  },
+  tagline: {
+    fontSize: 13,
+    color: colors.text.tertiary,
+    letterSpacing: 2.5,
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
+  card: { width: '100%' },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text.primary,
+    marginBottom: 20,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.glass.redSurface,
+    borderWidth: 1,
+    borderColor: colors.glass.redBorder,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  errorText: { color: colors.error.light, fontSize: 13, flex: 1 },
+  field: { marginBottom: 14 },
+  fieldLast: { marginBottom: 24 },
+  label: { fontSize: 12, fontWeight: '600', color: colors.text.secondary, marginBottom: 7, letterSpacing: 0.5 },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.input.border,
+    backgroundColor: colors.input.background,
+    borderRadius: 12,
+    height: 48,
+    paddingHorizontal: 14,
+  },
+  inputText: { color: colors.text.primary, fontSize: 15 },
+  passwordWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    borderWidth: 1, borderColor: colors.input.border,
+    backgroundColor: colors.input.background, borderRadius: 12, height: 48,
+    paddingLeft: 14,
+  },
+  eyeSlot: { paddingRight: 14 },
+  loginBtn: { marginTop: 0 },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  footerText: { color: colors.text.tertiary, fontSize: 14 },
+  footerLink: { color: colors.primary.main, fontSize: 14, fontWeight: '700' },
+});
 

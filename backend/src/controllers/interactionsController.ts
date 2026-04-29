@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { pool } from '../config/db';
+import { recalculateProfileGamification } from '../services/gamificationService';
 
 /**
  * Toggle or switch an interaction on a post for the authenticated user.
@@ -91,6 +92,10 @@ export const toggleInteraction = async (req: Request, res: Response) => {
         [newTypeId, targetId, profileId]
       );
       action = 'added';
+    }
+
+    if (action === 'added' || action === 'switched') {
+      recalculateProfileGamification(profileId).catch(() => {});
     }
 
     // Return updated counts

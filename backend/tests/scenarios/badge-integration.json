@@ -1,0 +1,22 @@
+{
+  "name": "Badge Integration Tests",
+  "tests": [
+    {
+      "name": "Create workout, progress increments, badge updates",
+      "steps": [
+        "get profile badges (initial state)",
+        "create workout completing new technique",
+        "request progress endpoint",
+        "verify metrics updated, badge progress incremented"
+      ]
+    },
+    {
+      "name": "Reach badge unlock threshold",
+      "steps": [
+        "create workouts until badge unlock condition met",
+        "verify badge status changes to 'unlocked'",
+        "verify in BadgeProgressWidget response"
+      ]
+    }
+  ]
+}

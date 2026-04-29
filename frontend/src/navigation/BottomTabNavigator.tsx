@@ -1,69 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
-import { GestureResponderEvent, View } from 'react-native';
+import { View, Pressable, StyleSheet, GestureResponderEvent } from 'react-native';
 import ProfileScreen from '../screens/ProfileScreen';
-import CalendarScreen from '../screens/CalendarScreen'; // replaced inline placeholder with real screen
-import DiscoveryScreen from '../screens/DiscoveryScreen'; // replaced inline placeholder with real screen
+import CalendarScreen from '../screens/CalendarScreen';
+import DiscoveryScreen from '../screens/DiscoveryScreen';
 import TechniqueScreen from '../screens/TechniqueScreen';
-import { Box } from '@/components/ui/box';
-import { Pressable} from '@/components/ui/pressable';
-import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
 import FriendsScreen from '../screens/FriendsScreen';
-import ConversationsScreen from '../screens/ConversationsScreen';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { getUserProfile } from '../api/profile';
+import { colors } from '@/src/theme/colors';
 
 const Tab = createBottomTabNavigator();
 
-const ICONS: Record<string, string> = {
-  Calendar: 'calendar-outline',
-  Techniques: 'barbell-outline',
-  Friends: 'people-outline',
-  Discovery: 'clipboard-outline',
-  Messages: 'chatbubble-outline',
-  Profile: 'profile',
-};
+const TABS: { name: string; icon: string; iconFilled: string }[] = [
+  { name: 'Calendar', icon: 'calendar-outline', iconFilled: 'calendar' },
+  { name: 'Techniques', icon: 'barbell-outline', iconFilled: 'barbell' },
+  { name: 'Profile', icon: 'person-circle-outline', iconFilled: 'person-circle' },
+  { name: 'Discovery', icon: 'compass-outline', iconFilled: 'compass' },
+  { name: 'Friends', icon: 'people-outline', iconFilled: 'people' },
+];
 
 function CustomTabBar({ state, descriptors, navigation, profile }: any) {
   return (
-    <Box
-      style={{
-        height: 60,
-        borderTopWidth: 1,
-        borderTopColor: '#ccc',
-        backgroundColor: '#fff',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        paddingHorizontal: 8,
-      }}
-    >
+    <View style={styles.tabBar}>
       {state.routes.map((route: any, index: number) => {
         const isFocused = state.index === index;
+        const tabConfig = TABS.find((t) => t.name === route.name);
 
         const onPress = (e?: GestureResponderEvent) => {
-          const event = navigation.emit({
-            type: 'tabPress',
-            target: route.key,
-            canPreventDefault: true,
-          });
-          if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
-          }
+          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
         };
-
-        const onLongPress = () => {
-          navigation.emit({
-            type: 'tabLongPress',
-            target: route.key,
-          });
-        };
-
-        const iconName = ICONS[route.name] ?? 'ellipse-outline';
-        const color = isFocused ? '#000' : '#777';
-        const size = 36;
+        const onLongPress = () => navigation.emit({ type: 'tabLongPress', target: route.key });
 
         return (
           <Pressable
@@ -71,16 +41,34 @@ function CustomTabBar({ state, descriptors, navigation, profile }: any) {
             onPress={onPress}
             onLongPress={onLongPress}
             accessibilityRole="button"
-            style={{ alignItems: 'center', justifyContent: 'center' }}
+            accessibilityLabel={route.name}
+            accessibilityState={{ selected: isFocused }}
+            style={({ pressed }) => [styles.tabItem, pressed && styles.tabItemPressed]}
           >
-            {iconName === 'profile' ? <Avatar className="bg-indigo-600" size="md" key={profile?.avatar_url}>
-              <AvatarFallbackText className="text-white">{profile?.display_name ?? '?'}</AvatarFallbackText>
-              <AvatarImage source={{ uri: profile?.avatar_url || undefined }} />
-            </Avatar> : <Ionicons name={iconName as any} size={size} color={color} />}
+            {route.name === 'Profile' ? (
+              <View style={[styles.avatarWrap, isFocused && styles.avatarWrapActive]}>
+                <Avatar size="sm">
+                  <AvatarFallbackText style={styles.avatarFallback}>
+                    {profile?.display_name ?? '?'}
+                  </AvatarFallbackText>
+                  <AvatarImage source={{ uri: profile?.avatar_url || undefined }} />
+                </Avatar>
+              </View>
+            ) : (
+              <Ionicons
+                name={
+                  isFocused
+                    ? (tabConfig?.iconFilled as any)
+                    : (tabConfig?.icon as any)
+                }
+                size={26}
+                color={isFocused ? colors.primary.main : colors.text.tertiary}
+              />
+            )}
           </Pressable>
         );
       })}
-    </Box>
+    </View>
   );
 }
 
@@ -90,24 +78,12 @@ export default function BottomTabNavigator() {
   const loadProfile = async () => {
     try {
       const data = await getUserProfile();
-      const parsedProfile = data?.profile ?? data;
-      setProfile(parsedProfile);
-    } catch (err) {
-      console.error('Failed to load profile for tab bar:', err);
-    }
+      setProfile(data?.profile ?? data);
+    } catch {}
   };
 
-  // Initial load
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  // Reload profile whenever the navigator comes into focus
-  useFocusEffect(
-    React.useCallback(() => {
-      loadProfile();
-    }, [])
-  );
+  useEffect(() => { loadProfile(); }, []);
+  useFocusEffect(React.useCallback(() => { loadProfile(); }, []));
 
   return (
     <Tab.Navigator
@@ -119,8 +95,41 @@ export default function BottomTabNavigator() {
       <Tab.Screen name="Techniques" component={TechniqueScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
       <Tab.Screen name="Discovery" component={DiscoveryScreen} />
-      <Tab.Screen name="Messages" component={ConversationsScreen} />
       <Tab.Screen name="Friends" component={FriendsScreen} />
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    height: 66,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+    backgroundColor: colors.background.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    gap: 4,
+  },
+  tabItemPressed: { opacity: 0.7 },
+  avatarWrap: {
+    borderRadius: 20,
+    padding: 1,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  avatarWrapActive: {
+    borderColor: colors.primary.main,
+  },
+  avatarFallback: {
+    color: '#ffffff',
+  },
+});

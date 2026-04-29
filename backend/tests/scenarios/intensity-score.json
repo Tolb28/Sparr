@@ -1,0 +1,29 @@
+{
+  "name": "Intensity Score Calculation Tests",
+  "tests": [
+    {
+      "name": "No workouts = 0",
+      "profileId": "test_user_1",
+      "expect": { "intensity_score": 0 }
+    },
+    {
+      "name": "Simple workouts ~20",
+      "profileId": "test_user_2",
+      "expect": { "intensity_score": { "min": 15, "max": 30 } }
+    },
+    {
+      "name": "Complex workouts ~70",
+      "profileId": "test_user_3",
+      "expect": { "intensity_score": { "min": 60, "max": 80 } }
+    },
+    {
+      "name": "Depends on skill_level",
+      "check": "intensity_score >= (skill_level / 4)"
+    },
+    {
+      "name": "Max capped at 100",
+      "profileId": "test_user_4",
+      "expect": { "intensity_score": { "max": 100 } }
+    }
+  ]
+}

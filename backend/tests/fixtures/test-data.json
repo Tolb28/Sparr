@@ -1,0 +1,60 @@
+{
+  "profiles": [
+    {
+      "username": "test_user_1",
+      "displayName": "Test User 1",
+      "workouts": 2,
+      "interactions": 5,
+      "posts": 1,
+      "targetSkill": 10,
+      "isolated": false
+    },
+    {
+      "username": "test_user_2",
+      "displayName": "Test User 2",
+      "workouts": 50,
+      "interactions": 20,
+      "posts": 4,
+      "targetSkill": 40,
+      "isolated": false
+    },
+    {
+      "username": "test_user_3",
+      "displayName": "Test User 3",
+      "workouts": 100,
+      "interactions": 35,
+      "posts": 6,
+      "targetSkill": 70,
+      "isolated": false
+    },
+    {
+      "username": "test_user_4",
+      "displayName": "Test User 4",
+      "workouts": 220,
+      "interactions": 50,
+      "posts": 10,
+      "targetSkill": 90,
+      "isolated": false
+    },
+    {
+      "username": "test_user_5",
+      "displayName": "Test User 5",
+      "workouts": 10,
+      "interactions": 0,
+      "posts": 1,
+      "targetSkill": 5,
+      "isolated": true
+    }
+  ],
+  "workoutRanges": {
+    "durationMinutes": [15, 90],
+    "components": [1, 10],
+    "volume": [20, 300],
+    "techniques": [1, 5]
+  },
+  "clubs": {
+    "count": 2,
+    "titles": ["Test Club Alpha", "Test Club Beta"],
+    "joinPolicy": "open"
+  }
+}

@@ -61,9 +61,9 @@ export default function ItemCard({
   }, [itemType, itemId]);
   return (
     <Pressable onPress={onPress} className="flex-1 m-2 min-w-[45%]">
-      <Box className="rounded-lg overflow-hidden shadow-sm" style={{ backgroundColor: colors.card.background }}>
+      <Box className="rounded-xl overflow-hidden border border-[#3a1d1d]" style={{ backgroundColor: '#341818' }}>
         {/* Image Container - Smaller */}
-        <View className="w-full aspect-video items-center justify-center" style={{ backgroundColor: colors.neutral[200] }}>
+        <View className="w-full aspect-video items-center justify-center" style={{ backgroundColor: '#2a1414' }}>
           {imageUri ? (
             <Image
               source={{ uri: imageUri }}
@@ -78,8 +78,8 @@ export default function ItemCard({
               }}
             />
           ) : (
-            <View className="w-full h-full items-center justify-center" style={{ backgroundColor: colors.neutral[300] }}>
-              <Text className="text-xs text-center px-2" style={{ color: colors.text.tertiary }}>
+            <View className="w-full h-full items-center justify-center" style={{ backgroundColor: '#3a1d1d' }}>
+              <Text className="text-xs text-center px-2" style={{ color: '#cb9090' }}>
                 {loading ? 'Loading...' : 'No Image'}
               </Text>
             </View>
@@ -91,7 +91,7 @@ export default function ItemCard({
           <Text
             className="font-bold text-base"
             numberOfLines={2}
-            style={{ color: colors.text.primary }}
+            style={{ color: '#ffffff' }}
           >
             {title}
           </Text>

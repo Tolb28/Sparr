@@ -1,0 +1,21 @@
+{
+  "concurrency_10": {
+    "p50": 245,
+    "p95": 255,
+    "p99": 255,
+    "error_rate": 0
+  },
+  "concurrency_50": {
+    "p50": 129,
+    "p95": 231,
+    "p99": 232,
+    "error_rate": 0
+  },
+  "concurrency_100": {
+    "p50": 252,
+    "p95": 432,
+    "p99": 436,
+    "error_rate": 0
+  },
+  "cache_hit_rate": 0
+}

@@ -8,13 +8,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { ImageBackground, View } from 'react-native';
 
 type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+function formatTime(t: string | null | undefined): string {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const display = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${display}:${m} ${ampm}`;
+}
 
 interface TrainingCardProps {
   title: string;
   description?: string;
   length?: string;
+  start_time?: string | null;
   components?: string[];
   trainingComponents?: any[];
   trainingName?: string;
@@ -22,12 +33,14 @@ interface TrainingCardProps {
   onEditPress?: () => void;
   isLoading?: boolean;
   isEmpty?: boolean;
+  isRestDay?: boolean;
 }
 
 export default function TrainingCard({
   title,
   description = 'No training selected for this day',
   length = '—',
+  start_time = null,
   components = [],
   trainingComponents = [],
   trainingName = '',
@@ -35,10 +48,37 @@ export default function TrainingCard({
   onEditPress = () => {},
   isLoading = false,
   isEmpty = false,
+  isRestDay = false,
 }: TrainingCardProps) {
   const navigation = useNavigation<RootNavigationProp>();
   const [descExpanded, setDescExpanded] = useState(false);
   const [contentExpanded, setContentExpanded] = useState(false);
+
+  // Rest day styling
+  if (isRestDay) {
+    return (
+      <Box className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'rgba(59, 130, 246, 0.08)', borderColor: 'rgba(59, 130, 246, 0.25)' }}>
+        <VStack className="px-5 py-6 items-center gap-4">
+          <Box className="w-16 h-16 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)' }}>
+            <Ionicons name="moon-outline" size={32} color="rgba(147, 197, 253, 1)" />
+          </Box>
+          <VStack className="items-center gap-2">
+            <Text className="text-xl font-bold" style={{ color: 'rgba(147, 197, 253, 1)' }}>Rest Day</Text>
+            <Text className="text-sm text-center" style={{ color: 'rgba(147, 197, 253, 0.7)' }}>
+              Recovery time — take it easy!
+            </Text>
+          </VStack>
+        </VStack>
+      </Box>
+    );
+  }
+
+  // derive a banner image from training components if available
+  const bannerImage: string | undefined = (() => {
+    if (!trainingComponents || trainingComponents.length === 0) return undefined;
+    const first = trainingComponents[0];
+    return (first && (first.thumbnail || first.image || first.thumb_url)) || undefined;
+  })();
 
   const truncateLength = 120;
   const shouldTruncateDesc = description.length > truncateLength;
@@ -62,40 +102,66 @@ export default function TrainingCard({
   };
 
   return (
-    <Box className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-      {/* Header */}
-      <VStack className="px-5 py-4 bg-gradient-to-r from-gray-50 to-white border-b border-gray-100">
-        <Text className="text-xl font-bold text-gray-900 mb-3">
-          {isLoading ? 'Loading...' : title}
-        </Text>
-        
-        {/* Training metadata */}
-        <HStack className="gap-4">
-          <VStack className="gap-1">
-            <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Duration</Text>
-            <Text className="text-sm font-semibold text-gray-900">{length}</Text>
-          </VStack>
-        </HStack>
-      </VStack>
+    <Box className="rounded-2xl border border-[#2e1919] overflow-hidden" style={{ backgroundColor: '#221010' }}>
+      {/* Banner/Header */}
+      {bannerImage ? (
+        <ImageBackground
+          source={{ uri: bannerImage }}
+          style={{ width: '100%', height: 190 }}
+          imageStyle={{ resizeMode: 'cover' }}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', padding: 16, justifyContent: 'flex-end' }}>
+            <Text className="text-2xl font-bold text-white">{isLoading ? 'Loading...' : title}</Text>
+            <HStack className="items-center justify-between mt-3">
+              <VStack>
+                <Text className="text-xs text-white/75 uppercase">Duration</Text>
+                <Text className="text-sm font-semibold text-white">{length}</Text>
+              </VStack>
+              {start_time && (
+                <VStack className="items-end">
+                  <Text className="text-xs text-white/75 uppercase">Time</Text>
+                  <Text className="text-sm font-semibold text-white">{formatTime(start_time)}</Text>
+                </VStack>
+              )}
+            </HStack>
+          </View>
+        </ImageBackground>
+      ) : (
+        <VStack className="px-5 py-4 border-b border-[#2e1919]" style={{ backgroundColor: '#2a1515' }}>
+          <Text className="text-xl font-bold text-white mb-3">{isLoading ? 'Loading...' : title}</Text>
+          <HStack className="gap-4">
+            <VStack className="gap-1">
+              <Text className="text-xs font-semibold text-[#cb9090] uppercase tracking-wider">Duration</Text>
+              <Text className="text-sm font-semibold text-white">{length}</Text>
+            </VStack>
+            {start_time && (
+              <VStack className="gap-1">
+                <Text className="text-xs font-semibold text-[#cb9090] uppercase tracking-wider">Time</Text>
+                <Text className="text-sm font-semibold text-white">{formatTime(start_time)}</Text>
+              </VStack>
+            )}
+          </HStack>
+        </VStack>
+      )}
 
       {/* Content */}
-      <VStack className="px-5 py-4 gap-4">
+      <VStack className="px-5 py-4 gap-4" style={{ backgroundColor: '#221010' }}>
         {/* Description Section */}
         <VStack className="gap-2">
-          <Text className="text-sm font-semibold text-gray-700 uppercase tracking-wide">About</Text>
-          <Text className="text-sm text-gray-600 leading-6">
+          <Text className="text-sm font-semibold text-[#cb9090] uppercase tracking-wide">About</Text>
+          <Text className="text-sm text-white/85 leading-6">
             {displayDescription}
           </Text>
           {shouldTruncateDesc && (
             <Pressable onPress={() => setDescExpanded(!descExpanded)} className="active:opacity-70">
               <HStack className="gap-1 items-center">
-                <Text className="text-sm font-semibold text-blue-600">
+                <Text className="text-sm font-semibold text-primary-500">
                   {descExpanded ? 'Show less' : 'Show more'}
                 </Text>
                 <Ionicons 
                   name={descExpanded ? 'chevron-up' : 'chevron-down'}
                   size={16}
-                  color="#2563eb"
+                  color="#f20d0d"
                 />
               </HStack>
             </Pressable>
@@ -105,25 +171,25 @@ export default function TrainingCard({
         {/* Components Section */}
         {components.length > 0 && (
           <VStack className="gap-2">
-            <Text className="text-sm font-semibold text-gray-700 uppercase tracking-wide">What's included</Text>
+            <Text className="text-sm font-semibold text-[#cb9090] uppercase tracking-wide">What's included</Text>
             <VStack className="gap-2">
               {displayComponents.map((component, idx) => (
                 <HStack key={idx} className="gap-3">
-                  <Box className="w-2 h-2 rounded-full bg-blue-600 mt-1.5" />
-                  <Text className="text-sm text-gray-600 flex-1">{component}</Text>
+                  <Box className="w-2 h-2 rounded-full bg-primary-500 mt-1.5" />
+                  <Text className="text-sm text-white/80 flex-1">{component}</Text>
                 </HStack>
               ))}
             </VStack>
             {components.length > MAX_VISIBLE_COMPONENTS && (
               <Pressable onPress={() => setContentExpanded(!contentExpanded)} className="active:opacity-70 mt-1">
                 <HStack className="gap-1 items-center">
-                  <Text className="text-sm font-semibold text-blue-600">
+                  <Text className="text-sm font-semibold text-primary-500">
                     {contentExpanded ? 'Show less' : `Show ${components.length - MAX_VISIBLE_COMPONENTS} more`}
                   </Text>
                   <Ionicons 
                     name={contentExpanded ? 'chevron-up' : 'chevron-down'}
                     size={16}
-                    color="#2563eb"
+                    color="#f20d0d"
                   />
                 </HStack>
               </Pressable>
@@ -132,8 +198,8 @@ export default function TrainingCard({
         )}
 
         {isEmpty && (
-          <Box className="bg-blue-50 rounded-lg px-4 py-3 border border-blue-200">
-            <Text className="text-sm text-blue-900">
+          <Box className="rounded-lg px-4 py-3 border border-[#6d2e2e]" style={{ backgroundColor: '#341818' }}>
+            <Text className="text-sm text-[#f5d6d6]">
               No training assigned for this day. Visit "Select Calendar" to choose a training schedule.
             </Text>
           </Box>
@@ -141,12 +207,12 @@ export default function TrainingCard({
       </VStack>
 
       {/* Action Buttons */}
-      <HStack className="px-5 py-4 gap-3 border-t border-gray-100">
+      <HStack className="px-5 py-4 gap-3 border-t border-[#2e1919]" style={{ backgroundColor: '#1a0c0c' }}>
         <Pressable
           className={`flex-1 rounded-lg px-5 py-3.5 items-center justify-center ${
             isButtonsDisabled 
-              ? 'bg-gray-200' 
-              : 'bg-blue-600 active:bg-blue-700'
+              ? 'bg-gray-600' 
+              : 'bg-primary-500 active:bg-primary-600'
           }`}
           onPress={handleStartPress}
           disabled={isButtonsDisabled}
@@ -158,13 +224,13 @@ export default function TrainingCard({
         <Pressable
           className={`rounded-lg px-5 py-3.5 items-center justify-center ${
             isButtonsDisabled 
-              ? 'bg-gray-100 border border-gray-200' 
-              : 'bg-gray-100 border border-gray-300 active:bg-gray-200'
+              ? 'bg-[#2a1515] border border-[#472323]' 
+              : 'bg-[#2a1515] border border-[#6d2e2e] active:bg-[#341818]'
           }`}
           onPress={onEditPress}
           disabled={isButtonsDisabled}
         >
-          <Text className={`font-semibold ${isButtonsDisabled ? 'text-gray-400' : 'text-gray-900'}`}>
+          <Text className={`font-semibold ${isButtonsDisabled ? 'text-gray-400' : 'text-white'}`}>
             Edit
           </Text>
         </Pressable>

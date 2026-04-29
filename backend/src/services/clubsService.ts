@@ -1,5 +1,6 @@
 import { pool } from '../config/db';
 import { cloudinaryService } from './cloudinaryService';
+import { recalculateProfileGamification } from './gamificationService';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -436,6 +437,8 @@ export async function joinOpenClub(clubId: number, profileId: number) {
     [profileId, clubId, memberRoleId, memberEnum]
   );
 
+  recalculateProfileGamification(profileId).catch(() => {});
+
   return { success: true };
 }
 
@@ -515,6 +518,11 @@ export async function reviewJoinRequest(params: {
     }
 
     await client.query('COMMIT');
+
+    if (params.status === 'approved' && request.profile_id) {
+      recalculateProfileGamification(request.profile_id).catch(() => {});
+    }
+
     return request;
   } catch (error) {
     await client.query('ROLLBACK');
@@ -1108,4 +1116,81 @@ export async function createClubCalendarFull(params: {
   } finally {
     client.release();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Club calendar selection
+// ---------------------------------------------------------------------------
+
+export async function selectClubCalendar(
+  clubId: number,
+  calendarId: number,
+  userId: number,
+  profileId: number
+) {
+  const resolvedProfileId = profileId || (await getProfileIdForUser(userId));
+  if (!resolvedProfileId) throw new Error('Profile required');
+
+  const canManage = await isClubAdminOrCoach(clubId, resolvedProfileId);
+  if (!canManage) throw new Error('Forbidden');
+
+  const { rows: clubRows } = await pool.query(
+    `SELECT club_profile_id FROM clubs WHERE idclubs = $1`,
+    [clubId]
+  );
+  const clubProfileId = clubRows[0]?.club_profile_id;
+  if (!clubProfileId) throw new Error('Club has no profile');
+
+  await pool.query(
+    `DELETE FROM profiles_training_calendar WHERE profiles_id_profiles = $1`,
+    [clubProfileId]
+  );
+  await pool.query(
+    `INSERT INTO profiles_training_calendar (profiles_id_profiles, training_calendar_id_training_calendar) VALUES ($1, $2)`,
+    [clubProfileId, calendarId]
+  );
+
+  return { success: true };
+}
+
+export async function getClubSelectedCalendar(clubId: number) {
+  const { rows: clubRows } = await pool.query(
+    `SELECT club_profile_id FROM clubs WHERE idclubs = $1`,
+    [clubId]
+  );
+  const clubProfileId = clubRows[0]?.club_profile_id;
+  if (!clubProfileId) return null;
+
+  const { rows } = await pool.query(
+    `SELECT tc.id_training_calendar, tc.title, tc.calendar_type, tc.num_weeks, tc.order_start_date, tc.privacy, tc.created_at
+     FROM profiles_training_calendar ptc
+     JOIN training_calendar tc ON ptc.training_calendar_id_training_calendar = tc.id_training_calendar
+     WHERE ptc.profiles_id_profiles = $1
+     LIMIT 1`,
+    [clubProfileId]
+  );
+  const calendar = rows[0];
+  if (!calendar) return null;
+
+  const { rows: items } = await pool.query(
+    `SELECT
+       tct.id_training_calendar_trainings,
+       tct.id_training_calendar,
+       tct.id_trainings,
+       tct."order",
+       tct.day_of_week,
+       tct.week_number,
+       tct.start_time,
+       tct.icon_name,
+       t.title as training_title,
+       t.description as training_description,
+       (SELECT COUNT(*) FROM trainings_components tc WHERE tc.id_trainings = t.id_trainings) as component_count
+     FROM training_calendar_trainings tct
+     LEFT JOIN trainings t ON t.id_trainings = tct.id_trainings
+     WHERE tct.id_training_calendar = $1
+     ORDER BY tct."order", tct.week_number, tct.day_of_week`,
+    [calendar.id_training_calendar]
+  );
+
+  return { calendar, items };
 }

@@ -39,9 +39,9 @@ export type RootStackParamList = {
   Register: undefined;
   EditProfile: undefined;
   CreateProfile: undefined;
-  CreatePost: undefined;
+  CreatePost: { clubId?: number } | undefined;
   Main: undefined;
-  BrowseCalendars: undefined;
+  BrowseCalendars: { clubId?: number } | undefined;
   CreateCalendar: undefined;
   ForeignProfile: { foreign_profile_id: number };
   Technique: undefined;
@@ -65,7 +65,7 @@ export type RootStackParamList = {
   CreateTraining: undefined;
   EditTraining: { trainingId: number };
   EditCalendar: { calendarId: number };
-  CalendarPreview: { calendarId: number };
+  CalendarPreview: { calendarId: number; clubId?: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

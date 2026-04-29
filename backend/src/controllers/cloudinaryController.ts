@@ -33,6 +33,19 @@ async function setPostSrc(postId: string | number, publicId: string): Promise<vo
   console.log(`DB: set posts.src = "${publicId}" for post ${postId}`);
 }
 
+async function setClubAvatarSrc(clubId: string | number, publicId: string): Promise<void> {
+  try {
+    await pool.query(
+      "UPDATE clubs SET avatar_path = $1, updated_at = NOW() WHERE idclubs = $2",
+      [publicId, clubId]
+    );
+    console.log(`✅ Updated club avatar to "${publicId}" for club ${clubId}`);
+  } catch (err) {
+    console.error(`❌ Failed to update club avatar in database:`, err);
+    throw err;
+  }
+}
+
 export const cloudinaryController = {
   async changeAvatar(profileId: string | number, localFilePath: string, mimetype: string): Promise<MediaResponse> {
     if (!mimetype.startsWith("image/")) {
@@ -80,6 +93,57 @@ export const cloudinaryController = {
       const fullPublicId = `${folder}/${publicId}`;
       await setPostSrc(postId, fullPublicId);
 
+      return {
+        public_id: fullPublicId,
+        secure_url: result.secure_url ?? "",
+        resource_type: result.resource_type ?? "",
+        derived: result.derived ?? [],
+      };
+    } finally {
+      safeUnlink(localFilePath);
+    }
+  },
+
+  async changeClubAvatar(clubId: string | number, localFilePath: string, mimetype: string): Promise<MediaResponse> {
+    if (!mimetype.startsWith("image/")) {
+      safeUnlink(localFilePath);
+      throw new Error("Club avatar must be an image");
+    }
+
+    const folder = `clubs/${clubId}`;
+    const publicId = "avatar";
+
+    try {
+      const result = await cloudinaryService.uploadImage(localFilePath, { folder, publicId });
+      const fullPublicId = `${folder}/${publicId}`;
+
+      await setClubAvatarSrc(clubId, fullPublicId);
+
+      return {
+        public_id: fullPublicId,
+        secure_url: result.secure_url ?? "",
+        resource_type: result.resource_type ?? "",
+        derived: result.derived ?? [],
+      };
+    } finally {
+      safeUnlink(localFilePath);
+    }
+  },
+
+  async changeClubCover(clubId: string | number, localFilePath: string, mimetype: string): Promise<MediaResponse> {
+    if (!mimetype.startsWith("image/")) {
+      safeUnlink(localFilePath);
+      throw new Error("Club cover must be an image");
+    }
+
+    const folder = `clubs/${clubId}`;
+    const publicId = "cover";
+
+    try {
+      const result = await cloudinaryService.uploadImage(localFilePath, { folder, publicId });
+      const fullPublicId = `${folder}/${publicId}`;
+
+      // Only update cover_path — do NOT touch avatar_path
       return {
         public_id: fullPublicId,
         secure_url: result.secure_url ?? "",

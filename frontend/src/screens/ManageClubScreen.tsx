@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,10 +19,14 @@ import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar'
 import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
 import { EmptyState } from '@/components/ui/empty-state';
+import WeeklyCalendar from '../components/WeeklyCalendar';
+import DayTimelineView, { TimelineTraining } from '../components/DayTimelineView';
+import TrainingCard from '../components/TrainingCard';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import {
   getClub,
   getClubMembers,
+  getClubSelectedCalendar,
   getClubTrainingPlans,
   listJoinRequests,
   removeMember,
@@ -32,6 +36,7 @@ import {
   uploadClubAvatar,
   uploadClubCover,
 } from '../api/clubs';
+import { getTraining } from '../api/trainingCalendars';
 import { colors } from '@/src/theme/colors';
 
 type RouteType = RouteProp<RootStackParamList, 'ManageClub'>;
@@ -59,6 +64,18 @@ export default function ManageClubScreen() {
   const [requests, setRequests]   = useState<any[]>([]);
   const [members, setMembers]     = useState<any[]>([]);
   const [plans, setPlans]         = useState<any[]>([]);
+  const [selectedCalendar, setSelectedCalendar] = useState<any>(null);
+  const [calendarItems, setCalendarItems]       = useState<any[]>([]);
+  const [calendarLoading, setCalendarLoading]   = useState(false);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
+  const [resolvedTrainings, setResolvedTrainings] = useState<TimelineTraining[]>([]);
+  const todayDate = useMemo(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }, []);
   const [activeTab, setActiveTab] = useState<Tab>('Overview');
 
   // Settings form
@@ -94,6 +111,181 @@ export default function ManageClubScreen() {
   }, [clubId]);
 
   useEffect(() => { load(); }, [load]);
+
+  const loadSelectedCalendar = useCallback(async () => {
+    setCalendarLoading(true);
+    try {
+      const data = await getClubSelectedCalendar(clubId);
+      if (data?.calendar) {
+        setSelectedCalendar(data.calendar);
+        setCalendarItems(data.items ?? []);
+      } else {
+        setSelectedCalendar(null);
+        setCalendarItems([]);
+      }
+    } catch {
+      setSelectedCalendar(null);
+      setCalendarItems([]);
+    } finally {
+      setCalendarLoading(false);
+    }
+  }, [clubId]);
+
+  useEffect(() => {
+    if (activeTab === 'Schedule') loadSelectedCalendar();
+  }, [activeTab, loadSelectedCalendar]);
+
+  /* ─── Calendar date-resolution helpers ────────────────────────── */
+  const dayOfWeekFromDate = (dateStr: string): number => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const jsDay = new Date(y!, m! - 1, d).getDay();
+    return (jsDay + 6) % 7; // 0=Mon
+  };
+
+  const daysBetween = (d1: string, d2: string): number => {
+    const a = new Date(d1 + 'T00:00:00');
+    const b = new Date(d2 + 'T00:00:00');
+    return Math.round((b.getTime() - a.getTime()) / 86400000);
+  };
+
+  const dayTrainings = useMemo(() => {
+    if (!selectedCalendar || calendarItems.length === 0) return [];
+    const calType: string = selectedCalendar.calendar_type || 'order';
+
+    if (calType === 'day') {
+      const dow = dayOfWeekFromDate(selectedDate);
+      const numWeeks = selectedCalendar.num_weeks || 1;
+      const createdAt = selectedCalendar.created_at?.split('T')[0] || todayDate;
+      const totalDays = daysBetween(createdAt, selectedDate);
+      const weekInRotation = totalDays >= 0
+        ? (Math.floor(totalDays / 7) % numWeeks) + 1
+        : ((numWeeks - (Math.floor(Math.abs(totalDays) / 7) % numWeeks)) % numWeeks) + 1;
+      return calendarItems.filter(
+        (it: any) => Number(it.day_of_week) === dow && Number(it.week_number) === weekInRotation
+      );
+    } else {
+      const rawStart = selectedCalendar.order_start_date;
+      const startDate = rawStart ? String(rawStart).substring(0, 10) : (selectedCalendar.created_at?.split('T')[0] || todayDate);
+      const totalDays = daysBetween(startDate, selectedDate);
+      const uniqueOrders = [...new Set(calendarItems.filter((it: any) => it.order != null).map((it: any) => Number(it.order)))].sort((a, b) => a - b);
+      const n = uniqueOrders.length || 1;
+      const cycleIdx = totalDays >= 0 ? totalDays % n : ((n - (Math.abs(totalDays) % n)) % n);
+      const targetOrder = uniqueOrders[cycleIdx];
+      return calendarItems.filter((it: any) => it.order != null && Number(it.order) === targetOrder);
+    }
+  }, [selectedCalendar, calendarItems, selectedDate]);
+
+  const calendarEvents = useMemo(() => {
+    if (!selectedCalendar || calendarItems.length === 0) return {};
+    const events: Record<string, { color: string; count: number }> = {};
+    const calType: string = selectedCalendar.calendar_type || 'order';
+    const center = new Date(selectedDate);
+
+    for (let offset = -15; offset <= 15; offset++) {
+      const d = new Date(center);
+      d.setDate(center.getDate() + offset);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+      let count = 0;
+      if (calType === 'day') {
+        const dow = dayOfWeekFromDate(dateStr);
+        const numWeeks = selectedCalendar.num_weeks || 1;
+        const createdAt = selectedCalendar.created_at?.split('T')[0] || todayDate;
+        const totalDays = daysBetween(createdAt, dateStr);
+        const weekInRotation = totalDays >= 0
+          ? (Math.floor(totalDays / 7) % numWeeks) + 1
+          : ((numWeeks - (Math.floor(Math.abs(totalDays) / 7) % numWeeks)) % numWeeks) + 1;
+        count = calendarItems.filter(
+          (it: any) => Number(it.day_of_week) === dow && Number(it.week_number) === weekInRotation && it.id_trainings
+        ).length;
+      } else {
+        const rawStart = selectedCalendar.order_start_date;
+        const startDate = rawStart ? String(rawStart).substring(0, 10) : (selectedCalendar.created_at?.split('T')[0] || todayDate);
+        const uniqueOrders = [...new Set(calendarItems.filter((it: any) => it.order != null).map((it: any) => Number(it.order)))].sort((a, b) => a - b);
+        const n = uniqueOrders.length || 1;
+        const totalDays = daysBetween(startDate, dateStr);
+        const cycleIdx = totalDays >= 0 ? totalDays % n : ((n - (Math.abs(totalDays) % n)) % n);
+        const targetOrder = uniqueOrders[cycleIdx];
+        count = calendarItems.filter((it: any) => it.order != null && Number(it.order) === targetOrder && it.id_trainings).length;
+      }
+      if (count > 0) events[dateStr] = { color: '#f20d0d', count };
+    }
+    return events;
+  }, [selectedCalendar, calendarItems, selectedDate]);
+
+  const calculateDuration = (components: any[]): string => {
+    if (!components || components.length === 0) return '—';
+    let totalSeconds = 0;
+    components.forEach((c: any) => {
+      if (c.length !== undefined && c.length !== null) {
+        const len = Number(c.length);
+        if (!isNaN(len)) totalSeconds += len;
+      } else {
+        const sets = c.sets !== undefined && c.sets !== null ? Number(c.sets) : 1;
+        const reps = c.reps !== undefined && c.reps !== null ? Number(c.reps) : 0;
+        if (!isNaN(sets) && !isNaN(reps) && reps > 0) totalSeconds += sets * reps * 3;
+      }
+    });
+    if (totalSeconds === 0) return '—';
+    if (totalSeconds >= 3600) {
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+    if (totalSeconds >= 60) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return s > 0 ? `${m}m ${s}s` : `${m}m`;
+    }
+    return `${totalSeconds}s`;
+  };
+
+  // Fetch full training details for matched calendar items
+  useEffect(() => {
+    if (dayTrainings.length === 0 || dayTrainings.every((it: any) => !it.id_trainings)) {
+      setResolvedTrainings([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const results: TimelineTraining[] = [];
+      for (const item of dayTrainings) {
+        if (!item.id_trainings) continue;
+        try {
+          const resp = await getTraining(Number(item.id_trainings));
+          const training = resp.training;
+          const components = resp.components || [];
+          const content = (components || []).map((c: any) => {
+            const label = c.drill_title || c.combination_title || c.title || 'Component';
+            const details: string[] = [];
+            const sets = c.sets !== undefined && c.sets !== null ? c.sets : 1;
+            details.push(`${sets} set${sets !== 1 ? 's' : ''}`);
+            if (c.reps !== undefined && c.reps !== null) details.push(`${c.reps} reps`);
+            if (c.length !== undefined && c.length !== null) {
+              const len = Number(c.length);
+              if (!isNaN(len)) {
+                if (len >= 60) details.push(`${Math.round(len / 60)} min`);
+                else details.push(`${len}s`);
+              }
+            }
+            return `${label} (${details.join(', ')})`;
+          });
+          results.push({
+            id: item.id_training_calendar_trainings || item.id_trainings,
+            title: training?.title || 'Training',
+            description: training?.description,
+            duration: calculateDuration(components),
+            start_time: item.start_time || null,
+            components: content,
+            trainingComponents: components,
+            trainingName: training?.title || '',
+          });
+        } catch { /* skip failed fetches */ }
+      }
+      if (!cancelled) setResolvedTrainings(results);
+    })();
+    return () => { cancelled = true; };
+  }, [dayTrainings]);
 
   const pickAndUpload = async (type: 'avatar' | 'cover') => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -339,15 +531,114 @@ export default function ManageClubScreen() {
         {/* ── Schedule Tab ─────────────────────────────────────── */}
         {activeTab === 'Schedule' && (
           <>
-            <SparrButton
-              label="+ Create Training Plan"
-              variant="primary"
-              onPress={() => navigation.navigate('CreateClubCalendar', { clubId })}
-              fullWidth
-            />
-            <Text style={styles.sectionTitle}>Club Training Plans</Text>
+            {/* Current Calendar Section */}
+            {calendarLoading ? (
+              <ActivityIndicator color={colors.primary.main} />
+            ) : selectedCalendar ? (
+              <>
+                <GlassCard variant="medium" radius={14} padding={16}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: colors.primary.main + '18', alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="calendar" size={20} color={colors.primary.main} />
+                    </View>
+                    <View style={styles.flex1}>
+                      <Text style={{ color: colors.text.primary, fontSize: 15, fontWeight: '700' }}>{selectedCalendar.title}</Text>
+                      <Text style={{ color: colors.text.tertiary, fontSize: 12 }}>
+                        {selectedCalendar.calendar_type === 'order' ? 'Order-based' : 'Day-based'} · {calendarItems.length} sessions
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => navigation.navigate('EditCalendar', { calendarId: selectedCalendar.id_training_calendar })}
+                      style={{ padding: 8 }}
+                    >
+                      <Ionicons name="create-outline" size={18} color={colors.text.secondary} />
+                    </Pressable>
+                  </View>
+                </GlassCard>
+
+                {/* Calendar header — matches CalendarScreen */}
+                <View style={manageSchedStyles.calendarHeader}>
+                  <View>
+                    <Text style={manageSchedStyles.calendarTitle}>Schedule Preview</Text>
+                    <Text style={manageSchedStyles.calendarMonth}>
+                      {new Date(selectedDate).toLocaleString(undefined, { month: 'long', year: 'numeric' })}
+                    </Text>
+                    <Text style={manageSchedStyles.calendarTypeBadge}>
+                      {selectedCalendar.calendar_type === 'day' ? '📅 Day-based' : '🔁 Order-based'}
+                      {selectedCalendar.calendar_type === 'day' && selectedCalendar.num_weeks > 1 && ` · ${selectedCalendar.num_weeks}wk rotation`}
+                    </Text>
+                  </View>
+                  {selectedDate !== todayDate && (
+                    <Pressable style={manageSchedStyles.backToTodayBtn} onPress={() => setSelectedDate(todayDate)}>
+                      <Text style={manageSchedStyles.backToTodayText}>Today</Text>
+                    </Pressable>
+                  )}
+                </View>
+
+                <WeeklyCalendar
+                  initialDate={selectedDate}
+                  events={calendarEvents}
+                  onSelect={(date) => {
+                    const y = date.getFullYear();
+                    const m = String(date.getMonth() + 1).padStart(2, '0');
+                    const d = String(date.getDate()).padStart(2, '0');
+                    setSelectedDate(`${y}-${m}-${d}`);
+                  }}
+                />
+
+                {/* Training card / timeline or rest state */}
+                <View style={{ marginTop: 10 }}>
+                  {(dayTrainings.length === 0 || dayTrainings.every((it: any) => !it.id_trainings)) ? (
+                    <GlassCard variant="medium" radius={14} padding={16}>
+                      <View style={{ alignItems: 'center', gap: 6 }}>
+                        <Ionicons name="moon-outline" size={24} color={colors.text.tertiary} />
+                        <Text style={{ color: colors.text.tertiary, fontSize: 13 }}>Rest day — no training scheduled</Text>
+                      </View>
+                    </GlassCard>
+                  ) : resolvedTrainings.length === 0 ? (
+                    <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                      <ActivityIndicator color={colors.primary.main} size="small" />
+                    </View>
+                  ) : resolvedTrainings.length === 1 ? (
+                    <TrainingCard
+                      title={resolvedTrainings[0].title}
+                      description={resolvedTrainings[0].description || ''}
+                      length={resolvedTrainings[0].duration || ''}
+                      start_time={resolvedTrainings[0].start_time ?? null}
+                      components={resolvedTrainings[0].components}
+                      trainingComponents={resolvedTrainings[0].trainingComponents}
+                      trainingName={resolvedTrainings[0].trainingName}
+                      isEmpty={false}
+                    />
+                  ) : (
+                    <DayTimelineView trainings={resolvedTrainings} />
+                  )}
+                </View>
+              </>
+            ) : (
+              <EmptyState icon="calendar-outline" title="No calendar selected" subtitle="Select or create a training calendar for this club." />
+            )}
+
+            {/* Action Buttons */}
+            <View style={{ gap: 8, marginTop: 16 }}>
+              <SparrButton
+                label="+ Create New Calendar"
+                variant="primary"
+                onPress={() => navigation.navigate('CreateClubCalendar', { clubId })}
+                fullWidth
+              />
+              <SparrButton
+                label="Browse & Select Calendar"
+                variant="outline"
+                onPress={() => navigation.navigate('BrowseCalendars', { clubId })}
+                fullWidth
+              />
+            </View>
+
+            {/* Existing plans list */}
+            <Text style={styles.sectionTitle}>Training Plans</Text>
             {plans.length === 0 ? (
-              <EmptyState icon="calendar-outline" title="No plans yet" subtitle="Create the first training plan for this club." />
+              <EmptyState icon="barbell-outline" title="No plans yet" subtitle="Create the first training plan for this club." />
             ) : (
               plans.map((plan) => (
                 <GlassCard key={String(plan.id_training_calendar)} variant="medium" radius={12} padding={14}>
@@ -600,5 +891,17 @@ const styles = StyleSheet.create({
   policyTextActive: { color: colors.primary.main },
 
   flex1: { flex: 1 },
+});
+
+const manageSchedStyles = StyleSheet.create({
+  calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
+  calendarTitle: { color: colors.text.primary, fontSize: 17, fontWeight: '800' },
+  calendarMonth: { color: colors.primary.main, fontSize: 13, fontWeight: '600' },
+  calendarTypeBadge: { color: colors.text.tertiary, fontSize: 11, fontWeight: '600', marginTop: 2 },
+  backToTodayBtn: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+    backgroundColor: colors.glass.redSurface, borderWidth: 1, borderColor: colors.glass.redBorder,
+  },
+  backToTodayText: { color: colors.primary.main, fontSize: 12, fontWeight: '700' },
 });
 

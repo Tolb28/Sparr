@@ -10,5 +10,9 @@
         "./tailwind.config.js"
       ]
     }
-  }
+  },
+  "exclude": [
+    "dist",
+    "web-build"
+  ]
 }

@@ -23,7 +23,7 @@ export default function Friend({ friend }: FriendProps) {
   
   return (
     <Pressable onPress={() => (navigation as any).navigate('ForeignProfile', { foreign_profile_id: friend.id_profiles })}>
-    <Box className="bg-white mx-3 mb-3 p-3 rounded-lg border border-gray-200">
+    <Box className="mx-3 mb-3 p-3 rounded-lg border" style={{ backgroundColor: '#341818', borderColor: '#4b2626' }}>
       <HStack className="items-center gap-3">
         <Avatar size="md">
           {friend.avatar_url ? (
@@ -34,8 +34,8 @@ export default function Friend({ friend }: FriendProps) {
         </Avatar>
 
         <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '600' }}>{friend.display_name ?? 'No name'}</Text>
-          <Text style={{ color: '#666' }}>@{friend.username ?? 'unknown'}</Text>
+          <Text style={{ fontWeight: '600', color: '#fff' }}>{friend.display_name ?? 'No name'}</Text>
+          <Text style={{ color: '#cb9090' }}>@{friend.username ?? 'unknown'}</Text>
         </View>
       </HStack>
     </Box>

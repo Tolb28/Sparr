@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { getToken, ServerIP } from './tokenHandler';
+import { buildAuthHeaders } from './profile';
 
 export async function getDrillsGrouped() {
   const token = await getToken();
@@ -143,4 +144,59 @@ export async function getCombination(id: number) {
   }
 
   return response.json();
+}
+
+export type RecommendedContentType = 'technique' | 'drill' | 'combination';
+export type RecommendedContentFilter = 'all' | 'techniques' | 'drills' | 'combinations';
+
+export interface RecommendedContentItem {
+  content_type: RecommendedContentType;
+  content_id: number;
+  title: string;
+  description: string | null;
+  category_name: string | null;
+  score: number;
+  popularity: number;
+  reasons: string[];
+  source_url: string | null;
+  video_url: string | null;
+}
+
+export interface TrainingContentRecommendations {
+  techniques: RecommendedContentItem[];
+  drills: RecommendedContentItem[];
+  combinations: RecommendedContentItem[];
+}
+
+export async function getTrainingContentRecommendations(
+  contentType: RecommendedContentFilter = 'all',
+  limitPerType: number = 6,
+  includeReasons: boolean = true
+): Promise<TrainingContentRecommendations> {
+  const query = new URLSearchParams({
+    contentType,
+    limitPerType: String(limitPerType),
+    includeReasons: String(includeReasons),
+  });
+
+  const response = await fetch(`${ServerIP}/auth/training/recommendations?${query.toString()}`, {
+    method: 'GET',
+    headers: await buildAuthHeaders({
+      'Content-Type': 'application/json',
+    }),
+  });
+
+  if (!response.ok) {
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      throw new Error(`Server error: ${response.statusText}`);
+    }
+    const errorMessage = errorData?.error || errorData?.message;
+    throw new Error(errorMessage || 'Failed to fetch personalized recommendations');
+  }
+
+  const data = await response.json();
+  return data?.recommendations || { techniques: [], drills: [], combinations: [] };
 }

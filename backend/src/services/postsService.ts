@@ -1,5 +1,6 @@
 import { pool } from "../config/db";
 import { cloudinaryService } from "./cloudinaryService";
+import { recalculateProfileGamification } from "./gamificationService";
 
 interface GetPostsOptions {
   limit?: number;
@@ -7,6 +8,8 @@ interface GetPostsOptions {
   profileId?: number | null;
   ownerId?: number | null;
   search?: string | null;
+  location?: string | null;
+  type?: 'text' | 'media' | null;
 }
 
 export const createPost = async (
@@ -30,6 +33,8 @@ export const createPost = async (
   `;
 
   await pool.query(linkQuery, [profileId, postId]);
+
+  recalculateProfileGamification(profileId).catch(() => {});
 
   return { id_posts: postId, description, source };
 };
@@ -55,7 +60,9 @@ export const getPosts = async ({
   offset = 0,
   profileId = null,
   ownerId = null,
-  search = null
+  search = null,
+  location = null,
+  type = null,
 }: GetPostsOptions) => {
   const values: any[] = [];
   let paramCount = 0;
@@ -75,6 +82,34 @@ export const getPosts = async ({
     paramCount++;
     values.push(ownerId);
     whereClause = `WHERE pp.profiles_id_profiles = $${paramCount}`;
+  }
+
+  if (location && location.trim()) {
+    paramCount++;
+    values.push(`%${location.trim()}%`);
+    if (whereClause) {
+      whereClause += ` AND pr.location ILIKE $${paramCount}`;
+    } else {
+      whereClause = `WHERE pr.location ILIKE $${paramCount}`;
+    }
+  }
+
+  // Filter by type (text vs media)
+  if (type) {
+    let typeClause = '';
+    if (type === 'text') {
+      typeClause = "(p.source IS NULL OR p.source = '')";
+    } else if (type === 'media') {
+      typeClause = "(p.source IS NOT NULL AND p.source <> '')";
+    }
+
+    if (typeClause) {
+      if (whereClause) {
+        whereClause += ` AND ${typeClause}`;
+      } else {
+        whereClause = `WHERE ${typeClause}`;
+      }
+    }
   }
 
   // Add search filter if provided

@@ -31,8 +31,8 @@ export default function CategorySection({
   return (
     <VStack className="mb-6">
       {/* Category Heading */}
-      <Box className="px-4 py-3" style={{ borderBottomColor: colors.border.light, borderBottomWidth: 1 }}>
-        <Text className="text-lg font-bold" style={{ color: colors.text.primary }}>
+      <Box className="px-4 py-3" style={{ borderBottomColor: '#3a1d1d', borderBottomWidth: 1 }}>
+        <Text className="text-lg font-bold" style={{ color: '#ffffff' }}>
           {categoryName}
         </Text>
       </Box>

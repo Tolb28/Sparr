@@ -9,6 +9,7 @@ import {
   createClubTrainingPlan,
   createJoinRequest,
   getClubById,
+  getClubSelectedCalendar,
   getProfileIdForUser,
   isClubAdmin,
   isClubAdminOrCoach,
@@ -23,6 +24,7 @@ import {
   listMyClubMemberships,
   removeMember,
   reviewJoinRequest,
+  selectClubCalendar,
   updateClub,
   updateClubAvatar,
   updateClubCover,
@@ -546,9 +548,49 @@ export const postClubPostController = async (req: Request, res: Response) => {
     const canPost = await isClubAdminOrCoach(clubId, profileId);
     if (!canPost) return res.status(403).json({ error: 'Forbidden' });
 
-    const { description, source } = req.body;
-    const post = await createClubPost(clubId, description ?? null, source ?? null);
-    res.status(201).json({ post });
+    const { description } = req.body;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+
+    const post = await createClubPost(clubId, description ?? null, null);
+    const postId = post.id_posts;
+
+    let imageUrl: string | null = null;
+    let videoUrl: string | null = null;
+
+    if (files?.image && files.image[0]) {
+      try {
+        const uploadResult = await cloudinaryController.setPostMedia(
+          postId,
+          files.image[0].path,
+          files.image[0].mimetype
+        );
+        imageUrl = uploadResult.secure_url || null;
+      } catch (err) {
+        console.error('Club post image upload failed:', err);
+      }
+    }
+
+    if (files?.video && files.video[0]) {
+      try {
+        const uploadResult = await cloudinaryController.setPostMedia(
+          postId,
+          files.video[0].path,
+          files.video[0].mimetype
+        );
+        videoUrl = uploadResult.secure_url || null;
+      } catch (err) {
+        console.error('Club post video upload failed:', err);
+      }
+    }
+
+    const source = videoUrl || imageUrl || null;
+    if (source) {
+      const { updatePost } = await import('../services/postsService');
+      const updatedPost = await updatePost(postId, description ?? null, source);
+      res.status(201).json({ post: updatedPost });
+    } else {
+      res.status(201).json({ post });
+    }
   } catch (error: any) {
     console.error(error);
     if (error?.message === 'Club has no profile') return res.status(400).json({ error: 'Club has no profile' });
@@ -662,6 +704,50 @@ export const postClubCalendarFullController = async (req: Request, res: Response
   } catch (error: any) {
     console.error(error);
     if (error?.message === 'Club has no profile') return res.status(400).json({ error: 'Club has no profile' });
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Club calendar selection
+// ---------------------------------------------------------------------------
+
+export const selectClubCalendarController = async (req: Request, res: Response) => {
+  try {
+    const clubId = parseInt(req.params.clubId || '', 10);
+    const calendarId = parseInt(req.params.calendarId || '', 10);
+    if (!clubId || !calendarId) return res.status(400).json({ error: 'Invalid identifiers' });
+
+    // @ts-ignore
+    const userId = req.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    // @ts-ignore
+    const selectedProfileId = req.profileId;
+    const profileId = selectedProfileId || (await getProfileIdForUser(userId));
+    if (!profileId) return res.status(400).json({ error: 'Profile required' });
+
+    const result = await selectClubCalendar(clubId, calendarId, userId, profileId);
+    res.json(result);
+  } catch (error: any) {
+    console.error(error);
+    if (error?.message === 'Forbidden') return res.status(403).json({ error: 'Forbidden' });
+    if (error?.message === 'Club has no profile') return res.status(400).json({ error: 'Club has no profile' });
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+export const getClubSelectedCalendarController = async (req: Request, res: Response) => {
+  try {
+    const clubId = parseInt(req.params.clubId || '', 10);
+    if (!clubId) return res.status(400).json({ error: 'Invalid club id' });
+
+    const result = await getClubSelectedCalendar(clubId);
+    if (!result) return res.json({ calendar: null, items: [] });
+
+    res.json(result);
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Server error' });
   }
 };

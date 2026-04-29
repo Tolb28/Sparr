@@ -1,0 +1,29 @@
+{
+  "name": "Cache Behavior Tests",
+  "tests": [
+    {
+      "name": "First request cache miss",
+      "profileId": 1,
+      "range": "week",
+      "verify": "response_time > 50ms, logs show 'cache_miss'"
+    },
+    {
+      "name": "Second request cache hit",
+      "profileId": 1,
+      "range": "week",
+      "verify": "response_time < 10ms, logs show 'cache_hit'"
+    },
+    {
+      "name": "Create workout invalidates cache",
+      "steps": [
+        "create new workout for profile 1",
+        "request progress for profile 1",
+        "verify logs show 'cache_miss' (invalidated)"
+      ]
+    },
+    {
+      "name": "TTL expiration after 1 hour",
+      "verify": "after 3600000ms, next request shows cache_miss"
+    }
+  ]
+}

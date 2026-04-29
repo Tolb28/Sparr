@@ -79,6 +79,29 @@ export const theme = {
   overlayLight: colors.overlay.light,
   overlayMedium: colors.overlay.medium,
   overlayDark: colors.overlay.dark,
+
+  // Glassmorphism
+  glassSurface: colors.glass.surface,
+  glassSurfaceMedium: colors.glass.surfaceMedium,
+  glassSurfaceStrong: colors.glass.surfaceStrong,
+  glassBorder: colors.glass.border,
+  glassBorderStrong: colors.glass.borderStrong,
+  glassRedSurface: colors.glass.redSurface,
+  glassRedBorder: colors.glass.redBorder,
+
+  // Gradient stops
+  gradientPrimaryStart: colors.gradient.primaryStart,
+  gradientPrimaryEnd: colors.gradient.primaryEnd,
+  gradientHeroEnd: colors.gradient.heroOverlayEnd,
+  gradientAccentGlow: colors.gradient.accentGlow,
+
+  // Typography font families (set after fonts load; falls back to system)
+  fontDisplay: 'BarlowCondensed_700Bold',
+  fontDisplaySemiBold: 'BarlowCondensed_600SemiBold',
+  fontBody: 'Barlow_400Regular',
+  fontBodyMedium: 'Barlow_500Medium',
+  fontBodyBold: 'Barlow_600SemiBold',
+  fontBodyHeavy: 'Barlow_700Bold',
 };
 
 /**
