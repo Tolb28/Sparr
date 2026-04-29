@@ -71,9 +71,6 @@ export default function TechniqueScreen() {
   // Trigger animations when sidebar opens
   useEffect(() => {
     if (sidebarOpen) {
-      sidebarAnim.setValue(-SIDEBAR_WIDTH);
-      sidebarBackdropOpacity.setValue(0);
-      
       Animated.parallel([
         Animated.timing(sidebarAnim, {
           toValue: 0,
