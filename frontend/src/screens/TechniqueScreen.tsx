@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { FlatList, RefreshControl, Animated, TextInput, View, Pressable, StyleSheet } from 'react-native';
+import { FlatList, RefreshControl, Animated, TextInput, View, Pressable, StyleSheet, Modal, Dimensions } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -246,8 +246,7 @@ export default function TechniqueScreen() {
   const featured = currentData[0]?.items?.[0];
 
   return (
-    <>
-      <View style={styles.root}>
+    <View style={styles.root}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: (insets.top || 0) + 6 }]}>
           <View style={styles.headerRow}>
@@ -368,52 +367,59 @@ export default function TechniqueScreen() {
             />
           )}
         </View>
-      </View>
 
-      {/* Sidebar Drawer - Outside main view for proper absolute positioning */}
-      {sidebarOpen && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100 }}>
-          <Animated.View 
-            style={[styles.sidebarOverlay, { opacity: sidebarBackdropOpacity }]}
-            onLayout={() => console.log('[SIDEBAR RENDER] Sidebar rendered, categories:', categories.length)}
+      {/* Sidebar Modal */}
+      <Modal
+        visible={sidebarOpen}
+        transparent={true}
+        animationType="none"
+        onRequestClose={closeSidebar}
+      >
+        <View style={{ flex: 1, flexDirection: 'row' }}>
+          <Animated.View
+            style={[styles.sidebarDrawer, {
+              transform: [{ translateX: sidebarAnim }],
+            }]}
           >
-            <Pressable style={StyleSheet.absoluteFill} onPress={closeSidebar} />
-            <Animated.View
-              style={[styles.sidebarDrawer, {
-                transform: [{ translateX: sidebarAnim }],
-              }]}
-            >
-              <View style={[styles.sidebarContent, { paddingTop: (insets.top || 0) + 20 }]}>
-                <Pressable
-                  onPress={() => { setSelectedCategory(null); closeSidebar(); }}
-                  style={[styles.sidebarItem, selectedCategory === null && styles.sidebarItemActive]}
-                >
-                  <Text style={[styles.sidebarItemText, selectedCategory === null && styles.sidebarItemTextActive]}>
-                    All Categories
-                  </Text>
-                </Pressable>
-                <Text style={styles.sidebarSectionLabel}>CATEGORIES</Text>
-                {categories.length > 0 ? (
-                  categories.map((category) => (
-                    <Pressable
-                      key={category}
-                      onPress={() => { setSelectedCategory(category); closeSidebar(); }}
-                      style={[styles.sidebarItem, selectedCategory === category && styles.sidebarItemActive]}
-                    >
-                      <Text style={[styles.sidebarItemText, selectedCategory === category && styles.sidebarItemTextActive]}>
-                        {category}
-                      </Text>
-                    </Pressable>
-                  ))
-                ) : (
-                  <Text style={styles.sidebarItemText}>No categories</Text>
-                )}
-              </View>
-            </Animated.View>
+            <View style={[styles.sidebarContent, { paddingTop: (insets.top || 0) + 20 }]}>
+              <Pressable
+                onPress={() => { setSelectedCategory(null); closeSidebar(); }}
+                style={[styles.sidebarItem, selectedCategory === null && styles.sidebarItemActive]}
+              >
+                <Text style={[styles.sidebarItemText, selectedCategory === null && styles.sidebarItemTextActive]}>
+                  All Categories
+                </Text>
+              </Pressable>
+              <Text style={styles.sidebarSectionLabel}>CATEGORIES</Text>
+              {categories.length > 0 ? (
+                categories.map((category) => (
+                  <Pressable
+                    key={category}
+                    onPress={() => { setSelectedCategory(category); closeSidebar(); }}
+                    style={[styles.sidebarItem, selectedCategory === category && styles.sidebarItemActive]}
+                  >
+                    <Text style={[styles.sidebarItemText, selectedCategory === category && styles.sidebarItemTextActive]}>
+                      {category}
+                    </Text>
+                  </Pressable>
+                ))
+              ) : (
+                <Text style={styles.sidebarItemText}>No categories</Text>
+              )}
+            </View>
+          </Animated.View>
+          <Animated.View
+            style={[
+              { flex: 1 },
+              { backgroundColor: 'rgba(0, 0, 0, 0.5)', opacity: sidebarBackdropOpacity },
+            ]}
+            onLayout={() => console.log('[SIDEBAR RENDER] Sidebar rendered')}
+          >
+            <Pressable style={{ flex: 1 }} onPress={closeSidebar} />
           </Animated.View>
         </View>
-      )}
-    </>
+      </Modal>
+    </View>
   );
 }
 
@@ -464,18 +470,8 @@ const styles = StyleSheet.create({
   featuredCta: { color: colors.primary.main, fontSize: 12, fontWeight: '600', marginTop: 6 },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyState: { paddingTop: 60 },
-  sidebarOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
   sidebarDrawer: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
     width: SIDEBAR_WIDTH,
-    zIndex: 101,
     backgroundColor: colors.background.primary,
     elevation: 5,
   },
