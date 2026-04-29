@@ -383,8 +383,8 @@ export default function TechniqueScreen() {
           </View>
           <Animated.View
             style={[
-              { flex: 1 },
-              { backgroundColor: 'rgba(0, 0, 0, 0.5)', opacity: sidebarBackdropOpacity },
+              { flex: 1, backgroundColor: 'rgba(0, 0, 0, 1)' },
+              { opacity: sidebarBackdropOpacity },
             ]}
           >
             <Pressable style={{ flex: 1 }} onPress={closeSidebar} />
