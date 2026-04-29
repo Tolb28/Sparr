@@ -5,7 +5,13 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import CategorySection from '../components/CategorySection';
-import { getTechniquesGrouped, getDrillsGrouped, getCombinationsGrouped } from '../api/techniques';
+import {
+  getTechniquesGrouped,
+  getDrillsGrouped,
+  getCombinationsGrouped,
+  getTrainingContentRecommendations,
+  RecommendedContentItem,
+} from '../api/techniques';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -37,12 +43,12 @@ export default function TechniqueScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [recommendedItems, setRecommendedItems] = useState<RecommendedContentItem[]>([]);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   const openSidebar = useCallback(() => {
-    sidebarAnim.setValue(-SIDEBAR_WIDTH);
     setSidebarOpen(true);
-    // Animation starts in Modal's onShow after the native view is created
-  }, [sidebarAnim]);
+  }, []);
 
   const closeSidebar = useCallback(() => {
     Animated.timing(sidebarAnim, {
@@ -51,6 +57,23 @@ export default function TechniqueScreen() {
       useNativeDriver: true,
     }).start(() => setSidebarOpen(false));
   }, [sidebarAnim]);
+
+  // Trigger slide-in animation when sidebar opens
+  useEffect(() => {
+    if (sidebarOpen) {
+      // Reset animation to start position
+      sidebarAnim.setValue(-SIDEBAR_WIDTH);
+      
+      // Small delay to ensure Modal is rendered before animation
+      requestAnimationFrame(() => {
+        Animated.timing(sidebarAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }).start();
+      });
+    }
+  }, [sidebarOpen, sidebarAnim]);
 
   const loadData = async (forceRefresh = false) => {
     if (!forceRefresh && activeTab === 'techniques' && techniquesData.length > 0) return;
@@ -74,13 +97,39 @@ export default function TechniqueScreen() {
     }
   };
 
+  const getContentFilterForTab = () => {
+    if (activeTab === 'techniques') return 'techniques';
+    if (activeTab === 'drills') return 'drills';
+    return 'combinations';
+  };
+
+  const loadRecommendations = useCallback(async () => {
+    setRecommendationsLoading(true);
+    try {
+      const contentFilter = getContentFilterForTab();
+      const data = await getTrainingContentRecommendations(contentFilter, 8, true);
+      if (contentFilter === 'techniques') setRecommendedItems(data.techniques || []);
+      else if (contentFilter === 'drills') setRecommendedItems(data.drills || []);
+      else setRecommendedItems(data.combinations || []);
+    } catch (err) {
+      console.error('Failed to load personalized content:', err);
+      setRecommendedItems([]);
+    } finally {
+      setRecommendationsLoading(false);
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     loadData();
   }, [activeTab]);
 
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadData(true);
+    await Promise.all([loadData(true), loadRecommendations()]);
     setRefreshing(false);
   };
 
@@ -118,6 +167,29 @@ export default function TechniqueScreen() {
         initialIndex: itemIndex >= 0 ? itemIndex : 0,
       });
     }
+  };
+
+  const handleRecommendedPress = (item: RecommendedContentItem) => {
+    if (item.content_type === 'technique') {
+      navigation.navigate('TechniqueDetail', {
+        technique_id: item.content_id,
+        category: 'Recommended',
+      });
+      return;
+    }
+
+    if (item.content_type === 'drill') {
+      navigation.navigate('DrillDetail', {
+        drill_id: item.content_id,
+        category: 'Recommended',
+      });
+      return;
+    }
+
+    navigation.navigate('CombinationDetail', {
+      combination_id: item.content_id,
+      category: 'Recommended',
+    });
   };
 
   const getCurrentData = () => {
@@ -189,6 +261,56 @@ export default function TechniqueScreen() {
       </View>
 
       <View style={styles.flex1}>
+        <View style={styles.recommendedSection}>
+          <View style={styles.recommendedHeader}>
+            <Ionicons name="sparkles-outline" size={16} color={colors.primary.main} />
+            <Text style={styles.recommendedTitle}>Doporučeno pro tebe</Text>
+          </View>
+
+          {recommendationsLoading ? (
+            <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
+              <Text style={styles.recommendedFallbackText}>Načítám personalizovaný obsah...</Text>
+            </GlassCard>
+          ) : recommendedItems.length === 0 ? (
+            <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
+              <Text style={styles.recommendedFallbackText}>
+                Doplň v profilu styl, váhovou kategorii, výšku a zkušenosti pro přesnější doporučení.
+              </Text>
+            </GlassCard>
+          ) : (
+            <FlatList
+              horizontal
+              data={recommendedItems}
+              keyExtractor={(item) => `${item.content_type}-${item.content_id}`}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recommendedListContent}
+              renderItem={({ item }) => (
+                <Pressable onPress={() => handleRecommendedPress(item)} style={styles.recommendedCardPressable}>
+                  <GlassCard variant="medium" radius={14} padding={12} style={styles.recommendedCard}>
+                    <View style={styles.recommendedCardHeader}>
+                      <Text style={styles.recommendedCardType}>{item.content_type.toUpperCase()}</Text>
+                      <Text style={styles.recommendedCardScore}>Score {item.score}</Text>
+                    </View>
+                    <Text style={styles.recommendedCardTitle} numberOfLines={2}>{item.title}</Text>
+                    {!!item.category_name && (
+                      <Text style={styles.recommendedCardCategory} numberOfLines={1}>
+                        {item.category_name}
+                      </Text>
+                    )}
+                    <View style={styles.reasonsRow}>
+                      {item.reasons.slice(0, 2).map((reason) => (
+                        <View key={reason} style={styles.reasonChip}>
+                          <Text style={styles.reasonChipText}>{reason.replace('match_', '')}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </GlassCard>
+                </Pressable>
+              )}
+            />
+          )}
+        </View>
+
         {featured && (
           <Pressable
             onPress={() => handleItemPress(featured, currentData[0]?.categoryName || '')}
@@ -231,46 +353,39 @@ export default function TechniqueScreen() {
         visible={sidebarOpen}
         transparent
         animationType="none"
-        onShow={() => {
-          Animated.timing(sidebarAnim, {
-            toValue: 0,
-            duration: 250,
-            useNativeDriver: true,
-          }).start();
-        }}
         onRequestClose={closeSidebar}
       >
-        <View style={{ flex: 1 }}>
-        <Pressable style={styles.sidebarBackdrop} onPress={closeSidebar} />
-        <Animated.View
-          style={[styles.sidebar, {
-            transform: [{ translateX: sidebarAnim }],
-            paddingTop: (insets.top || 0) + 20,
-          }]}
-        >
-          <View style={styles.sidebarContent}>
-            <Pressable
-              onPress={() => { setSelectedCategory(null); closeSidebar(); }}
-              style={[styles.sidebarItem, selectedCategory === null && styles.sidebarItemActive]}
-            >
-              <Text style={[styles.sidebarItemText, selectedCategory === null && styles.sidebarItemTextActive]}>
-                All Categories
-              </Text>
-            </Pressable>
-            <Text style={styles.sidebarSectionLabel}>CATEGORIES</Text>
-            {categories.map((category) => (
+        <View style={styles.modalContainer}>
+          <Pressable style={styles.sidebarBackdrop} onPress={closeSidebar} />
+          <Animated.View
+            style={[styles.sidebar, {
+              transform: [{ translateX: sidebarAnim }],
+              paddingTop: (insets.top || 0) + 20,
+            }]}
+          >
+            <View style={styles.sidebarContent}>
               <Pressable
-                key={category}
-                onPress={() => { setSelectedCategory(category); closeSidebar(); }}
-                style={[styles.sidebarItem, selectedCategory === category && styles.sidebarItemActive]}
+                onPress={() => { setSelectedCategory(null); closeSidebar(); }}
+                style={[styles.sidebarItem, selectedCategory === null && styles.sidebarItemActive]}
               >
-                <Text style={[styles.sidebarItemText, selectedCategory === category && styles.sidebarItemTextActive]}>
-                  {category}
+                <Text style={[styles.sidebarItemText, selectedCategory === null && styles.sidebarItemTextActive]}>
+                  All Categories
                 </Text>
               </Pressable>
-            ))}
-          </View>
-        </Animated.View>
+              <Text style={styles.sidebarSectionLabel}>CATEGORIES</Text>
+              {categories.map((category) => (
+                <Pressable
+                  key={category}
+                  onPress={() => { setSelectedCategory(category); closeSidebar(); }}
+                  style={[styles.sidebarItem, selectedCategory === category && styles.sidebarItemActive]}
+                >
+                  <Text style={[styles.sidebarItemText, selectedCategory === category && styles.sidebarItemTextActive]}>
+                    {category}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </Animated.View>
         </View>
       </Modal>
     </View>
@@ -295,12 +410,36 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, color: colors.text.primary, paddingVertical: 11, fontSize: 14 },
   tabs: { marginBottom: 0 },
+  recommendedSection: { marginTop: 10, marginHorizontal: 14 },
+  recommendedHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  recommendedTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },
+  recommendedFallback: { marginBottom: 6 },
+  recommendedFallbackText: { color: colors.text.secondary, fontSize: 12 },
+  recommendedListContent: { gap: 10, paddingBottom: 4 },
+  recommendedCardPressable: { marginRight: 2 },
+  recommendedCard: { width: 220, minHeight: 118 },
+  recommendedCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  recommendedCardType: { color: colors.primary.main, fontSize: 10, fontWeight: '700' },
+  recommendedCardScore: { color: colors.text.tertiary, fontSize: 10 },
+  recommendedCardTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700', marginTop: 6 },
+  recommendedCardCategory: { color: colors.text.secondary, fontSize: 11, marginTop: 3 },
+  reasonsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 9 },
+  reasonChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: colors.glass.surface,
+    borderWidth: 1,
+    borderColor: colors.glass.border,
+  },
+  reasonChipText: { color: colors.text.secondary, fontSize: 10, fontWeight: '600' },
   featuredPressable: { marginHorizontal: 14, marginTop: 12, marginBottom: 4 },
   featuredLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
   featuredTitle: { color: colors.text.primary, fontSize: 15, fontWeight: '700' },
   featuredCta: { color: colors.primary.main, fontSize: 12, fontWeight: '600', marginTop: 6 },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyState: { paddingTop: 60 },
+  modalContainer: { flex: 1, position: 'relative' },
   sidebarBackdrop: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 10,
