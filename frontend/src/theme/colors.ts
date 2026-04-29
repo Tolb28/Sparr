@@ -6,18 +6,18 @@
 export const colors = {
   // Primary Colors
   primary: {
-    main: '#2563eb',        // Blue - Main primary color
-    light: '#3b82f6',       // Lighter blue
-    lighter: '#60a5fa',     // Even lighter blue
-    dark: '#1e40af',        // Darker blue
-    darker: '#1e3a8a',      // Much darker blue
+    main: '#f20d0d',        // Red - Main primary color
+    light: '#f43f3f',       // Lighter red
+    lighter: '#fecaca',     // Light red surface
+    dark: '#c60a0a',        // Darker red
+    darker: '#991b1b',      // Much darker red
   },
 
   // Secondary Colors
   secondary: {
-    main: '#7c3aed',        // Purple - Secondary color
-    light: '#a78bfa',       // Lighter purple
-    dark: '#6d28d9',        // Darker purple
+    main: '#341818',        // Deep card accent
+    light: '#492222',       // Lighter accent
+    dark: '#221010',        // Darker accent
   },
 
   // Neutral Colors (Grays)
@@ -61,24 +61,25 @@ export const colors = {
 
   // Backgrounds
   background: {
-    primary: '#ffffff',
-    secondary: '#f9fafb',
-    tertiary: '#f3f4f6',
+    primary: '#221010',
+    secondary: '#120808',
+    tertiary: '#341818',
+    card: '#221010',
   },
 
   // Text Colors
   text: {
-    primary: '#111827',
-    secondary: '#4b5563',
-    tertiary: '#9ca3af',
+    primary: '#ffffff',
+    secondary: '#cb9090',
+    tertiary: '#8f6d6d',
     inverse: '#ffffff',
   },
 
   // Border Colors
   border: {
-    light: '#e5e7eb',
-    medium: '#d1d5db',
-    dark: '#9ca3af',
+    light: '#3a1d1d',
+    medium: '#6d2e2e',
+    dark: '#8f6d6d',
   },
 
   // Overlay/Shadow
@@ -88,27 +89,51 @@ export const colors = {
     dark: 'rgba(0, 0, 0, 0.7)',
   },
 
+  // Glassmorphism Surfaces (dark-mode glass, no backdrop blur needed)
+  glass: {
+    surface: 'rgba(255, 255, 255, 0.04)',
+    surfaceMedium: 'rgba(255, 255, 255, 0.07)',
+    surfaceStrong: 'rgba(255, 255, 255, 0.10)',
+    medium: 'rgba(255, 255, 255, 0.06)',
+    border: 'rgba(255, 255, 255, 0.09)',
+    borderStrong: 'rgba(255, 255, 255, 0.14)',
+    redSurface: 'rgba(242, 13, 13, 0.08)',
+    redBorder: 'rgba(242, 13, 13, 0.25)',
+  },
+
+  // Gradient Stop Pairs
+  gradient: {
+    primaryStart: '#f20d0d',
+    primaryMid: '#d40b0b',
+    primaryEnd: '#991b1b',
+    heroOverlayStart: 'rgba(18, 8, 8, 0.00)',
+    heroOverlayEnd: 'rgba(18, 8, 8, 0.92)',
+    cardOverlayStart: 'rgba(34, 16, 16, 0.00)',
+    cardOverlayEnd: 'rgba(34, 16, 16, 0.90)',
+    accentGlow: 'rgba(242, 13, 13, 0.18)',
+  },
+
   // Interactive Elements
   interactive: {
-    background: '#2563eb',
-    backgroundHover: '#1e40af',
-    backgroundActive: '#1e3a8a',
+    background: '#f20d0d',
+    backgroundHover: '#c60a0a',
+    backgroundActive: '#991b1b',
     text: '#ffffff',
   },
 
   // Card/Container
   card: {
-    background: '#ffffff',
-    border: '#e5e7eb',
+    background: '#221010',
+    border: '#3a1d1d',
     shadow: 'rgba(0, 0, 0, 0.1)',
   },
 
   // Input/Form
   input: {
-    background: '#ffffff',
-    border: '#d1d5db',
-    borderFocus: '#2563eb',
-    placeholder: '#9ca3af',
+    background: '#341818',
+    border: '#6d2e2e',
+    borderFocus: '#f20d0d',
+    placeholder: '#8f6d6d',
   },
 
   // Status Colors

@@ -136,8 +136,61 @@ export async function createConversation(
 }
 
 /**
- * Update the last read message for a conversation
+ * Get participants of a conversation
  */
+export async function getConversationParticipants(conversationId: number): Promise<any[]> {
+  const token = await getToken();
+  if (!token) throw new Error('No authentication token found');
+  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/participants`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Failed to get participants');
+  const data = await response.json();
+  return data.participants || [];
+}
+
+/**
+ * Rename a conversation
+ */
+export async function renameConversation(conversationId: number, title: string): Promise<void> {
+  const token = await getToken();
+  if (!token) throw new Error('No authentication token found');
+  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/rename`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ title }),
+  });
+  if (!response.ok) throw new Error('Failed to rename conversation');
+}
+
+/**
+ * Leave / delete a conversation
+ */
+export async function leaveConversation(conversationId: number): Promise<void> {
+  const token = await getToken();
+  if (!token) throw new Error('No authentication token found');
+  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error('Failed to leave conversation');
+}
+
+/**
+ * Add members to a conversation
+ */
+export async function addConversationMembers(conversationId: number, participantIds: number[]): Promise<void> {
+  const token = await getToken();
+  if (!token) throw new Error('No authentication token found');
+  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/members`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ participantIds }),
+  });
+  if (!response.ok) throw new Error('Failed to add members');
+}
+
 export async function updateLastRead(
   conversationId: number,
   messageId: number | null = null

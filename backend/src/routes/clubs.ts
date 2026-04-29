@@ -8,6 +8,7 @@ import {
   getClub,
   getClubMembersController,
   getClubPostsController,
+  getClubSelectedCalendarController,
   getClubTrainingPlansController,
   getClubTrainingsController,
   getClubs,
@@ -26,6 +27,7 @@ import {
   postClubTrainingPlanController,
   postJoinClub,
   postJoinRequest,
+  selectClubCalendarController,
 } from '../controllers/clubsController';
 
 const router = Router();
@@ -54,11 +56,14 @@ router.post('/:clubId/trainings', authenticate, postClubTraining);
 router.post('/:clubId/trainings/:trainingId/add-to-calendar', authenticate, addClubTrainingToCalendar);
 
 router.get('/:clubId/posts', authenticate, getClubPostsController);
-router.post('/:clubId/posts', authenticate, postClubPostController);
+router.post('/:clubId/posts', authenticate, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'video', maxCount: 1 }]), postClubPostController);
 
 router.get('/:clubId/training-plans', authenticate, getClubTrainingPlansController);
 router.post('/:clubId/training-plans', authenticate, postClubTrainingPlanController);
 router.post('/:clubId/training-plans/full', authenticate, postClubCalendarFullController);
 router.post('/:clubId/training-plans/:planId/copy', authenticate, copyClubTrainingPlanController);
+
+router.post('/:clubId/calendars/:calendarId/select', authenticate, selectClubCalendarController);
+router.get('/:clubId/calendar/selected', authenticate, getClubSelectedCalendarController);
 
 export default router;

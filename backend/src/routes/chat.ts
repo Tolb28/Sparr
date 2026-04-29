@@ -5,6 +5,10 @@ import {
   sendMessageHandler,
   createConversationHandler,
   updateLastReadHandler,
+  renameConversationHandler,
+  leaveConversationHandler,
+  addMembersHandler,
+  getParticipantsHandler,
 } from "../controllers/chatController";
 import { authenticate } from "../middleware/authMiddleware";
 
@@ -27,5 +31,17 @@ chatRouter.post("/message", sendMessageHandler);
 
 // Update last read message
 chatRouter.put("/conversations/:conversationId/last-read", updateLastReadHandler);
+
+// Get conversation participants
+chatRouter.get("/conversations/:conversationId/participants", getParticipantsHandler);
+
+// Rename a conversation
+chatRouter.patch("/conversations/:conversationId/rename", renameConversationHandler);
+
+// Leave / delete a conversation
+chatRouter.delete("/conversations/:conversationId", leaveConversationHandler);
+
+// Add members to a conversation
+chatRouter.post("/conversations/:conversationId/members", addMembersHandler);
 
 export default chatRouter;

@@ -27,7 +27,7 @@ export default function FriendRequest({ request, onAccept, onDecline }: FriendRe
   const navigation = useNavigation();
 
   return (
-    <Box className="bg-white mx-3 mb-3 rounded-lg border border-gray-200">
+    <Box className="mx-3 mb-3 rounded-lg border" style={{ backgroundColor: '#341818', borderColor: '#4b2626' }}>
       <RNPressable onPress={() => (navigation as any).navigate('ForeignProfile', { foreign_profile_id: request.id_profiles })}>
         <Box className="p-3 pb-0">
           <HStack className="items-center gap-3 mb-3">
@@ -40,8 +40,8 @@ export default function FriendRequest({ request, onAccept, onDecline }: FriendRe
             </Avatar>
 
             <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: '600' }}>{request.display_name ?? 'No name'}</Text>
-              <Text style={{ color: '#666' }}>@{request.username ?? 'unknown'}</Text>
+              <Text style={{ fontWeight: '600', color: '#fff' }}>{request.display_name ?? 'No name'}</Text>
+              <Text style={{ color: '#cb9090' }}>@{request.username ?? 'unknown'}</Text>
             </View>
           </HStack>
         </Box>
@@ -50,13 +50,15 @@ export default function FriendRequest({ request, onAccept, onDecline }: FriendRe
       <HStack className="gap-2 justify-end p-3 pt-0">
         <Pressable
           onPress={() => onDecline(request.id_friend, request.profiles_id_profiles)}
-          className="flex-1 px-3 py-2 bg-red-500 rounded-md"
+          className="flex-1 px-3 py-2 rounded-md"
+          style={{ backgroundColor: '#6d2e2e' }}
         >
           <Text className="text-white text-center font-bold text-sm">Decline</Text>
         </Pressable>
         <Pressable
           onPress={() => onAccept(request.id_friend, request.profiles_id_profiles)}
-          className="flex-1 px-3 py-2 bg-green-500 rounded-md"
+          className="flex-1 px-3 py-2 rounded-md"
+          style={{ backgroundColor: '#f20d0d' }}
         >
           <Text className="text-white text-center font-bold text-sm">Accept</Text>
         </Pressable>

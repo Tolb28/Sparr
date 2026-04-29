@@ -171,7 +171,7 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
         }
       }}>
         <HStack className="items-center mb-3 gap-2">
-          <Avatar className="bg-indigo-600" size="md">
+          <Avatar size="md">
           <AvatarFallbackText className="text-white">
             {comment?.display_name?.[0] ?? "?"}
           </AvatarFallbackText>
@@ -190,9 +190,9 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
               }, 200);
             }
           }}>
-            <Text className="font-bold text-base">{comment.display_name}</Text>
+            <Text className="font-bold text-base text-white">{comment.display_name}</Text>
           </Pressable>
-          <Text className="text-gray-700">{comment.content}</Text>
+          <Text className="text-[#cb9090]">{comment.content}</Text>
 
           <HStack className="gap-4 mt-2 items-center">
             <Pressable
@@ -208,7 +208,7 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
                     color={interaction === "like" ? "#2563eb" : "#6b7280"}
                     fill={interaction === "like" ? "#2563eb" : "transparent"}
                   />
-                  <Text className="text-sm">{likes}</Text>
+                  <Text className="text-sm text-white">{likes}</Text>
                 </HStack>
               </Animated.View>
             </Pressable>
@@ -226,7 +226,7 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
                     color={interaction === "dislike" ? "#dc2626" : "#6b7280"}
                     fill={interaction === "dislike" ? "#dc2626" : "transparent"}
                   />
-                  <Text className="text-sm">{dislikes}</Text>
+                  <Text className="text-sm text-white">{dislikes}</Text>
                 </HStack>
               </Animated.View>
             </Pressable>

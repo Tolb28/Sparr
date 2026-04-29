@@ -7,6 +7,9 @@ import {
   updateLastReadMessage,
   getConversation,
   getConversationParticipants,
+  renameConversation,
+  leaveConversation,
+  addConversationParticipants,
 } from "../services/chatService";
 import { pool } from "../config/db";
 
@@ -211,8 +214,89 @@ export const createConversationHandler = async (req: Request, res: Response) => 
 };
 
 /**
- * Update the last read message for the current user
+ * Get participants of a conversation
  */
+export const getParticipantsHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { conversationId } = req.params;
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!conversationId || typeof conversationId !== 'string') { res.status(400).json({ error: "Conversation ID required" }); return; }
+    const participants = await getConversationParticipants(parseInt(conversationId));
+    res.status(200).json({ participants });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get participants" });
+  }
+};
+
+/**
+ * Rename a conversation (group title)
+ */
+export const renameConversationHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { conversationId } = req.params;
+    const { title } = req.body;
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!conversationId || typeof conversationId !== 'string') { res.status(400).json({ error: "Conversation ID required" }); return; }
+    if (!title || typeof title !== 'string' || !title.trim()) { res.status(400).json({ error: "Title is required" }); return; }
+    const profileId = await getProfileIdFromUserId(userId);
+    if (!profileId) { res.status(404).json({ error: "Profile not found" }); return; }
+    const participants = await getConversationParticipants(parseInt(conversationId));
+    if (!participants.some((p) => p.id_profiles === profileId)) {
+      res.status(403).json({ error: "Not a participant" }); return;
+    }
+    await renameConversation(parseInt(conversationId), title.trim());
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to rename conversation" });
+  }
+};
+
+/**
+ * Leave / delete a conversation
+ */
+export const leaveConversationHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { conversationId } = req.params;
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!conversationId || typeof conversationId !== 'string') { res.status(400).json({ error: "Conversation ID required" }); return; }
+    const profileId = await getProfileIdFromUserId(userId);
+    if (!profileId) { res.status(404).json({ error: "Profile not found" }); return; }
+    await leaveConversation(parseInt(conversationId), profileId);
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to leave conversation" });
+  }
+};
+
+/**
+ * Add members to a conversation
+ */
+export const addMembersHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { conversationId } = req.params;
+    const { participantIds } = req.body;
+    if (!userId) { res.status(401).json({ error: "Unauthorized" }); return; }
+    if (!conversationId || typeof conversationId !== 'string') { res.status(400).json({ error: "Conversation ID required" }); return; }
+    if (!Array.isArray(participantIds) || participantIds.length === 0) {
+      res.status(400).json({ error: "participantIds array required" }); return;
+    }
+    const profileId = await getProfileIdFromUserId(userId);
+    if (!profileId) { res.status(404).json({ error: "Profile not found" }); return; }
+    const participants = await getConversationParticipants(parseInt(conversationId));
+    if (!participants.some((p) => p.id_profiles === profileId)) {
+      res.status(403).json({ error: "Not a participant" }); return;
+    }
+    await addConversationParticipants(parseInt(conversationId), participantIds);
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to add members" });
+  }
+};
+
 export const updateLastReadHandler = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;

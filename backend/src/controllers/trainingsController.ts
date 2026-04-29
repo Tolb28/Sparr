@@ -1,13 +1,16 @@
 import { Request, Response } from "express";
-import { pool } from "../config/db";
-import { cloudinaryService } from "../services/cloudinaryService";
+import * as trainingService from "../services/trainingService";
+import {
+  ContentRecommendations,
+  getPersonalizedContentRecommendations as getPersonalizedContentRecommendationsService,
+} from "../services/contentRecommendationsService";
 
 export const createTraining = async (req: Request, res: Response) => {
   try {
     const { title, description } = req.body;
     if (!title) return res.status(400).json({ error: "Missing title" });
-    const { rows } = await pool.query(`INSERT INTO trainings (title, description) VALUES ($1,$2) RETURNING *`, [title, description || null]);
-    res.status(201).json({ training: rows[0] });
+    const training = await trainingService.createTraining(title, description);
+    res.status(201).json({ training });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -16,8 +19,8 @@ export const createTraining = async (req: Request, res: Response) => {
 
 export const getTrainings = async (_req: Request, res: Response) => {
   try {
-    const { rows } = await pool.query("SELECT * FROM trainings ORDER BY id_trainings ASC");
-    res.json({ trainings: rows });
+    const trainings = await trainingService.getTrainingSummaries();
+    res.json({ trainings });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -27,31 +30,9 @@ export const getTrainings = async (_req: Request, res: Response) => {
 export const getTraining = async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id as string, 10);
-    const { rows } = await pool.query("SELECT * FROM trainings WHERE id_trainings=$1", [id]);
-    if (!rows[0]) return res.status(404).json({ error: "Not found" });
-
-    const training = rows[0];
-    const { rows: components } = await pool.query(
-      `SELECT tc.*, d.title AS drill_title, d.source AS drill_source, c.title AS combination_title, c.source AS combination_source
-       FROM trainings_components tc
-       LEFT JOIN drills d ON tc.id_drills = d.id_drills
-       LEFT JOIN combinations c ON tc.id_combinations = c.id_combinations
-       WHERE tc.id_trainings = $1 ORDER BY tc.id_trainings_components ASC`,
-      [id]
-    );
-
-    // Generate proper source/video URLs for any referenced component so the frontend can play videos
-    const componentsWithUrls = components.map((comp: any) => {
-      const source = comp.drill_source || comp.combination_source || comp.source;
-      if (source) {
-        comp.source = source;
-        comp.source_url = cloudinaryService.generateDrillUrl(`${source}/preview`);
-        comp.video_url = cloudinaryService.generateVideoUrl(`${source}/video`);
-      }
-      return comp;
-    });
-
-    res.json({ training, components: componentsWithUrls });
+    const result = await trainingService.getTrainingById(id);
+    if (!result) return res.status(404).json({ error: "Not found" });
+    res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -61,14 +42,14 @@ export const getTraining = async (req: Request, res: Response) => {
 export const addTrainingComponent = async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id as string, 10);
-    const { id_drills, id_combinations, length, reps, sets } = req.body;
-    if (!id_drills && !id_combinations) return res.status(400).json({ error: "Missing component reference" });
+    const { id_drills, id_combinations, id_techniques, length, reps, sets } = req.body;
+    if (!id_drills && !id_combinations && !id_techniques)
+      return res.status(400).json({ error: "Missing component reference" });
 
-    const { rows } = await pool.query(
-      `INSERT INTO trainings_components (id_trainings, id_drills, id_combinations, length, reps, sets) VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [id, id_drills || null, id_combinations || null, length || null, reps || null, sets || null]
-    );
-    res.status(201).json({ component: rows[0] });
+    const component = await trainingService.addComponent(id, {
+      id_drills, id_combinations, id_techniques, length, reps, sets,
+    });
+    res.status(201).json({ component });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -79,23 +60,9 @@ export const updateTraining = async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id as string, 10);
     const { title, description } = req.body;
-    const updates: string[] = [];
-    const values: any[] = [];
-    let idx = 1;
-    if (title !== undefined) {
-      updates.push(`title = $${idx}`);
-      values.push(title);
-      idx++;
-    }
-    if (description !== undefined) {
-      updates.push(`description = $${idx}`);
-      values.push(description);
-      idx++;
-    }
-    if (updates.length === 0) return res.status(400).json({ error: "No fields to update" });
-    values.push(id);
-    const { rows } = await pool.query(`UPDATE trainings SET ${updates.join(", ")}, updated_at = NOW() WHERE id_trainings = $${idx} RETURNING *`, values);
-    res.json({ training: rows[0] });
+    const training = await trainingService.updateTraining(id, { title, description });
+    if (!training) return res.status(400).json({ error: "No fields to update" });
+    res.json({ training });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -105,8 +72,7 @@ export const updateTraining = async (req: Request, res: Response) => {
 export const deleteTraining = async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id as string, 10);
-    await pool.query("DELETE FROM trainings_components WHERE id_trainings = $1", [id]);
-    await pool.query("DELETE FROM trainings WHERE id_trainings = $1", [id]);
+    await trainingService.deleteTraining(id);
     res.json({ message: "Deleted" });
   } catch (err) {
     console.error(err);
@@ -118,28 +84,9 @@ export const updateTrainingComponent = async (req: Request, res: Response) => {
   try {
     const compId = parseInt(req.params.compId as string, 10);
     const { length, reps, sets } = req.body;
-    const updates: string[] = [];
-    const values: any[] = [];
-    let idx = 1;
-    if (length !== undefined) {
-      updates.push(`length = $${idx}`);
-      values.push(length);
-      idx++;
-    }
-    if (reps !== undefined) {
-      updates.push(`reps = $${idx}`);
-      values.push(reps);
-      idx++;
-    }
-    if (sets !== undefined) {
-      updates.push(`sets = $${idx}`);
-      values.push(sets);
-      idx++;
-    }
-    if (updates.length === 0) return res.status(400).json({ error: "No fields to update" });
-    values.push(compId);
-    const { rows } = await pool.query(`UPDATE trainings_components SET ${updates.join(", ")}, updated_at = NOW() WHERE id_trainings_components = $${idx} RETURNING *`, values);
-    res.json({ component: rows[0] });
+    const component = await trainingService.updateComponent(compId, { length, reps, sets });
+    if (!component) return res.status(400).json({ error: "No fields to update" });
+    res.json({ component });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -149,10 +96,65 @@ export const updateTrainingComponent = async (req: Request, res: Response) => {
 export const deleteTrainingComponent = async (req: Request, res: Response) => {
   try {
     const compId = parseInt(req.params.compId as string, 10);
-    await pool.query("DELETE FROM trainings_components WHERE id_trainings_components=$1", [compId]);
+    await trainingService.deleteComponent(compId);
     res.json({ message: "Deleted" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const reorderTrainingComponents = async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id as string, 10);
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) return res.status(400).json({ error: "orderedIds must be an array" });
+    await trainingService.reorderComponents(id, orderedIds);
+    res.json({ message: "Reordered" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const getPersonalizedContentRecommendations = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const authProfileId = req.profileId;
+    const headerProfileIdRaw = req.headers['x-profile-id'];
+    const headerProfileId = Array.isArray(headerProfileIdRaw)
+      ? parseInt(headerProfileIdRaw[0] || '', 10)
+      : parseInt((headerProfileIdRaw as string) || '', 10);
+
+    const profileId = Number(authProfileId ?? headerProfileId);
+    if (!Number.isInteger(profileId) || profileId <= 0) {
+      return res.status(400).json({ success: false, error: "Profile ID required" });
+    }
+
+    const contentTypeRaw = String(req.query.contentType || 'all').toLowerCase();
+    const allowedContentTypes = new Set(['all', 'techniques', 'drills', 'combinations']);
+    if (!allowedContentTypes.has(contentTypeRaw)) {
+      return res.status(400).json({ success: false, error: "Invalid contentType" });
+    }
+
+    const limitRaw = parseInt(String(req.query.limitPerType || req.query.limit || '8'), 10);
+    const limitPerType = Number.isInteger(limitRaw) ? Math.min(Math.max(limitRaw, 1), 20) : 8;
+
+    const includeReasonsRaw = String(req.query.includeReasons ?? 'true').toLowerCase();
+    const includeReasons = includeReasonsRaw !== 'false' && includeReasonsRaw !== '0';
+
+    const recommendations: ContentRecommendations = await getPersonalizedContentRecommendationsService(
+      profileId,
+      {
+        contentType: contentTypeRaw as 'all' | 'techniques' | 'drills' | 'combinations',
+        limitPerType,
+        includeReasons,
+      }
+    );
+
+    return res.json({ success: true, recommendations });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, error: "Server error" });
   }
 };

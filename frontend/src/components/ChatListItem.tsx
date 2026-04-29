@@ -80,20 +80,20 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
           </Avatar>
 
           <VStack space="xs" className="flex-1">
-            <Text size="lg" bold>
+            <Text size="lg" bold className="text-white">
               {conversation.otherParticipantName}
             </Text>
-            <Text size="sm" className="text-gray-600">
+            <Text size="sm" className="text-[#cb9090]">
               {truncateMessage(conversation.lastMessage || 'No messages yet')}
             </Text>
           </VStack>
 
-          <Text size="xs" className="text-gray-500">
+          <Text size="xs" className="text-[#cb9090]">
             {formatTimestamp(conversation.lastMessageTimestamp)}
           </Text>
         </HStack>
       </TouchableOpacity>
-      <Divider className="my-0" />
+      <Divider className="my-0" style={{ backgroundColor: '#3a1d1d' }} />
     </View>
   );
 };

@@ -204,23 +204,23 @@ function FeedPost({ post }: FeedPostProps) {
 
   return (
     <>
-    <Box className="bg-white mx-3 mb-3 p-3 rounded-lg border border-gray-200">
+    <Box className="mx-3 mb-4 rounded-2xl border overflow-hidden" style={{ backgroundColor: '#2a1515', borderColor: '#4b2626' }}>
       {/* User row */}
       <Pressable onPress={() => (navigation as any).navigate('ForeignProfile', { foreign_profile_id: post.id_profiles })}>
-        <HStack className="items-center mb-3 gap-2">
-          <Avatar className="bg-indigo-600" size="md">
+        <HStack className="items-center gap-2 px-4 pt-4 pb-3">
+          <Avatar size="md">
           <AvatarFallbackText className="text-white">
             {post?.display_name?.[0] ?? "?"}
           </AvatarFallbackText>
           <AvatarImage source={{ uri: post?.avatar_url || undefined }} />
         </Avatar>
-          <Text className="font-bold text-base">{post.display_name}</Text>
+          <Text className="font-bold text-base text-white">{post.display_name}</Text>
         </HStack>
       </Pressable>
 
       {/* Post media */}
       {post.source && (
-        <Box className="rounded-md mb-3 bg-gray-200 overflow-hidden" style={{ width: '95%', aspectRatio: mediaDimensions ? mediaDimensions.width / mediaDimensions.height : 1, alignSelf: 'center' }}>
+        <Box className="mb-3 overflow-hidden border-y" style={{ backgroundColor: '#341818', borderColor: '#3a1d1d', aspectRatio: mediaDimensions ? mediaDimensions.width / mediaDimensions.height : 1 }}>
           {isVideo ? (
             <VideoView
               player={player}
@@ -240,17 +240,17 @@ function FeedPost({ post }: FeedPostProps) {
       )}
 
       {/* Text description */}
-      {post.description && <Text className="text-gray-700 leading-5 mb-3">{post.description}</Text>}
+      {!!post.description && <Text className="text-[#f5d6d6] leading-5 px-4 mb-2">{post.description}</Text>}
 
       {/* Hashtag */}
       {post.hashtag && (
-        <Text className="text-blue-600 font-semibold mb-3">
+        <Text className="text-primary-500 font-semibold px-4 mb-3">
           #{post.hashtag}
         </Text>
       )}
 
       {/* Reactions */}
-      <HStack className="gap-6 items-center mb-3">
+      <HStack className="gap-6 items-center px-4 pb-4">
         <Pressable onPress={handleLike}>
           <Animated.View style={likeStyle}>
             <HStack className="items-center gap-1">
@@ -259,7 +259,7 @@ function FeedPost({ post }: FeedPostProps) {
                 color={interaction === 'like' ? '#2563eb' : '#6b7280'}
                 fill={interaction === 'like' ? '#2563eb' : 'transparent'}
               />
-              <Text className="text-sm">{likes}</Text>
+              <Text className="text-sm text-white">{likes}</Text>
             </HStack>
           </Animated.View>
         </Pressable>
@@ -272,15 +272,15 @@ function FeedPost({ post }: FeedPostProps) {
                 color={interaction === 'dislike' ? '#dc2626' : '#6b7280'}
                 fill={interaction === 'dislike' ? '#dc2626' : 'transparent'}
               />
-              <Text className="text-sm">{dislikes}</Text>
+              <Text className="text-sm text-white">{dislikes}</Text>
             </HStack>
           </Animated.View>
         </Pressable>
 
         <Pressable onPress={handleCommentOpen}>
           <HStack className="items-center gap-1">
-            <Icon as={MessageCircle} size="md" className="text-gray-700" />
-            <Text className="text-sm text-gray-800">{commentsCount}</Text>
+            <Icon as={MessageCircle} size="md" className="text-[#cb9090]" />
+            <Text className="text-sm text-white">{commentsCount}</Text>
           </HStack>
         </Pressable>
       </HStack>

@@ -1,34 +1,47 @@
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
-import { Box } from '@/components/ui/box';
-import { HStack } from '@/components/ui/hstack';
-import { VStack } from '@/components/ui/vstack';
+import { ActivityIndicator, RefreshControl, ScrollView, View, Pressable, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/text';
-import { Pressable } from '@/components/ui/pressable';
-import { listPublicCalendars, selectCalendar } from '../api/trainingCalendars';
-import { getUserProfile } from '../api/profile';
+import { listPublicCalendars, listUserCalendars } from '../api/trainingCalendars';
+import { getClubTrainingPlans } from '../api/clubs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GlassCard } from '@/components/ui/glass-card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Ionicons } from '@expo/vector-icons';
+import { colors } from '@/src/theme/colors';
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 interface Calendar {
   id_training_calendar: number;
   title: string;
   privacy: string;
   id_created_by: number | null;
+  training_count?: number;
+  creator_name?: string;
+  calendar_type?: string;
+  num_weeks?: number;
 }
 
-// We accept navigation as a prop instead of using useNavigation()
 export default function BrowseCalendarsScreen({ navigation }: { navigation: any }) {
-  const [calendars, setCalendars] = useState<Calendar[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const route = useRoute<RouteProp<RootStackParamList, 'BrowseCalendars'>>();
+  const clubId = route.params?.clubId;
+  const insets = useSafeAreaInsets();
+  const [publicCalendars, setPublicCalendars] = useState<Calendar[]>([]);
+  const [myCalendars, setMyCalendars] = useState<Calendar[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = async () => {
     try {
       if (!refreshing) setLoading(true);
-      const profile = await getUserProfile();
-      setCurrentUserId(profile?.id_profiles || null);
-      const resp = await listPublicCalendars();
-      setCalendars(resp.calendars || []);
+      const [pubResp, myResp] = await Promise.all([
+        listPublicCalendars(),
+        clubId
+          ? getClubTrainingPlans(clubId).then((plans) => ({ calendars: plans })).catch(() => ({ calendars: [] }))
+          : listUserCalendars().catch(() => ({ calendars: [] })),
+      ]);
+      setPublicCalendars(pubResp.calendars || []);
+      setMyCalendars(myResp.calendars || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -36,23 +49,11 @@ export default function BrowseCalendarsScreen({ navigation }: { navigation: any 
     }
   };
 
-  // Replaces useFocusEffect: Standard listener for when screen is focused
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      loadData();
-    });
-    loadData(); // Initial load
+    const unsubscribe = navigation.addListener('focus', () => { loadData(); });
+    loadData();
     return unsubscribe;
   }, [navigation]);
-
-  const handleSelectCalendar = async (calendarId: number) => {
-    try {
-      await selectCalendar(calendarId);
-      navigation.goBack(); // Use prop directly
-    } catch (e) {
-      console.error('Error selecting calendar:', e);
-    }
-  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -60,76 +61,124 @@ export default function BrowseCalendarsScreen({ navigation }: { navigation: any 
     setRefreshing(false);
   };
 
-  // Components for sections
   const CalendarCard = ({ calendar }: { calendar: Calendar }) => (
-    <Pressable
-      className="bg-white border border-gray-200 rounded-lg p-4 mb-2 active:bg-gray-50"
-      onPress={() => handleSelectCalendar(calendar.id_training_calendar)}
-    >
-      <HStack className="justify-between items-start">
-        <VStack className="flex-1">
-          <Text className="text-base font-semibold text-gray-900">{calendar.title}</Text>
-          <Text className="text-xs text-gray-500 mt-1">
-            {calendar.privacy === 'private' ? 'Private' : 'Public'}
-          </Text>
-        </VStack>
-      </HStack>
+    <Pressable onPress={() => navigation.navigate('CalendarPreview', { calendarId: calendar.id_training_calendar, ...(clubId ? { clubId } : {}) })}>
+      <GlassCard variant="medium" radius={12} padding={14} style={styles.calendarCard}>
+        <View style={styles.calendarCardRow}>
+          <View style={styles.calendarIconWrap}>
+            <Ionicons name="calendar" size={18} color={colors.primary.main} />
+          </View>
+          <View style={styles.flex1}>
+            <Text style={styles.calendarTitle}>{calendar.title}</Text>
+            <View style={styles.metaRow}>
+              {calendar.training_count !== undefined && (
+                <Text style={styles.metaText}>
+                  {calendar.training_count} training{calendar.training_count !== 1 ? 's' : ''}
+                </Text>
+              )}
+              {calendar.creator_name && (
+                <Text style={styles.metaText}>by {calendar.creator_name}</Text>
+              )}
+              <Text style={styles.metaText}>
+                {calendar.calendar_type === 'day' ? '📅' : '🔁'}
+              </Text>
+              <Text style={styles.metaText}>
+                {calendar.privacy === 'private' ? '🔒' : '🌐'}
+              </Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
+        </View>
+      </GlassCard>
     </Pressable>
   );
 
-  const CategorySection = ({ title, subtitle, data, empty }: any) => (
-    <VStack className="gap-3 mb-8">
-      <VStack className="gap-1">
-        <Text className="text-lg font-semibold text-gray-900">{title}</Text>
-        <Text className="text-sm text-gray-500">{subtitle}</Text>
-      </VStack>
+  const ProgramSection = ({ title, subtitle, data, empty }: any) => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionSub}>{subtitle}</Text>
       {data.length > 0 ? (
-        <VStack className="gap-2">
+        <View style={styles.cardList}>
           {data.map((cal: Calendar) => (
             <CalendarCard key={cal.id_training_calendar} calendar={cal} />
           ))}
-        </VStack>
+        </View>
       ) : (
-        <Box className="bg-gray-50 rounded-lg p-6 border border-gray-200 items-center justify-center py-8">
-          <Text className="text-gray-600 font-medium">{empty}</Text>
-        </Box>
+        <EmptyState icon="calendar-outline" title={empty} style={styles.emptyState} />
       )}
-    </VStack>
+    </View>
   );
 
   if (loading && !refreshing) {
     return (
-      <Box className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" color="#4f46e5" />
-      </Box>
+      <View style={[styles.root, styles.center]}>
+        <ActivityIndicator size="large" color={colors.primary.main} />
+      </View>
     );
   }
 
   return (
-    <Box className="flex-1 bg-white">
-      <VStack className="flex-1">
-        <Box className="bg-white border-b border-gray-100 px-6 py-6">
-          <Text className="text-3xl font-bold text-gray-900">Browse Programs</Text>
-          <Text className="text-gray-500 mt-1">Select a training program</Text>
-        </Box>
-        <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        >
-          <CategorySection
-            title="Featured Programs"
-            subtitle="Programs created by the developer"
-            data={calendars.filter(c => c.id_created_by === currentUserId)}
-            empty="No featured programs found"
-          />
-          <CategorySection
-            title="Community"
-            subtitle="Public programs"
-            data={calendars.filter(c => c.id_created_by !== currentUserId)}
-            empty="No other programs found"
-          />
-        </ScrollView>
-      </VStack>
-    </Box>
+    <View style={styles.root}>
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8 }]}>
+        <View style={styles.headerRow}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn}>
+            <Ionicons name="chevron-back" size={20} color="#fff" />
+          </Pressable>
+          <Text style={styles.headerTitle}>Browse Programs</Text>
+          <View style={styles.iconBtn} />
+        </View>
+        <Text style={styles.headerSub}>Tap a program to preview before selecting</Text>
+      </View>
+      <ScrollView
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
+      >
+        <ProgramSection
+          title={clubId ? "Club Calendars" : "Your Programs"}
+          subtitle={clubId ? "Calendars created for this club" : "Programs you've created"}
+          data={myCalendars}
+          empty="No personal programs yet"
+        />
+        <ProgramSection
+          title="Community"
+          subtitle="Public programs from the community"
+          data={publicCalendars}
+          empty="No community programs found"
+        />
+      </ScrollView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background.secondary },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  header: {
+    paddingHorizontal: 16, paddingBottom: 14,
+    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    backgroundColor: colors.background.secondary,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  headerTitle: { color: colors.text.primary, fontSize: 20, fontWeight: '800' },
+  headerSub: { color: colors.text.tertiary, fontSize: 13, marginLeft: 48 },
+  iconBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  section: { marginBottom: 28 },
+  sectionTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700', marginBottom: 2 },
+  sectionSub: { color: colors.text.tertiary, fontSize: 12, marginBottom: 12 },
+  cardList: { gap: 8 },
+  calendarCard: { marginBottom: 0 },
+  calendarCardRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  calendarIconWrap: {
+    width: 36, height: 36, borderRadius: 10, backgroundColor: colors.glass.redSurface,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  flex1: { flex: 1 },
+  calendarTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '600' },
+  metaRow: { flexDirection: 'row', gap: 8, marginTop: 3 },
+  metaText: { color: colors.text.tertiary, fontSize: 11 },
+  emptyState: { paddingVertical: 24 },
+});

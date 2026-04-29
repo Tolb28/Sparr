@@ -162,12 +162,46 @@ export async function getClubPosts(clubId: number, offset = 0, limit = 20) {
   return data?.posts ?? [];
 }
 
-export async function createClubPost(clubId: number, payload: { description?: string; source?: string }) {
-  const data = await authFetch(`/auth/clubs/${clubId}/posts`, {
+export async function createClubPost(
+  clubId: number,
+  description?: string,
+  imageUri?: string,
+  videoUri?: string
+) {
+  const token = await getToken();
+  const activeProfileId = await getActiveProfileId();
+
+  const formData = new FormData();
+  if (description) formData.append('description', description);
+
+  if (imageUri) {
+    const filename = imageUri.split('/').pop() || 'post-image.jpg';
+    const extension = filename.split('.').pop()?.toLowerCase() || 'jpg';
+    const mimeTypes: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+    formData.append('image', { uri: imageUri, type: mimeTypes[extension] || 'image/jpeg', name: filename } as any);
+  }
+
+  if (videoUri) {
+    const filename = videoUri.split('/').pop() || 'post-video.mp4';
+    const extension = filename.split('.').pop()?.toLowerCase() || 'mp4';
+    const mimeTypes: Record<string, string> = { mp4: 'video/mp4', mov: 'video/quicktime', avi: 'video/x-msvideo', webm: 'video/webm' };
+    formData.append('video', { uri: videoUri, type: mimeTypes[extension] || 'video/mp4', name: filename } as any);
+  }
+
+  const response = await fetch(`${ServerIP}/auth/clubs/${clubId}/posts`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(activeProfileId ? { 'X-Profile-Id': String(activeProfileId) } : {}),
+    },
+    body: formData,
   });
-  return data?.post ?? data;
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err?.error || 'Failed to create club post');
+  }
+  return response.json();
 }
 
 // ---------------------------------------------------------------------------
@@ -177,6 +211,10 @@ export async function createClubPost(clubId: number, payload: { description?: st
 export async function getClubTrainingPlans(clubId: number) {
   const data = await authFetch(`/auth/clubs/${clubId}/training-plans`);
   return data?.plans ?? [];
+}
+
+export async function getClubSelectedCalendar(clubId: number) {
+  return authFetch(`/auth/clubs/${clubId}/calendar/selected`);
 }
 
 export async function createClubTrainingPlan(clubId: number, payload: { title: string; description?: string }) {
@@ -190,6 +228,10 @@ export async function createClubTrainingPlan(clubId: number, payload: { title: s
 export async function copyClubTrainingPlan(clubId: number, planId: number) {
   const data = await authFetch(`/auth/clubs/${clubId}/training-plans/${planId}/copy`, { method: 'POST' });
   return data?.plan ?? data;
+}
+
+export async function selectClubCalendar(clubId: number, calendarId: number) {
+  return authFetch(`/auth/clubs/${clubId}/calendars/${calendarId}/select`, { method: 'POST' });
 }
 
 export async function createClubCalendarFull(clubId: number, payload: {

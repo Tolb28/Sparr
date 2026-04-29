@@ -1,18 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { ScrollView, ActivityIndicator, RefreshControl, PanResponder, GestureResponderEvent } from 'react-native';
+import { ScrollView, ActivityIndicator, RefreshControl, PanResponder, GestureResponderEvent, View, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getDrill } from '../api/techniques';
-import { Box } from '@/components/ui/box';
-import { VStack } from '@/components/ui/vstack';
-import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
-import { Pressable } from '@/components/ui/pressable';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { colors } from '../theme';
+import { GlassCard } from '@/components/ui/glass-card';
+import { ErrorState } from '@/components/ui/error-state';
+import { colors } from '@/src/theme/colors';
 
 type DrillDetailRouteProp = RouteProp<RootStackParamList, 'DrillDetail'>;
 type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -102,119 +100,116 @@ export default function DrillDetailScreen() {
 
   if (loading) {
     return (
-      <Box className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background.secondary }}>
-        <ActivityIndicator size="large" color={colors.primary.dark} />
-      </Box>
+      <View style={[styles.root, styles.center]}>
+        <ActivityIndicator size="large" color={colors.primary.main} />
+      </View>
     );
   }
 
   if (error || !drill) {
     return (
-      <Box className="flex-1" style={{ backgroundColor: colors.background.secondary }}>
-        <HStack className="pt-12 px-4 pb-4 items-center gap-2" style={{ backgroundColor: colors.card.background }}>
-          <Pressable onPress={() => navigation.goBack()} className="p-2">
+      <View style={styles.root}>
+        <View style={styles.header}>
+          <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
           </Pressable>
-          <Text className="flex-1 text-lg font-bold" style={{ color: colors.text.primary }}>
-            Drill
-          </Text>
-        </HStack>
-        <VStack className="flex-1 items-center justify-center px-4 gap-4">
-          <Ionicons name="warning" size={48} color={colors.text.secondary} />
-          <Text style={{ color: colors.text.primary }}>{error || 'Drill not found'}</Text>
-          <Pressable onPress={() => navigation.goBack()} className="px-6 py-3 rounded-lg" style={{ backgroundColor: colors.primary.dark }}>
-            <Text style={{ color: colors.text.inverse }}>Go Back</Text>
-          </Pressable>
-        </VStack>
-      </Box>
+          <Text style={styles.headerTitle}>Drill</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <ErrorState message={error || 'Drill not found'} onRetry={loadDrill} />
+      </View>
     );
   }
 
   return (
-    <Box className="flex-1" style={{ backgroundColor: colors.background.secondary }} {...panResponder.panHandlers}>
-      {/* Header */}
-      <HStack className="pt-12 px-4 pb-4 items-center gap-2" style={{ backgroundColor: colors.card.background, borderBottomColor: colors.border.light, borderBottomWidth: 1 }}>
-        <Pressable onPress={() => navigation.goBack()} className="p-2">
+    <View style={styles.root} {...panResponder.panHandlers}>
+      <View style={styles.header}>
+        <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
         </Pressable>
-        <Text className="flex-1 text-lg font-bold" style={{ color: colors.text.primary }}>
-          Drill
-        </Text>
-        {itemsList.length > 1 && (
-          <Text className="text-sm font-semibold" style={{ color: colors.text.secondary }}>
-            {actualIndex + 1} / {itemsList.length}
-          </Text>
+        <Text style={styles.headerTitle}>Drill</Text>
+        {itemsList.length > 1 ? (
+          <Text style={styles.indexLabel}>{actualIndex + 1} / {itemsList.length}</Text>
+        ) : (
+          <View style={{ width: 40 }} />
         )}
-      </HStack>
+      </View>
 
-      {/* Content */}
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        className="flex-1"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
+        contentContainerStyle={{ paddingBottom: 40 }}
       >
-        <VStack className="gap-6 pb-8">
-          {/* Video Section */}
-          {(drill.video_url || drill.source) ? (
-            <VideoPlayerComponent videoUri={(drill.video_url || drill.source) as string} />
-          ) : (
-            <Box className="w-full aspect-video items-center justify-center" style={{ backgroundColor: colors.neutral[200] }}>
-              <Ionicons name="videocam-outline" size={48} color={colors.text.tertiary} />
-            </Box>
+        {(drill.video_url || drill.source) ? (
+          <VideoPlayerComponent videoUri={(drill.video_url || drill.source) as string} />
+        ) : (
+          <View style={styles.videoPlaceholder}>
+            <Ionicons name="videocam-outline" size={48} color={colors.text.tertiary} />
+          </View>
+        )}
+
+        <View style={styles.body}>
+          <Text style={styles.title}>{drill.title}</Text>
+
+          {!!drill.category && (
+            <View style={styles.categoryChip}>
+              <Text style={styles.categoryText}>{drill.category}</Text>
+            </View>
           )}
 
-          {/* Title */}
-          <VStack className="px-4 gap-2">
-            <Text className="text-3xl font-bold" style={{ color: colors.text.primary }}>
-              {drill.title}
-            </Text>
-          </VStack>
-
-          {/* Category */}
-          {drill.category && (
-            <VStack className="px-4 gap-2">
-              <Text className="text-sm font-semibold uppercase" style={{ color: colors.text.tertiary }}>
-                Category
-              </Text>
-              <Text className="text-base" style={{ color: colors.text.secondary }}>
-                {drill.category}
-              </Text>
-            </VStack>
+          {!!drill.description && (
+            <GlassCard variant="medium" radius={14} padding={16}>
+              <Text style={styles.descLabel}>DESCRIPTION</Text>
+              <Text style={styles.descText}>{drill.description}</Text>
+            </GlassCard>
           )}
 
-          {/* Description */}
-          {drill.description && (
-            <VStack className="px-4 gap-2">
-              <Text className="text-sm font-semibold uppercase" style={{ color: colors.text.tertiary }}>
-                Description
-              </Text>
-              <Text className="text-base leading-6" style={{ color: colors.text.secondary }}>
-                {drill.description}
-              </Text>
-            </VStack>
-          )}
-
-          {/* Navigation hint */}
           {itemsList.length > 1 && (
-            <VStack className="px-4 pt-4 items-center gap-2">
-              <Text className="text-sm" style={{ color: colors.text.tertiary }}>
-                Swipe to navigate
-              </Text>
-            </VStack>
+            <View style={styles.swipeHint}>
+              <Ionicons name="swap-horizontal" size={14} color={colors.text.tertiary} />
+              <Text style={styles.swipeHintText}>Swipe to navigate</Text>
+            </View>
           )}
-        </VStack>
+        </View>
       </ScrollView>
-    </Box>
+    </View>
   );
 }
 
 function VideoPlayerComponent({ videoUri }: { videoUri: string }) {
-  const player = useVideoPlayer(videoUri, player => {
-    player.loop = true;
-  });
-
+  const player = useVideoPlayer(videoUri, (p) => { p.loop = true; });
   return (
-    <Box className="w-full aspect-video bg-black items-center justify-center">
+    <View style={styles.videoContainer}>
       <VideoView style={{ width: '100%', height: '100%' }} player={player} allowsFullscreen />
-    </Box>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background.secondary },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  header: {
+    paddingTop: 48, paddingHorizontal: 16, paddingBottom: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    backgroundColor: colors.background.secondary,
+  },
+  backBtn: { padding: 6, width: 40 },
+  headerTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700', flex: 1, textAlign: 'center' },
+  indexLabel: { color: colors.text.secondary, fontSize: 13, fontWeight: '600', width: 40, textAlign: 'right' },
+  videoContainer: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#000' },
+  videoPlaceholder: {
+    width: '100%', aspectRatio: 16 / 9,
+    backgroundColor: colors.glass.surface, alignItems: 'center', justifyContent: 'center',
+  },
+  body: { padding: 16, gap: 14 },
+  title: { color: colors.text.primary, fontSize: 26, fontWeight: '800' },
+  categoryChip: {
+    alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
+    backgroundColor: colors.glass.redSurface, borderWidth: 1, borderColor: colors.primary.main + '44',
+  },
+  categoryText: { color: colors.primary.main, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  descLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8 },
+  descText: { color: colors.text.secondary, fontSize: 14, lineHeight: 22 },
+  swipeHint: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 8 },
+  swipeHintText: { color: colors.text.tertiary, fontSize: 12 },
+});

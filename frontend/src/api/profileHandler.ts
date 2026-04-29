@@ -11,6 +11,8 @@ type ProfileData = {
   avatar_url?: string | null;
 }
 
+const ACTIVE_PROFILE_KEY = "active_profile_id";
+
 export async function storeProfile(profile: ProfileData) {
   if (Platform.OS === "web") {
     localStorage.setItem("profile", JSON.stringify(profile));
@@ -32,9 +34,30 @@ export async function removeProfile() {
   await deleteToken();
   if (Platform.OS === "web") {
     localStorage.removeItem("profile");
+    localStorage.removeItem(ACTIVE_PROFILE_KEY);
   } else {
     await SecureStore.deleteItemAsync("profile");
+    await SecureStore.deleteItemAsync(ACTIVE_PROFILE_KEY);
   }
 }
 
-export const ServerIP = Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.20.4.17:4000/api";
+export async function setActiveProfileId(profileId: number) {
+  const value = String(profileId);
+  if (Platform.OS === 'web') {
+    localStorage.setItem(ACTIVE_PROFILE_KEY, value);
+  } else {
+    await SecureStore.setItemAsync(ACTIVE_PROFILE_KEY, value);
+  }
+}
+
+export async function getActiveProfileId() {
+  const raw = Platform.OS === 'web'
+    ? localStorage.getItem(ACTIVE_PROFILE_KEY)
+    : await SecureStore.getItemAsync(ACTIVE_PROFILE_KEY);
+  const parsed = parseInt(raw || '', 10);
+  return parsed || null;
+}
+
+export const ServerIP =
+  process.env.EXPO_PUBLIC_API_URL ??
+  (Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.20.4.17:4000/api");

@@ -107,12 +107,12 @@ export default function CommentSection({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1 }}
     >
-      <Box className="flex-1 bg-white">
+      <Box className="flex-1" style={{ backgroundColor: '#221010' }}>
         {/* Header */}
-        <HStack className="items-center justify-between p-4 border-b border-gray-200">
-          <Text className="font-bold text-lg">Comments</Text>
+        <HStack className="items-center justify-between p-4 border-b" style={{ borderBottomColor: '#3a1d1d' }}>
+          <Text className="font-bold text-lg text-white">Comments</Text>
           <Pressable onPress={onClose}>
-            <Ionicons name="close" size={24} />
+            <Ionicons name="close" size={24} color="#cb9090" />
           </Pressable>
         </HStack>
 
@@ -130,16 +130,18 @@ export default function CommentSection({
         </View>
 
         {/* Input */}
-        <HStack className="items-center p-3 border-t border-gray-200">
-          <Input className="flex-1 mr-2">
+        <HStack className="items-center p-3 border-t" style={{ borderTopColor: '#3a1d1d' }}>
+          <Input className="flex-1 mr-2" style={{ borderColor: '#6d2e2e', backgroundColor: '#341818' }}>
             <InputField
               placeholder="Add a comment..."
               value={text}
               onChangeText={setText}
+              placeholderTextColor="#8f6d6d"
+              style={{ color: '#fff' }}
             />
           </Input>
           <Pressable onPress={sendComment}>
-            <Ionicons name="send" size={22} color="#2563eb" />
+            <Ionicons name="send" size={22} color="#f20d0d" />
           </Pressable>
         </HStack>
       </Box>

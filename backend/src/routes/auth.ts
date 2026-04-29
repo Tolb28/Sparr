@@ -2,8 +2,9 @@ import { Router } from "express";
 import multer from "multer";
 import { register, login, getUser, updateUser } from "../controllers/userController";
 import { authenticate } from "../middleware/authMiddleware";
-import { createProfile, updateProfile, deleteProfile, getProfile, getProfilePosts, getForeignProfile } from "../controllers/profileController";
-import { getCommentsForPost, getDiscoveryFeed } from "../controllers/discoveryController";
+import { createProfile, updateProfile, deleteProfile, getProfile, getProfilePosts, getForeignProfile, getMyProfiles } from "../controllers/profileController";
+import { getCommentsForPost, getDiscoveryBoxers, getDiscoveryFeed } from "../controllers/discoveryController";
+import { getRecommendationsController } from "../controllers/recommendationsController";
 import { createCommentHandler } from "../controllers/commentsController";
 import { toggleInteraction } from "../controllers/interactionsController";
 import { getFriends, getPendingRequests, acceptFriendRequest, declineFriendRequest, checkFriendStatus, sendFriendRequest, unfriend } from "../controllers/friendsController";
@@ -11,6 +12,8 @@ import { getProfileReferences } from "../controllers/referenceController";
 import { createPostHandler } from "../controllers/postsController";
 import trainingRouter from "./training";
 import chatRouter from "./chat";
+import clubsRouter from "./clubs";
+import gamificationRouter from "./gamification";
 
 const router = Router();
 
@@ -28,12 +31,15 @@ router.get("/user", authenticate, getUser);
 router.put("/user", authenticate, updateUser);
 router.post("/profile", authenticate, upload.any(), createProfile); // File upload for avatar
 router.get("/profile", authenticate, getProfile);
+router.get("/profiles", authenticate, getMyProfiles);
 router.get("/profile/references", authenticate, getProfileReferences);
 router.get("/profile/foreign/:id", authenticate, getForeignProfile);
 router.put("/profile", authenticate, upload.any(), updateProfile);
 router.delete("/profile", authenticate, deleteProfile);
 router.get("/profile/posts/:id", authenticate, getProfilePosts);
 router.get("/discovery", authenticate, getDiscoveryFeed);
+router.get("/discovery/boxers", authenticate, getDiscoveryBoxers);
+router.get("/discovery/recommendations", authenticate, getRecommendationsController);
 router.post("/comments", authenticate, createCommentHandler);
 router.get("/discovery/:postId/comments", authenticate, getCommentsForPost);
 router.post("/interactions", authenticate, toggleInteraction);
@@ -51,5 +57,9 @@ router.use('/training', trainingRouter);
 
 // Mount chat routes under /auth/chat
 router.use('/chat', chatRouter);
+
+// Clubs and gamification
+router.use('/clubs', clubsRouter);
+router.use('/gamification', gamificationRouter);
 
 export default router;

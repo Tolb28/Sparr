@@ -1,24 +1,28 @@
 import { Request, Response } from "express";
-import { pool } from "../config/db";
+import * as calendarService from "../services/calendarService";
 
-async function getProfileIdForUser(userId: number) {
-  const { rows } = await pool.query("SELECT id_profiles FROM profiles WHERE user_id=$1", [userId]);
-  return rows[0]?.id_profiles || null;
+async function resolveProfileId(req: Request): Promise<number | null> {
+  // @ts-ignore
+  if (req.profileId) return req.profileId as number;
+  // @ts-ignore
+  const userId = req.userId;
+  return calendarService.getProfileIdForUser(userId);
 }
 
 export const createCalendar = async (req: Request, res: Response) => {
   try {
-    // @ts-ignore
-    const userId = req.userId;
-    const { title, privacy } = req.body;
-    const profileId = await getProfileIdForUser(userId);
-
-    const { rows } = await pool.query(
-      `INSERT INTO training_calendar (title, id_created_by, privacy) VALUES ($1,$2,$3) RETURNING *`,
-      [title, profileId, privacy || null]
+    const profileId = await resolveProfileId(req);
+    if (!profileId) return res.status(400).json({ error: "Profile required" });
+    const { title, privacy, calendar_type, num_weeks, order_start_date } = req.body;
+    const calendar = await calendarService.createCalendar(
+      title,
+      profileId,
+      privacy,
+      calendar_type,
+      num_weeks,
+      order_start_date
     );
-
-    res.status(201).json({ calendar: rows[0] });
+    res.status(201).json({ calendar });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -28,13 +32,17 @@ export const createCalendar = async (req: Request, res: Response) => {
 export const addTrainingToCalendar = async (req: Request, res: Response) => {
   try {
     const calId = parseInt(req.params.id as string, 10);
-    const { id_trainings, order, icon_name } = req.body;
-    if (!id_trainings) return res.status(400).json({ error: "Missing training id" });
-    const { rows } = await pool.query(
-      `INSERT INTO training_calendar_trainings (id_training_calendar, id_trainings, "order", icon_name) VALUES ($1,$2,$3,$4) RETURNING *`,
-      [calId, id_trainings, order || null, icon_name || null]
+    const { id_trainings, order, icon_name, week_number, day_of_week, start_time } = req.body;
+    const item = await calendarService.addTrainingToCalendar(
+      calId,
+      id_trainings ?? null,
+      order,
+      icon_name,
+      week_number,
+      day_of_week,
+      start_time
     );
-    res.status(201).json({ item: rows[0] });
+    res.status(201).json({ item });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -43,25 +51,50 @@ export const addTrainingToCalendar = async (req: Request, res: Response) => {
 
 export const updateCalendar = async (req: Request, res: Response) => {
   try {
+    // @ts-ignore
+    const userId = req.userId;
     const calId = parseInt(req.params.id as string, 10);
-    const { title, privacy } = req.body;
-    const updates: string[] = [];
-    const values: any[] = [];
-    let idx = 1;
-    if (title !== undefined) {
-      updates.push(`title = $${idx}`);
-      values.push(title);
-      idx++;
+    const { title, privacy, calendar_type, num_weeks, order_start_date, replace_trainings } = req.body;
+
+    const profileId = await calendarService.getProfileIdForUser(userId);
+    if (!profileId) return res.status(400).json({ error: "Profile required" });
+
+    // Check ownership
+    const existing = await calendarService.getCalendarById(calId);
+    if (!existing?.calendar) return res.status(404).json({ error: "Calendar not found" });
+
+    const isOwner = existing.calendar.id_created_by === Number(profileId);
+
+    if (!isOwner) {
+      // Fork: create a personal copy with the requested changes applied
+      const forked = await calendarService.forkCalendar(calId, profileId, { title, privacy });
+      // Select the new calendar for this user
+      await calendarService.selectCalendar(userId, forked.id_training_calendar);
+      // If caller wants to replace slots (e.g. edit screen always re-submits), clear the forked copy's slots
+      if (replace_trainings) {
+        await calendarService.clearCalendarTrainings(forked.id_training_calendar);
+      }
+      return res.json({ calendar: forked, forked: true });
     }
-    if (privacy !== undefined) {
-      updates.push(`privacy = $${idx}`);
-      values.push(privacy);
-      idx++;
+
+    // If calendar type is changing OR caller explicitly requests slot replacement, clear all slots
+    const typeChanging =
+      calendar_type !== undefined &&
+      calendar_type !== existing.calendar.calendar_type;
+
+    if (typeChanging || replace_trainings) {
+      await calendarService.clearCalendarTrainings(calId);
     }
-    if (updates.length === 0) return res.status(400).json({ error: "No fields to update" });
-    values.push(calId);
-    const { rows } = await pool.query(`UPDATE training_calendar SET ${updates.join(", ")}, updated_at = NOW() WHERE id_training_calendar = $${idx} RETURNING *`, values);
-    res.json({ calendar: rows[0] });
+
+    const calendar = await calendarService.updateCalendar(calId, {
+      title,
+      privacy,
+      calendar_type,
+      num_weeks,
+      order_start_date,
+    });
+    if (!calendar) return res.status(400).json({ error: "No fields to update" });
+    res.json({ calendar, type_changed: typeChanging });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -71,8 +104,7 @@ export const updateCalendar = async (req: Request, res: Response) => {
 export const deleteCalendar = async (req: Request, res: Response) => {
   try {
     const calId = parseInt(req.params.id as string, 10);
-    await pool.query("DELETE FROM training_calendar_trainings WHERE id_training_calendar = $1", [calId]);
-    await pool.query("DELETE FROM training_calendar WHERE id_training_calendar = $1", [calId]);
+    await calendarService.deleteCalendar(calId);
     res.json({ message: "Deleted" });
   } catch (err) {
     console.error(err);
@@ -83,7 +115,7 @@ export const deleteCalendar = async (req: Request, res: Response) => {
 export const deleteTrainingFromCalendar = async (req: Request, res: Response) => {
   try {
     const itemId = parseInt(req.params.itemId as string, 10);
-    await pool.query("DELETE FROM training_calendar_trainings WHERE id_training_calendar_trainings = $1", [itemId]);
+    await calendarService.removeTrainingFromCalendar(itemId);
     res.json({ message: "Deleted" });
   } catch (err) {
     console.error(err);
@@ -94,16 +126,25 @@ export const deleteTrainingFromCalendar = async (req: Request, res: Response) =>
 export const getCalendar = async (req: Request, res: Response) => {
   try {
     const calId = parseInt(req.params.id as string, 10);
-    const { rows } = await pool.query("SELECT * FROM training_calendar WHERE id_training_calendar=$1", [calId]);
-    if (!rows[0]) return res.status(404).json({ error: "Not found" });
-    const calendar = rows[0];
+    const result = await calendarService.getCalendarById(calId);
+    if (!result) return res.status(404).json({ error: "Not found" });
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 
-    const { rows: items } = await pool.query(
-      `SELECT tct.*, tr.* FROM training_calendar_trainings tct JOIN trainings tr ON tct.id_trainings = tr.id_trainings WHERE tct.id_training_calendar = $1 ORDER BY tct."order" ASC`,
-      [calId]
-    );
-
-    res.json({ calendar, items });
+export const getCalendarPreview = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const userId = req.userId;
+    const calId = parseInt(req.params.id as string, 10);
+    const result = await calendarService.getCalendarPreview(calId);
+    if (!result) return res.status(404).json({ error: "Not found" });
+    const profileId = await calendarService.getProfileIdForUser(userId);
+    const is_owner = !!profileId && result.calendar.id_created_by === Number(profileId);
+    res.json({ ...result, is_owner });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -112,8 +153,20 @@ export const getCalendar = async (req: Request, res: Response) => {
 
 export const listPublicCalendars = async (_req: Request, res: Response) => {
   try {
-    const { rows } = await pool.query("SELECT * FROM training_calendar WHERE privacy = 'public' ORDER BY id_training_calendar ASC");
-    res.json({ calendars: rows });
+    const calendars = await calendarService.listPublicCalendars();
+    res.json({ calendars });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+export const listUserCalendars = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const userId = req.userId;
+    const calendars = await calendarService.listUserCalendars(userId);
+    res.json({ calendars });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -125,23 +178,13 @@ export const selectCalendarForProfile = async (req: Request, res: Response) => {
     // @ts-ignore
     const userId = req.userId;
     const calId = parseInt(req.params.id as string, 10);
-    const profileId = await getProfileIdForUser(userId);
-    if (!profileId) return res.status(400).json({ error: "Profile required" });
-
-    // Upsert into profiles_training_calendar
-    await pool.query(
-      `DELETE FROM profiles_training_calendar WHERE profiles_id_profiles = $1`,
-      [profileId]
-    );
-    const { rows } = await pool.query(
-      `INSERT INTO profiles_training_calendar (profiles_id_profiles, training_calendar_id_training_calendar, visibility) VALUES ($1,$2,$3) RETURNING *`,
-      [profileId, calId, 'private']
-    );
-
-    res.json({ selected: rows[0] });
-  } catch (err) {
+    const profileId = await resolveProfileId(req);
+    if (!profileId) return res.status(400).json({ error: "Profile not found" });
+    const selected = await calendarService.selectCalendar(userId, calId, profileId);
+    res.json({ selected });
+  } catch (err: any) {
     console.error(err);
-    res.status(500).json({ error: "Server error" });
+    res.status(err?.message === "Profile not found" ? 400 : 500).json({ error: err?.message || "Server error" });
   }
 };
 
@@ -149,23 +192,24 @@ export const getSelectedCalendarForProfile = async (req: Request, res: Response)
   try {
     // @ts-ignore
     const userId = req.userId;
-    const profileId = await getProfileIdForUser(userId);
-    if (!profileId) return res.status(404).json({ error: "Profile not found" });
+    const profileId = await resolveProfileId(req);
+    if (!profileId) return res.json({ calendar: null });
+    const result = await calendarService.getSelectedCalendar(userId, profileId);
+    if (!result) return res.json({ calendar: null });
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
 
-    const { rows } = await pool.query(
-      `SELECT tc.* FROM profiles_training_calendar ptc JOIN training_calendar tc ON ptc.training_calendar_id_training_calendar = tc.id_training_calendar WHERE ptc.profiles_id_profiles = $1 LIMIT 1`,
-      [profileId]
-    );
-
-    if (!rows[0]) return res.json({ calendar: null });
-
-    const cal = rows[0];
-    const { rows: items } = await pool.query(
-      `SELECT tct.*, tr.* FROM training_calendar_trainings tct JOIN trainings tr ON tct.id_trainings = tr.id_trainings WHERE tct.id_training_calendar = $1 ORDER BY tct."order" ASC`,
-      [cal.id_training_calendar]
-    );
-
-    res.json({ calendar: cal, items });
+export const reorderCalendarTrainings = async (req: Request, res: Response) => {
+  try {
+    const calId = parseInt(req.params.id as string, 10);
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds)) return res.status(400).json({ error: "orderedIds must be an array" });
+    await calendarService.reorderCalendarTrainings(calId, orderedIds);
+    res.json({ message: "Reordered" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });

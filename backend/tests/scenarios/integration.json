@@ -1,0 +1,34 @@
+{
+  "name": "Integration Tests",
+  "tests": [
+    {
+      "name": "Get week progress",
+      "method": "GET",
+      "path": "/api/auth/gamification/profiles/{profileId}/progress?range=week",
+      "auth": "token",
+      "expect": {
+        "status": 200,
+        "schema": {
+          "range": "week",
+          "metrics": {},
+          "snapshots": []
+        }
+      }
+    },
+    {
+      "name": "Get month progress",
+      "path": "/api/auth/gamification/profiles/{profileId}/progress?range=month",
+      "expect": { "status": 200 }
+    },
+    {
+      "name": "Get year progress",
+      "path": "/api/auth/gamification/profiles/{profileId}/progress?range=year",
+      "expect": { "status": 200 }
+    },
+    {
+      "name": "Get lifetime progress",
+      "path": "/api/auth/gamification/profiles/{profileId}/progress?range=lifetime",
+      "expect": { "status": 200 }
+    }
+  ]
+}

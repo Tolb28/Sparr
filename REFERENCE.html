@@ -1,0 +1,223 @@
+(Note: This file should only serve as a design reference, all code inside the real projects front end should still be in react native, while working on redesigning the screens inside the project, make sure to also think about functionality and make sure to tell me about any updates that we'll need to make inside backend for everything to function properly. Otherwise try to keep the functionality of the project, just with a different design)
+
+
+ClubProfileScreen reference:
+
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Boxing Club Profile - Iron Fist</title>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f20d0d",
+                        "background-light": "#f8f5f5",
+                        "background-dark": "#120808",
+                        "surface-dark": "#221010",
+                        "accent-dark": "#492222",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Lexend', sans-serif;
+        }
+        .custom-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        .custom-scroll {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-white font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<div class="sticky top-0 z-50 flex items-center bg-background-dark/90 backdrop-blur-md p-4 justify-between border-b border-white/5">
+<div class="flex size-10 shrink-0 items-center justify-center rounded-full bg-surface-dark cursor-pointer">
+<span class="material-symbols-outlined text-white">arrow_back</span>
+</div>
+<h2 class="text-white text-lg font-bold leading-tight tracking-tight flex-1 text-center">Iron Fist Boxing Gym</h2>
+<div class="flex w-10 items-center justify-end">
+<button class="flex items-center justify-center p-2 rounded-full bg-surface-dark">
+<span class="material-symbols-outlined text-white">share</span>
+</button>
+</div>
+</div>
+<!-- Hero Section -->
+<div class="@container">
+<div class="@[480px]:px-4 @[480px]:py-3">
+<div class="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden bg-surface-dark @[480px]:rounded-xl min-h-[340px] relative" data-alt="Interior of a gritty boxing gym with red rings and heavy bags" style='background-image: linear-gradient(to top, rgba(18, 8, 8, 1), transparent), url("https://lh3.googleusercontent.com/aida-public/AB6AXuBtqGTgaPvEIqufcDLqM9aiPPRKXnDY9dAoW9gEEgiI6JuaDAoC4Ibk4Zj3MFL_jNcizwJGu2LE5VuIMe4VVBXfSCguTypzw67nfnh3CpRCh3Cah1oiyCL_7Y_KuaqxG4pds6U5QwQk2NTtViumoctzQaAPrTtacyDHykaE4TYbfFhZ_LA3WpSf-XGFeq4WtO2LD60JQMFX8KL7reVq4OhS5PVHaOaajKfN3gLSIkqmaH6IBQCcbLWiDPbNzVCbBqaGimf8SYp6EtWO");'>
+<!-- Stats Overlay -->
+<div class="p-6 flex flex-col gap-2">
+<div class="flex gap-2">
+<span class="bg-primary text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded">Pro Elite</span>
+<span class="bg-white/10 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded">Open 24/7</span>
+</div>
+<h1 class="text-white text-4xl font-black leading-tight tracking-tighter uppercase italic">Iron Fist Gym</h1>
+<p class="text-white/70 text-sm font-medium">Downtown Industrial District • 1.2k Members</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Action Section -->
+<div class="flex p-4 @container border-b border-white/5 bg-surface-dark/30">
+<div class="flex w-full flex-col gap-4 items-start">
+<div class="flex w-full gap-4 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-xl w-20 h-20 shadow-xl border-2 border-primary" data-alt="Close up of a red boxing glove and gym logo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAlzPML8mm7itsyH_Jd-VoHXSv8IJ77ZVSZTlA99A8RGb4cX0AKRPPzMz_a8MI5mO0Xnwr4ox-RZw63sJRb2EbKZQCwMiiqL4dGrnLyYcWZoKWiWejfakkVDy0Ao996vIftTHURNNFxfKVjxpBSCdEDiJVm30vLrpWouXMLfA4fRhWRxuPXc7sooue1n3Gqr_gBX6ic73DBzcIFTRby350t09iGXgFFK8QIiQCZ7V17p2FZuXDS9FLy3XTRp2_ADitEjCWPWyDvp5st");'></div>
+<div class="flex flex-col flex-1">
+<p class="text-white text-xl font-bold leading-tight">Join the Community</p>
+<p class="text-white/60 text-sm">Access exclusive drills and rankings</p>
+</div>
+</div>
+<button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 px-4 bg-primary text-white text-base font-black uppercase tracking-wider w-full shadow-lg shadow-primary/20 hover:scale-[0.98] transition-transform">
+<span class="truncate">Join Club Now</span>
+</button>
+</div>
+</div>
+<!-- Quick Stats -->
+<div class="flex flex-wrap gap-4 p-4">
+<div class="flex min-w-[100px] flex-1 flex-col gap-1 rounded-xl p-4 bg-accent-dark/40 border border-white/5">
+<p class="text-white/50 text-xs font-bold uppercase tracking-wider">Rating</p>
+<div class="flex items-center gap-1">
+<p class="text-white text-2xl font-black">4.9</p>
+<span class="material-symbols-outlined text-primary text-sm">star</span>
+</div>
+</div>
+<div class="flex min-w-[100px] flex-1 flex-col gap-1 rounded-xl p-4 bg-accent-dark/40 border border-white/5">
+<p class="text-white/50 text-xs font-bold uppercase tracking-wider">Classes/wk</p>
+<p class="text-white text-2xl font-black">42</p>
+</div>
+<div class="flex min-w-[100px] flex-1 flex-col gap-1 rounded-xl p-4 bg-accent-dark/40 border border-white/5">
+<p class="text-white/50 text-xs font-bold uppercase tracking-wider">Experience</p>
+<p class="text-white text-2xl font-black">15y</p>
+</div>
+</div>
+<!-- Meet the Coaches -->
+<div class="flex flex-col">
+<div class="flex items-center justify-between px-4 pb-3 pt-5">
+<h2 class="text-white text-xl font-bold tracking-tight">Expert Coaches</h2>
+<p class="text-primary text-sm font-bold">See all</p>
+</div>
+<div class="flex gap-4 px-4 overflow-x-auto custom-scroll pb-4">
+<!-- Coach 1 -->
+<div class="flex flex-col gap-3 min-w-[160px]">
+<div class="w-full aspect-[3/4] rounded-xl bg-center bg-cover border border-white/10" data-alt="Professional boxing coach with focused expression" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAcK4ikIw7I86DlGTSJC-nXQEZOByySB3h5AxtB0hDRRWpygzZwDzEFbQfmMihzw8vSYrT5_EKcijHCaALtc8-bp-g1qfTNJcH-fk7InBoAMB0qDtK3E808TNjNuYLJWR9yXhEyfXoR4cxsysn467iCVqG6T2Zc7sNFlb0V2jZJlTgGUcYHeNTRNMTrbJoWDtlc08veIHrZt_BgPmlB0zR8Yxx-5HDIg4MwNfw1O7QpaFWAED0pvUeQ6OijZZtJrDFyp1XvbfC5wEiS");'></div>
+<div>
+<p class="text-white font-bold text-sm">Mike 'Tank' Ross</p>
+<p class="text-white/50 text-xs font-medium uppercase">Heavy Bag Specialist</p>
+</div>
+</div>
+<!-- Coach 2 -->
+<div class="flex flex-col gap-3 min-w-[160px]">
+<div class="w-full aspect-[3/4] rounded-xl bg-center bg-cover border border-white/10" data-alt="Female boxing instructor in a fighting stance" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBAgbRCR4-M5Bt5ObENvqJ59Ru3E8iPCnZ7X1R1LLqhmdGyUPZJDHOLLLFUcb1C4rDdQt2VG9EtnGB2T0MS1xoh9Vn3GF2wy1d9GDBE7qtmX7MfboJ4ha0uYmwXdunL5o37QylQzIqe22_xq8yw8Xyk7y42nuM4T2TCe7K-I1a758061tGMrdNSZKMnDXayP9nUxgd515j9oweXh--fow0uaUQj9hgjE5gHVBw-qFTgcSU4JOFufSBlb9NdxuXyDfHSy6AmwmX_NRq0");'></div>
+<div>
+<p class="text-white font-bold text-sm">Sarah 'The Sting'</p>
+<p class="text-white/50 text-xs font-medium uppercase">Technical Sparring</p>
+</div>
+</div>
+<!-- Coach 3 -->
+<div class="flex flex-col gap-3 min-w-[160px]">
+<div class="w-full aspect-[3/4] rounded-xl bg-center bg-cover border border-white/10" data-alt="Veteran boxer training a student" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD3m9vQBIw3RQ2-7TMt4y-i-ywmmdl9z_yEsRj-zzpIKQOVqBfXt8nm2met6R7G5A0xdf6fyO2qJMk5pteMDRx6iXpd0MTL2dcAKtlZnjWeVpp6R6TndS8O59kKzMCHBiTjvVWvyYeVgtAoY5v1TM_7Vww8N8P69mjCmtfEuCUpDgYgWVL_z9tFIxu4HfQYLJk7jOzhA8eM9gcsbxFeYbZk4cIF1hOiHXFzrYtmFdcuFIJazO_q5Q5Vgs26jaDPmSvUtdsU9oSt-TnK");'></div>
+<div>
+<p class="text-white font-bold text-sm">Victor Vance</p>
+<p class="text-white/50 text-xs font-medium uppercase">Youth Foundations</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Class Schedule -->
+<div class="flex flex-col p-4">
+<h2 class="text-white text-xl font-bold tracking-tight mb-4">Upcoming Classes</h2>
+<div class="flex flex-col gap-3">
+<!-- Class 1 -->
+<div class="flex items-center justify-between p-4 bg-surface-dark rounded-xl border border-white/5">
+<div class="flex flex-col">
+<p class="text-primary text-[10px] font-black uppercase tracking-widest mb-1">Morning Drills</p>
+<p class="text-white font-bold">Advanced Cardio Boxing</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-white/40 text-sm">schedule</span>
+<p class="text-white/60 text-xs">08:00 AM - 09:30 AM</p>
+</div>
+</div>
+<button class="size-10 flex items-center justify-center bg-accent-dark rounded-lg">
+<span class="material-symbols-outlined text-white text-sm">add</span>
+</button>
+</div>
+<!-- Class 2 -->
+<div class="flex items-center justify-between p-4 bg-surface-dark rounded-xl border border-white/5">
+<div class="flex flex-col">
+<p class="text-white/40 text-[10px] font-black uppercase tracking-widest mb-1 italic">Technical</p>
+<p class="text-white font-bold">Pure Footwork Lab</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="material-symbols-outlined text-white/40 text-sm">schedule</span>
+<p class="text-white/60 text-xs">05:00 PM - 06:00 PM</p>
+</div>
+</div>
+<button class="size-10 flex items-center justify-center bg-accent-dark rounded-lg">
+<span class="material-symbols-outlined text-white text-sm">add</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Map Section -->
+<div class="flex flex-col p-4">
+<h2 class="text-white text-xl font-bold tracking-tight mb-4">Our Location</h2>
+<div class="relative w-full h-48 rounded-xl overflow-hidden grayscale contrast-125 border border-white/10" data-alt="Dark stylized map showing the gym location in an industrial area" data-location="Downtown Industrial District, Detroit" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCsJYICLBjYKNku7HYJOEneQ8Wh3ouJY_fTS0zBidhUZ7ndSqE6ZYg_21-WdVCiNIrRgrpROqzw4pXPlRuX40YhvfXhVW7dOMzY0tBse1z-rP0Qgtj3Ft6uKRR706n7HYAIORJ_I-ar2jCRqG7PHxIxnqPni-a23pkB2e6wtmTn57-vOHI4nS8kGt3MUI0jGvH8rxHRO3JyoJpl93Xj1ltyLmWKoasJZRPKMksdnllOaY81QyPvobjZqyLnlq7CtEWkXd7uvL8Gse03"); background-size: cover;'>
+<!-- Map Overlay -->
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="flex flex-col items-center">
+<span class="material-symbols-outlined text-primary text-5xl drop-shadow-lg">location_on</span>
+<div class="mt-2 bg-background-dark/90 px-3 py-1 rounded-full border border-primary/30 text-[10px] font-bold uppercase tracking-tighter">122 Iron Ave, Downtown</div>
+</div>
+</div>
+<!-- Open Map Button -->
+<div class="absolute bottom-3 right-3">
+<button class="bg-primary px-3 py-2 rounded-lg flex items-center gap-2 shadow-lg">
+<span class="material-symbols-outlined text-white text-xs">directions</span>
+<span class="text-white text-[10px] font-bold uppercase">Navigate</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Footer Space -->
+<div class="h-24 bg-background-dark"></div>
+<!-- Bottom Tab Bar Mockup (Floating) -->
+<div class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] h-16 bg-surface-dark/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-around px-6 shadow-2xl z-[100]">
+<span class="material-symbols-outlined text-white/40">home</span>
+<span class="material-symbols-outlined text-white/40">explore</span>
+<div class="size-12 bg-primary rounded-full flex items-center justify-center -translate-y-4 shadow-lg shadow-primary/40">
+<span class="material-symbols-outlined text-white text-2xl">fitness_center</span>
+</div>
+<span class="material-symbols-outlined text-primary">groups</span>
+<span class="material-symbols-outlined text-white/40">person</span>
+</div>
+</div>
+</body></html>
+
