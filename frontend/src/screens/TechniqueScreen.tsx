@@ -48,12 +48,10 @@ export default function TechniqueScreen() {
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   const openSidebar = useCallback(() => {
-    console.log('[SIDEBAR DEBUG] openSidebar called, current state:', sidebarOpen);
     setSidebarOpen(true);
   }, [sidebarOpen]);
 
   const closeSidebar = useCallback(() => {
-    console.log('[SIDEBAR DEBUG] closeSidebar called');
     Animated.parallel([
       Animated.timing(sidebarAnim, {
         toValue: -SIDEBAR_WIDTH,
@@ -66,19 +64,15 @@ export default function TechniqueScreen() {
         useNativeDriver: true,
       }),
     ]).start(() => {
-      console.log('[SIDEBAR DEBUG] closeSidebar animation complete');
       setSidebarOpen(false);
     });
   }, [sidebarAnim, sidebarBackdropOpacity]);
 
   // Trigger animations when sidebar opens
   useEffect(() => {
-    console.log('[SIDEBAR DEBUG] useEffect triggered, sidebarOpen:', sidebarOpen);
     if (sidebarOpen) {
-      console.log('[SIDEBAR DEBUG] Starting open animation sequence');
       sidebarAnim.setValue(-SIDEBAR_WIDTH);
       sidebarBackdropOpacity.setValue(0);
-      console.log('[SIDEBAR DEBUG] Animation values reset');
       
       Animated.parallel([
         Animated.timing(sidebarAnim, {
@@ -91,7 +85,7 @@ export default function TechniqueScreen() {
           duration: 250,
           useNativeDriver: true,
         }),
-      ]).start(() => console.log('[SIDEBAR DEBUG] Open animation complete'));
+      ]).start();
     }
   }, [sidebarOpen, sidebarAnim, sidebarBackdropOpacity]);
 
@@ -413,7 +407,6 @@ export default function TechniqueScreen() {
               { flex: 1 },
               { backgroundColor: 'rgba(0, 0, 0, 0.5)', opacity: sidebarBackdropOpacity },
             ]}
-            onLayout={() => console.log('[SIDEBAR RENDER] Sidebar rendered')}
           >
             <Pressable style={{ flex: 1 }} onPress={closeSidebar} />
           </Animated.View>
