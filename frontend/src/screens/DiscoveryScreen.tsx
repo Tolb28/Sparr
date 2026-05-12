@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { listClubs } from '../api/clubs';
 import { useNavigation } from '@react-navigation/native';
 import { GlassCard } from '@/components/ui/glass-card';
+import { SparrButton } from '@/components/ui/sparr-button';
 import { TabBar } from '@/components/ui/tab-bar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SkeletonCard } from '@/components/ui/skeleton-loader';
@@ -29,6 +30,7 @@ export default function DiscoveryScreen() {
   const [activeTab, setActiveTab] = useState<'foryou' | 'posts' | 'clubs' | 'boxers'>('foryou');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [styleFilter, setStyleFilter] = useState('');
   const [weightClassFilter, setWeightClassFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'text' | 'media'>('all');
@@ -48,6 +50,15 @@ export default function DiscoveryScreen() {
   const [weightClasses, setWeightClasses] = useState<WeightClass[]>([]);
 
   const LIMIT = 10;
+
+  useEffect(() => {
+    if (activeTab === 'foryou') return;
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 320);
+
+    return () => clearTimeout(timer);
+  }, [query, activeTab]);
 
   const loadPosts = useCallback(async (searchQuery: string = '', currentOffset: number = 0) => {
     setLoadingMore((prevLoading) => {
@@ -77,7 +88,7 @@ export default function DiscoveryScreen() {
   const loadClubs = useCallback(async () => {
     try {
       const data = await listClubs({
-        query,
+        query: debouncedQuery,
         joinPolicy: clubJoinPolicy === 'all' ? undefined : clubJoinPolicy,
         limit: 20,
         offset: 0,
@@ -87,12 +98,12 @@ export default function DiscoveryScreen() {
       console.error('loadClubs failed:', err);
       setClubs([]);
     }
-  }, [query, clubJoinPolicy]);
+  }, [debouncedQuery, clubJoinPolicy]);
 
   const loadBoxers = useCallback(async () => {
     try {
       const data = await getDiscoveryBoxers(20, 0, {
-        query,
+        query: debouncedQuery,
         style: styleFilter,
         weightClass: weightClassFilter,
       });
@@ -101,7 +112,7 @@ export default function DiscoveryScreen() {
       console.error('loadBoxers failed:', err);
       setBoxers([]);
     }
-  }, [query, styleFilter, weightClassFilter]);
+  }, [debouncedQuery, styleFilter, weightClassFilter]);
 
   const loadRecommendations = useCallback(async () => {
     setRecsLoading(true);
@@ -128,7 +139,7 @@ export default function DiscoveryScreen() {
         await loadRecommendations();
       } else if (activeTab === 'posts') {
         setOffset(0);
-        await loadPosts(query, 0);
+        await loadPosts(debouncedQuery, 0);
       } else if (activeTab === 'clubs') {
         await loadClubs();
       } else {
@@ -137,7 +148,7 @@ export default function DiscoveryScreen() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, loadPosts, loadClubs, loadBoxers, loadRecommendations, query]);
+  }, [activeTab, loadPosts, loadClubs, loadBoxers, loadRecommendations, debouncedQuery]);
 
   useEffect(() => {
     loadActive();
@@ -168,14 +179,21 @@ export default function DiscoveryScreen() {
   }, []);
 
   const handleSearch = useCallback(() => {
-    loadActive();
-  }, [loadActive]);
+    const trimmedQuery = query.trim();
+    if (activeTab === 'foryou') {
+      setActiveTab('posts');
+    }
+    setDebouncedQuery(trimmedQuery);
+    if (trimmedQuery === debouncedQuery && activeTab !== 'foryou') {
+      loadActive();
+    }
+  }, [loadActive, query, debouncedQuery, activeTab]);
 
   const handleLoadMore = useCallback(() => {
     if (activeTab === 'posts') {
-      loadPosts(query, offset);
+      loadPosts(debouncedQuery, offset);
     }
-  }, [activeTab, loadPosts, query, offset]);
+  }, [activeTab, loadPosts, debouncedQuery, offset]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -192,10 +210,24 @@ export default function DiscoveryScreen() {
 
   const handleTabChange = useCallback((tab: 'foryou' | 'posts' | 'clubs' | 'boxers') => {
     setActiveTab(tab);
+    setDebouncedQuery(query.trim());
     setStyleFilter('');
     setWeightClassFilter('');
+    setTypeFilter('all');
+    setClubJoinPolicy('all');
     setFiltersOpen(false);
-  }, []);
+  }, [query]);
+
+  const clearTabFilters = useCallback(() => {
+    setQuery('');
+    setDebouncedQuery('');
+    if (activeTab === 'posts') setTypeFilter('all');
+    if (activeTab === 'clubs') setClubJoinPolicy('all');
+    if (activeTab === 'boxers') {
+      setStyleFilter('');
+      setWeightClassFilter('');
+    }
+  }, [activeTab]);
 
   const personalizedItems = React.useMemo(() => {
     if (!personalizedContent) return [];
@@ -207,6 +239,39 @@ export default function DiscoveryScreen() {
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
   }, [personalizedContent]);
+
+  const activeFilters = React.useMemo(() => {
+    if (activeTab === 'posts') {
+      const filters = typeFilter === 'all' ? [] : [typeFilter === 'text' ? 'Text posts' : 'Media posts'];
+      return debouncedQuery ? [`Search: ${debouncedQuery}`, ...filters] : filters;
+    }
+    if (activeTab === 'clubs') {
+      const filters = clubJoinPolicy === 'all' ? [] : [clubJoinPolicy === 'open' ? 'Open clubs' : 'Approval required'];
+      return debouncedQuery ? [`Search: ${debouncedQuery}`, ...filters] : filters;
+    }
+    if (activeTab === 'boxers') {
+      const filters = [styleFilter, weightClassFilter].filter(Boolean);
+      return debouncedQuery ? [`Search: ${debouncedQuery}`, ...filters] : filters;
+    }
+    return [];
+  }, [activeTab, typeFilter, clubJoinPolicy, styleFilter, weightClassFilter, debouncedQuery]);
+
+  const searchPlaceholder = React.useMemo(() => {
+    if (activeTab === 'posts') return 'Search posts...';
+    if (activeTab === 'clubs') return 'Search clubs...';
+    if (activeTab === 'boxers') return 'Search boxers...';
+    return 'Search friends, clubs, boxers...';
+  }, [activeTab]);
+
+  const forYouSummary = React.useMemo(() => {
+    const clubCount = recommendations?.nearbyClubs?.length ?? 0;
+    const boxerCount = recommendations?.suggestedBoxers?.length ?? 0;
+    const trainingCount = recommendations?.popularTrainings?.length ?? 0;
+    if (!recommendations) {
+      return 'Personalized suggestions update as you train and interact.';
+    }
+    return `${clubCount} clubs, ${boxerCount} boxers, and ${trainingCount} training ideas picked for you.`;
+  }, [recommendations]);
 
   const getContentIcon = (item: RecommendedContentItem) => {
     if (item.content_type === 'technique') return 'flash-outline';
@@ -236,11 +301,19 @@ export default function DiscoveryScreen() {
               <AvatarFallbackText>{profile?.display_name || '?'}</AvatarFallbackText>
               <AvatarImage source={{ uri: profile?.avatar_url || undefined }} />
             </Avatar>
-            <Text style={styles.headerTitle}>Discovery</Text>
+            <View>
+              <Text style={styles.headerTitle}>Discovery</Text>
+              <Text style={styles.headerSubtitle}>Find your next spar, gym, or training idea</Text>
+            </View>
           </View>
           <View style={styles.headerRight}>
-            <Pressable style={styles.iconBtn}>
-              <Ionicons name="notifications-outline" size={18} color="#fff" />
+            <Pressable
+              style={styles.iconBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Notifications"
+              hitSlop={8}
+            >
+              <Ionicons name="notifications-outline" size={18} color={colors.text.primary} />
             </Pressable>
           </View>
         </View>
@@ -249,32 +322,85 @@ export default function DiscoveryScreen() {
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={18} color={colors.text.tertiary} />
           <TextInput
-            placeholder="Search friends, clubs, boxers..."
+            placeholder={searchPlaceholder}
             placeholderTextColor={colors.text.tertiary}
             value={query}
             onChangeText={setQuery}
             onSubmitEditing={handleSearch}
             style={styles.searchInput}
+            returnKeyType="search"
           />
+          {query.length > 0 && (
+            <Pressable
+              onPress={() => setQuery('')}
+              accessibilityRole="button"
+              accessibilityLabel="Clear search"
+              hitSlop={8}
+            >
+              <Ionicons name="close-circle" size={18} color={colors.text.tertiary} />
+            </Pressable>
+          )}
         </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.quickActionsScroll}
+          contentContainerStyle={styles.quickActionsRow}
+        >
+          <Pressable style={styles.quickActionPill} onPress={() => handleTabChange('clubs')}>
+            <Ionicons name="location-outline" size={14} color={colors.text.secondary} />
+            <Text style={styles.quickActionText}>Nearby clubs</Text>
+          </Pressable>
+          <Pressable style={styles.quickActionPill} onPress={() => handleTabChange('boxers')}>
+            <Ionicons name="people-outline" size={14} color={colors.text.secondary} />
+            <Text style={styles.quickActionText}>Find boxers</Text>
+          </Pressable>
+          <Pressable style={styles.quickActionPill} onPress={() => handleTabChange('posts')}>
+            <Ionicons name="newspaper-outline" size={14} color={colors.text.secondary} />
+            <Text style={styles.quickActionText}>Latest posts</Text>
+          </Pressable>
+        </ScrollView>
 
         {/* Tabs */}
         <TabBar
           tabs={DISCOVERY_TABS}
           activeTab={activeTab}
           onTabChange={(t) => handleTabChange(t as 'foryou' | 'posts' | 'clubs' | 'boxers')}
+          appearance="segmented"
           style={styles.tabs}
         />
 
         {/* Filter toggle - only show for tabs with filters */}
         {activeTab !== 'foryou' && (
           <View style={styles.filterRow}>
-            <Text style={styles.filterHint}>Refine results with filters</Text>
-            <Pressable style={styles.filterBtn} onPress={() => setFiltersOpen((v) => !v)}>
-              <Ionicons name="options-outline" size={14} color={colors.text.secondary} />
-              <Text style={styles.filterBtnText}>Filters {filtersOpen ? '▲' : '▼'}</Text>
-            </Pressable>
+            <Text style={styles.filterHint}>
+              {activeFilters.length > 0 ? `${activeFilters.length} filters active` : 'Refine results with filters'}
+            </Text>
+            <View style={styles.filterActions}>
+              {activeFilters.length > 0 && (
+                <Pressable style={styles.clearFiltersBtn} onPress={clearTabFilters}>
+                  <Text style={styles.clearFiltersText}>Clear</Text>
+                </Pressable>
+              )}
+              <Pressable style={styles.filterBtn} onPress={() => setFiltersOpen((v) => !v)}>
+                <Ionicons name="options-outline" size={14} color={colors.text.secondary} />
+                <Text style={styles.filterBtnText}>Filters {filtersOpen ? '▲' : '▼'}</Text>
+              </Pressable>
+            </View>
           </View>
+        )}
+
+        {activeTab !== 'foryou' && activeFilters.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.activeFiltersScroll}>
+            <View style={styles.activeFiltersRow}>
+              {activeFilters.map((filter) => (
+                <View key={filter} style={styles.activeFilterChip}>
+                  <Text style={styles.activeFilterChipText}>{filter}</Text>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
         )}
 
         {/* Expanded filters */}
@@ -393,6 +519,27 @@ export default function DiscoveryScreen() {
             />
           ) : (
             <>
+              <View style={styles.forYouHeroWrap}>
+                <GlassCard variant="medium" radius={16} padding={14} style={styles.forYouHero}>
+                  <Text style={styles.forYouHeroTitle}>Your next move</Text>
+                  <Text style={styles.forYouHeroSub}>{forYouSummary}</Text>
+                  <View style={styles.forYouHeroActions}>
+                    <Pressable style={styles.forYouActionBtn} onPress={() => setActiveTab('clubs')}>
+                      <Ionicons name="business-outline" size={14} color={colors.text.primary} />
+                      <Text style={styles.forYouActionText}>Clubs</Text>
+                    </Pressable>
+                    <Pressable style={styles.forYouActionBtn} onPress={() => setActiveTab('boxers')}>
+                      <Ionicons name="people-outline" size={14} color={colors.text.primary} />
+                      <Text style={styles.forYouActionText}>Boxers</Text>
+                    </Pressable>
+                    <Pressable style={styles.forYouActionBtn} onPress={() => setActiveTab('posts')}>
+                      <Ionicons name="chatbubbles-outline" size={14} color={colors.text.primary} />
+                      <Text style={styles.forYouActionText}>Posts</Text>
+                    </Pressable>
+                  </View>
+                </GlassCard>
+              </View>
+
               {recommendations.nearbyClubs.length > 0 && (
                 <RecommendationSection
                   title="Clubs Near You"
@@ -411,7 +558,7 @@ export default function DiscoveryScreen() {
 
               {personalizedItems.length > 0 && (
                 <RecommendationSection
-                  title="Personalizovaný obsah"
+                  title="Personalized for You"
                   icon="sparkles-outline"
                   onSeeAll={() => (navigation as any).navigate('Technique')}
                 >
@@ -430,7 +577,10 @@ export default function DiscoveryScreen() {
                         {!!item.category_name && (
                           <Text style={styles.personalizedMeta} numberOfLines={1}>{item.category_name}</Text>
                         )}
-                        <Text style={styles.personalizedMeta}>Score {item.score}</Text>
+                        {!!item.reasons?.[0] && (
+                          <Text style={styles.personalizedReason} numberOfLines={2}>{item.reasons[0]}</Text>
+                        )}
+                        <Text style={styles.personalizedMeta}>Score {item.score.toFixed(1)}</Text>
                       </GlassCard>
                     </Pressable>
                   ))}
@@ -505,7 +655,13 @@ export default function DiscoveryScreen() {
           renderItem={({ item }) => <FeedPost post={item} />}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
+          showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
+          ListFooterComponent={
+            loadingMore
+              ? <View style={styles.listFooter}><ActivityIndicator color={colors.primary.main} /></View>
+              : null
+          }
           ListEmptyComponent={
             loading
               ? <View style={styles.skeletonList}>{[1,2,3].map(i => <SkeletonCard key={i} />)}</View>
@@ -520,28 +676,24 @@ export default function DiscoveryScreen() {
           data={clubs}
           keyExtractor={(item) => `club-${item.idclubs}`}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: 12, paddingBottom: 120 }}
           renderItem={({ item: club }) => (
-            <Pressable
+            <ClubCard
+              club={club}
               onPress={() => (navigation as any).navigate('ClubProfile', { clubId: Number(club.idclubs) })}
-              style={styles.cardPressable}
-            >
-              <GlassCard variant="medium" radius={14} padding={14} style={styles.clubCard}>
-                <View style={styles.clubCardRow}>
-                  <View style={styles.flex1}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>{club.title}</Text>
-                    <Text style={styles.cardSub} numberOfLines={1}>{club.location || 'Unknown location'}</Text>
-                    <Text style={styles.cardMeta}>{club.members_count ?? 0} members · {club.join_policy || 'open'}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={18} color={colors.text.tertiary} />
-                </View>
-              </GlassCard>
-            </Pressable>
+            />
           )}
           ListEmptyComponent={
             loading
               ? <View style={styles.skeletonList}>{[1,2,3].map(i => <SkeletonCard key={i} />)}</View>
-              : <EmptyState icon="business-outline" title="No clubs found" subtitle="Try different filters" style={styles.emptyState} />
+              : (
+                <EmptyState icon="business-outline" title="No clubs found" subtitle="Try different filters" style={styles.emptyState}>
+                  <View style={{ marginTop: 12 }}>
+                    <SparrButton label="Create a club" variant="primary" onPress={() => (navigation as any).navigate('CreateClubStepOne')} />
+                  </View>
+                </EmptyState>
+              )
           }
         />
       )}
@@ -551,6 +703,7 @@ export default function DiscoveryScreen() {
           data={boxers}
           keyExtractor={(item) => `boxer-${item.id_profiles}`}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
+          showsVerticalScrollIndicator={false}
           contentContainerStyle={{ padding: 12, paddingBottom: 120 }}
           renderItem={({ item }) => (
             <Pressable
@@ -598,6 +751,7 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { color: colors.text.primary, fontSize: 20, fontWeight: '800' },
+  headerSubtitle: { color: colors.text.tertiary, fontSize: 12, marginTop: 1 },
   headerRight: { flexDirection: 'row', gap: 8 },
   iconBtn: {
     width: 36, height: 36, borderRadius: 18,
@@ -611,15 +765,50 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border.light,
   },
   searchInput: { flex: 1, color: colors.text.primary, paddingVertical: 10, fontSize: 14 },
+  quickActionsScroll: { marginBottom: 10 },
+  quickActionsRow: { flexDirection: 'row', gap: 8, paddingRight: 8 },
+  quickActionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: colors.glass.border,
+    backgroundColor: colors.glass.surface,
+  },
+  quickActionText: { color: colors.text.secondary, fontSize: 11, fontWeight: '600' },
   tabs: { marginBottom: 8 },
   filterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   filterHint: { color: colors.text.tertiary, fontSize: 11 },
+  filterActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  clearFiltersBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    backgroundColor: colors.background.card,
+  },
+  clearFiltersText: { color: colors.text.secondary, fontSize: 11, fontWeight: '700' },
   filterBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
     backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
   },
   filterBtnText: { color: colors.text.secondary, fontSize: 11, fontWeight: '700' },
+  activeFiltersScroll: { marginBottom: 8 },
+  activeFiltersRow: { flexDirection: 'row', gap: 8 },
+  activeFilterChip: {
+    borderWidth: 1,
+    borderColor: colors.glass.redBorder,
+    backgroundColor: colors.glass.redSurface,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  activeFilterChipText: { color: colors.text.primary, fontSize: 11, fontWeight: '600' },
   filtersPanel: { gap: 8, marginBottom: 6 },
   filterLabel: { color: colors.text.secondary, fontSize: 12, fontWeight: '600', marginBottom: 6 },
   filterInput: {
@@ -635,7 +824,7 @@ const styles = StyleSheet.create({
   },
   chipActive: { backgroundColor: colors.primary.main, borderColor: colors.primary.main },
   chipText: { color: colors.text.secondary, fontSize: 12, fontWeight: '600' },
-  chipTextActive: { color: '#fff' },
+  chipTextActive: { color: colors.text.primary },
   applyBtn: {
     backgroundColor: colors.primary.main, borderRadius: 10, paddingVertical: 9,
     alignItems: 'center',
@@ -650,6 +839,11 @@ const styles = StyleSheet.create({
   cardTitle: { color: colors.text.primary, fontSize: 15, fontWeight: '700' },
   cardSub: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
   cardMeta: { color: colors.text.tertiary, fontSize: 11, marginTop: 3 },
+  clubMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
+  clubPolicyBadge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2 },
+  clubPolicyOpen: { backgroundColor: colors.success.main + '1f' },
+  clubPolicyApproval: { backgroundColor: colors.warning.main + '22' },
+  clubPolicyText: { color: colors.text.secondary, fontSize: 10, fontWeight: '700' },
   emptyState: { paddingVertical: 60 },
   skeletonList: { padding: 12, gap: 12 },
   locationHint: {
@@ -669,10 +863,27 @@ const styles = StyleSheet.create({
     color: colors.text.secondary,
     fontSize: 13,
   },
+  forYouHeroWrap: { marginHorizontal: 16, marginBottom: 16 },
+  forYouHero: {},
+  forYouHeroTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '800' },
+  forYouHeroSub: { color: colors.text.secondary, fontSize: 13, marginTop: 4, lineHeight: 18 },
+  forYouHeroActions: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  forYouActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    backgroundColor: colors.primary.main,
+  },
+  forYouActionText: { color: colors.text.primary, fontSize: 11, fontWeight: '700' },
   personalizedPressable: { marginRight: 10 },
   personalizedCard: { width: 182, minHeight: 126 },
   personalizedTopRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   personalizedType: { color: colors.primary.main, fontSize: 10, fontWeight: '700' },
   personalizedTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700', marginTop: 8 },
+  personalizedReason: { color: colors.text.secondary, fontSize: 11, marginTop: 5, lineHeight: 15 },
   personalizedMeta: { color: colors.text.tertiary, fontSize: 11, marginTop: 5 },
+  listFooter: { paddingVertical: 16 },
 });
