@@ -6,6 +6,7 @@ import {
   Linking,
   Pressable,
   RefreshControl,
+  Share,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -65,6 +66,7 @@ export default function ClubProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [joining, setJoining]       = useState(false);
   const [leaving, setLeaving]       = useState(false);
+  const [sharing, setSharing]       = useState(false);
   const [activeTab, setActiveTab]   = useState<Tab>('Posts');
 
   // Tab content state
@@ -82,6 +84,8 @@ export default function ClubProfileScreen() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   });
   const [resolvedTrainings, setResolvedTrainings] = useState<TimelineTraining[]>([]);
+  const [dayTrainingsLoading, setDayTrainingsLoading] = useState(false);
+  const [dayTrainingsError, setDayTrainingsError] = useState<string | null>(null);
 
   const todayDate = useMemo(() => {
     const now = new Date();
@@ -94,33 +98,38 @@ export default function ClubProfileScreen() {
   const activeTabIndex = Math.max(0, TABS.indexOf(activeTab));
   const indicatorLeft = TAB_INDICATOR_INSET + activeTabIndex * tabWidth;
 
+  const getErrorMessage = useCallback((error: any, fallback: string) => {
+    const message = error?.message;
+    return typeof message === 'string' && message.trim().length > 0 ? message : fallback;
+  }, []);
+
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const clubData = await getClub(clubId);
       setClub(clubData);
+    } catch (error: any) {
+      if (!silent) {
+        Alert.alert('Unable to load club', getErrorMessage(error, 'Please try again.'));
+      }
+      throw error;
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  }, [clubId]);
+  }, [clubId, getErrorMessage]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load().catch(() => {}); }, [load]);
 
   const handleTabPress = useCallback((tab: Tab) => {
     setActiveTab(tab);
   }, []);
 
-  useEffect(() => {
-    loadTabContent(activeTab);
-  }, [activeTab, clubId]);
-
-  const loadTabContent = async (tab: Tab) => {
-    if (tab === 'Posts' && posts.length === 0) {
+  const loadTabContent = useCallback(async (tab: Tab, force = false) => {
+    if (tab === 'Posts' && (force || posts.length === 0)) {
       setPostsLoading(true);
       try { const data = await getClubPosts(clubId); setPosts(data); } finally { setPostsLoading(false); }
     }
-    if (tab === 'Schedule' && plans.length === 0) {
+    if (tab === 'Schedule' && (force || plans.length === 0)) {
       setPlansLoading(true);
       try {
         const [plansData, calData] = await Promise.all([
@@ -131,14 +140,34 @@ export default function ClubProfileScreen() {
         if (calData?.calendar) {
           setCalendar(calData.calendar);
           setCalendarItems(calData.items ?? []);
+        } else if (force) {
+          setCalendar(null);
+          setCalendarItems([]);
         }
       } finally { setPlansLoading(false); }
     }
-    if (tab === 'Members' && members.length === 0) {
+    if (tab === 'Members' && (force || members.length === 0)) {
       setMembersLoading(true);
       try { const data = await getClubMembers(clubId); setMembers(data); } finally { setMembersLoading(false); }
     }
-  };
+  }, [clubId, members.length, plans.length, posts.length]);
+
+  useEffect(() => {
+    loadTabContent(activeTab).catch(() => {});
+  }, [activeTab, loadTabContent]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const tasks: Promise<any>[] = [load(true)];
+      if (activeTab !== 'About') tasks.push(loadTabContent(activeTab, true));
+      await Promise.all(tasks);
+    } catch (error: any) {
+      Alert.alert('Refresh failed', getErrorMessage(error, 'Please try again.'));
+    } finally {
+      setRefreshing(false);
+    }
+  }, [activeTab, getErrorMessage, load, loadTabContent]);
 
   const handleJoin = async () => {
     if (!club) return;
@@ -147,10 +176,15 @@ export default function ClubProfileScreen() {
       if ((club.join_policy || 'open') === 'open') {
         await joinClub(clubId);
         setClub((prev: any) => ({ ...prev, join_status: 'member' }));
+        Alert.alert('Success', `You are now a member of ${club.title ?? 'this club'}.`);
       } else {
         await requestJoinClub(clubId);
         setClub((prev: any) => ({ ...prev, join_status: 'requested' }));
+        Alert.alert('Request sent', 'Your join request is waiting for approval.');
       }
+      await Promise.all([load(true), loadTabContent('Members', true)]);
+    } catch (e: any) {
+      Alert.alert('Action failed', getErrorMessage(e, 'Unable to update your membership.'));
     } finally {
       setJoining(false);
     }
@@ -166,8 +200,10 @@ export default function ClubProfileScreen() {
             setLeaving(true);
             await leaveClub(clubId);
             setClub((prev: any) => ({ ...prev, join_status: 'none' }));
+            await Promise.all([load(true), loadTabContent('Members', true)]);
+            Alert.alert('Success', `You left ${club?.title ?? 'the club'}.`);
           } catch (e: any) {
-            Alert.alert('Error', e?.message ?? 'Unable to leave club');
+            Alert.alert('Action failed', getErrorMessage(e, 'Unable to leave this club.'));
           } finally {
             setLeaving(false);
           }
@@ -178,7 +214,31 @@ export default function ClubProfileScreen() {
 
   const handleCopyPlan = async (planId: number) => {
     setCopyingPlan(planId);
-    try { await copyClubTrainingPlan(clubId, planId); } finally { setCopyingPlan(null); }
+    try {
+      await copyClubTrainingPlan(clubId, planId);
+      Alert.alert('Success', 'Training plan added to your calendars.');
+    } catch (e: any) {
+      Alert.alert('Action failed', getErrorMessage(e, 'Unable to copy this training plan.'));
+    } finally {
+      setCopyingPlan(null);
+    }
+  };
+
+  const handleShareClub = async () => {
+    if (!club || sharing) return;
+    const title = typeof club.title === 'string' && club.title.trim().length > 0 ? club.title.trim() : 'this club';
+    const locationText = club.location ? ` in ${club.location}` : '';
+    try {
+      setSharing(true);
+      await Share.share({
+        message: `Check out ${title}${locationText} on Sparr.\nJoin me in the app to view plans, members, and updates.`,
+        title: `${title} on Sparr`,
+      });
+    } catch (e: any) {
+      Alert.alert('Share failed', getErrorMessage(e, 'Unable to share this club.'));
+    } finally {
+      setSharing(false);
+    }
   };
 
   const dayTrainings = useMemo(() => {
@@ -248,15 +308,19 @@ export default function ClubProfileScreen() {
 
   // Fetch full training details for matched calendar items
   useEffect(() => {
-    if (dayTrainings.length === 0 || dayTrainings.every((it: any) => !it.id_trainings)) {
+    const trainingsToResolve = dayTrainings.filter((it: any) => !!it.id_trainings);
+    if (trainingsToResolve.length === 0) {
+      setDayTrainingsLoading(false);
+      setDayTrainingsError(null);
       setResolvedTrainings([]);
       return;
     }
     let cancelled = false;
+    setDayTrainingsLoading(true);
+    setDayTrainingsError(null);
     (async () => {
       const results: TimelineTraining[] = [];
-      for (const item of dayTrainings) {
-        if (!item.id_trainings) continue;
+      for (const item of trainingsToResolve) {
         try {
           const resp = await getTraining(Number(item.id_trainings));
           const training = resp.training;
@@ -288,9 +352,17 @@ export default function ClubProfileScreen() {
           });
         } catch { /* skip failed fetches */ }
       }
-      if (!cancelled) setResolvedTrainings(results);
+      if (!cancelled) {
+        setResolvedTrainings(results);
+        setDayTrainingsLoading(false);
+        setDayTrainingsError(
+          results.length === 0 ? 'Could not load training details for this day.' : null
+        );
+      }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [dayTrainings]);
 
   if (loading) {
@@ -301,8 +373,7 @@ export default function ClubProfileScreen() {
     );
   }
 
-  const isOwner = String(club?.viewer_role ?? '').toLowerCase() === 'owner';
-
+  const canManageClub = !!club?.can_manage;
   const isMember = club?.join_status === 'member';
 
   return (
@@ -313,7 +384,7 @@ export default function ClubProfileScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => { setRefreshing(true); load(true); }}
+            onRefresh={handleRefresh}
             tintColor={colors.primary.main}
           />
         }
@@ -335,7 +406,13 @@ export default function ClubProfileScreen() {
 
             {/* Transparent header bar */}
             <View style={[styles.headerBar, { paddingTop: (insets.top || 0) + 4 }]}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.iconBtn}
+                accessibilityRole="button"
+                accessibilityLabel="Back"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
                 <Ionicons name="chevron-back" size={20} color="#fff" />
               </TouchableOpacity>
               <View style={styles.headerRight}>
@@ -347,7 +424,12 @@ export default function ClubProfileScreen() {
                     <Ionicons name="settings-outline" size={18} color={colors.primary.main} />
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity style={styles.iconBtn}>
+                <TouchableOpacity
+                  style={[styles.iconBtn, sharing && { opacity: 0.65 }]}
+                  onPress={handleShareClub}
+                  accessibilityLabel="Share club"
+                  disabled={sharing}
+                >
                   <Ionicons name="share-social-outline" size={18} color="#fff" />
                 </TouchableOpacity>
               </View>
@@ -406,7 +488,14 @@ export default function ClubProfileScreen() {
 
         {/* ── Join / Leave CTA ───────────────────────────────────── */}
         <View style={styles.ctaRow}>
-          {isOwner ? null : (
+          {canManageClub ? (
+            <GlassCard variant="medium" radius={12} padding={12}>
+              <View style={styles.manageHintRow}>
+                <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary.main} />
+                <Text style={styles.manageHintText}>You manage this club.</Text>
+              </View>
+            </GlassCard>
+          ) : (
             <>
               {isMember ? (
                 <SparrButton
@@ -483,14 +572,23 @@ export default function ClubProfileScreen() {
               calendar={calendar}
               calendarEvents={buildCalendarEvents}
               resolvedTrainings={resolvedTrainings}
-              isRestDay={dayTrainings.length === 0 || dayTrainings.every((it: any) => !it.id_trainings)}
+              hasDayEntries={dayTrainings.length > 0}
+              hasTrainingEntries={dayTrainings.some((it: any) => !!it.id_trainings)}
+              dayTrainingsLoading={dayTrainingsLoading}
+              dayTrainingsError={dayTrainingsError}
               selectedDate={selectedDate}
               todayDate={todayDate}
               onDateChange={setSelectedDate}
             />
           )}
           {activeTab === 'Members' && (
-            <MembersTab members={members} loading={membersLoading} navigation={navigation} />
+            <MembersTab
+              members={members}
+              loading={membersLoading}
+              navigation={navigation}
+              canManage={!!club?.can_manage}
+              clubId={clubId}
+            />
           )}
           {activeTab === 'About' && (
             <AboutTab club={club} />
@@ -572,9 +670,11 @@ function calculateDuration(components: any[]): string {
   return `${totalSeconds}s`;
 }
 
-function ScheduleTab({ plans, loading, isMember, copyingPlan, onCopy, calendar, calendarEvents, resolvedTrainings, isRestDay, selectedDate, todayDate, onDateChange }: {
+function ScheduleTab({ plans, loading, isMember, copyingPlan, onCopy, calendar, calendarEvents, resolvedTrainings, hasDayEntries, hasTrainingEntries, dayTrainingsLoading, dayTrainingsError, selectedDate, todayDate, onDateChange }: {
   plans: any[]; loading: boolean; isMember: boolean; copyingPlan: number | null; onCopy: (id: number) => void;
-  calendar: any; calendarEvents: Record<string, { color: string; count: number }>; resolvedTrainings: TimelineTraining[]; isRestDay: boolean; selectedDate: string; todayDate: string; onDateChange: (d: string) => void;
+  calendar: any; calendarEvents: Record<string, { color: string; count: number }>; resolvedTrainings: TimelineTraining[];
+  hasDayEntries: boolean; hasTrainingEntries: boolean; dayTrainingsLoading: boolean; dayTrainingsError: string | null;
+  selectedDate: string; todayDate: string; onDateChange: (d: string) => void;
 }) {
   if (loading) return <LoadingSpinner />;
 
@@ -588,7 +688,7 @@ function ScheduleTab({ plans, loading, isMember, copyingPlan, onCopy, calendar, 
   return (
     <>
       {/* Calendar preview */}
-      {calendar && (
+      {calendar ? (
         <>
           {/* Calendar header — matches CalendarScreen */}
           <View style={schedStyles.calendarHeader}>
@@ -613,17 +713,31 @@ function ScheduleTab({ plans, loading, isMember, copyingPlan, onCopy, calendar, 
 
           {/* Training card / timeline or rest state */}
           <View style={{ marginTop: 10 }}>
-            {isRestDay ? (
+            {!hasDayEntries ? (
+              <GlassCard variant="medium" radius={14} padding={16}>
+                <View style={{ alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="calendar-clear-outline" size={24} color={colors.text.tertiary} />
+                  <Text style={{ color: colors.text.tertiary, fontSize: 13 }}>No sessions scheduled for this date</Text>
+                </View>
+              </GlassCard>
+            ) : !hasTrainingEntries ? (
               <GlassCard variant="medium" radius={14} padding={16}>
                 <View style={{ alignItems: 'center', gap: 6 }}>
                   <Ionicons name="moon-outline" size={24} color={colors.text.tertiary} />
                   <Text style={{ color: colors.text.tertiary, fontSize: 13 }}>Rest day — no training scheduled</Text>
                 </View>
               </GlassCard>
-            ) : resolvedTrainings.length === 0 ? (
+            ) : dayTrainingsLoading ? (
               <View style={{ paddingVertical: 20, alignItems: 'center' }}>
                 <ActivityIndicator color={colors.primary.main} size="small" />
               </View>
+            ) : dayTrainingsError ? (
+              <GlassCard variant="medium" radius={14} padding={16}>
+                <View style={{ alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="alert-circle-outline" size={24} color={colors.warning.main} />
+                  <Text style={{ color: colors.text.tertiary, fontSize: 13, textAlign: 'center' }}>{dayTrainingsError}</Text>
+                </View>
+              </GlassCard>
             ) : resolvedTrainings.length === 1 ? (
               <TrainingCard
                 title={resolvedTrainings[0].title}
@@ -640,6 +754,12 @@ function ScheduleTab({ plans, loading, isMember, copyingPlan, onCopy, calendar, 
             )}
           </View>
         </>
+      ) : (
+        <EmptyState
+          icon="calendar-clear-outline"
+          title="No active calendar selected"
+          subtitle="This club has plans, but no schedule is selected yet."
+        />
       )}
 
       {/* Training plans list */}
@@ -677,11 +797,32 @@ function ScheduleTab({ plans, loading, isMember, copyingPlan, onCopy, calendar, 
   );
 }
 
-function MembersTab({ members, loading, navigation }: { members: any[]; loading: boolean; navigation: any }) {
+function MembersTab({
+  members,
+  loading,
+  navigation,
+  canManage,
+  clubId,
+}: {
+  members: any[];
+  loading: boolean;
+  navigation: any;
+  canManage: boolean;
+  clubId: number;
+}) {
   if (loading) return <LoadingSpinner />;
-  if (members.length === 0) return <EmptyState icon="people-outline" title="No members yet" />;
+  if (members.length === 0) return <EmptyState icon="people-outline" title="No members yet" subtitle="Be the first to join this club." />;
   return (
     <>
+      {canManage && (
+        <SparrButton
+          label="Manage Members"
+          variant="outline"
+          fullWidth
+          style={{ marginBottom: 10 }}
+          onPress={() => navigation.navigate('ClubMembers', { clubId, canManage: true })}
+        />
+      )}
       {members.map((m) => {
         const role = (m.role_title ?? 'member').toLowerCase();
         const roleColor = ROLE_COLORS[role] ?? colors.text.tertiary;
@@ -868,6 +1009,8 @@ const styles = StyleSheet.create({
 
   // CTA
   ctaRow:             { paddingHorizontal: 16, marginTop: 12 },
+  manageHintRow:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  manageHintText:     { color: colors.text.secondary, fontSize: 13, fontWeight: '600' },
 
   // Tab bar
   tabBar: {

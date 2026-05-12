@@ -57,7 +57,13 @@ export default function CreateClubPlanScreen() {
     >
       {/* Header */}
       <View style={[styles.header, { paddingTop: (insets.top || 0) + 4 }]}>
-        <Pressable style={styles.iconBtn} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.iconBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="close" size={18} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>New Training Plan</Text>

@@ -37,7 +37,13 @@ export default function CreateClubProfileStepOneScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
         {/* Header */}
         <View style={[styles.header, { paddingTop: (insets.top || 0) + 4 }]}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={styles.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="chevron-back" size={20} color="#fff" />
           </Pressable>
           <Text style={styles.headerTitle}>Create Club · Step 1/2</Text>

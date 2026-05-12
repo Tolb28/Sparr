@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -7,7 +7,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/text';
@@ -47,7 +47,11 @@ export default function ClubMembersScreen() {
     }
   }, [clubId]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const filtered = members.filter((m) => {
     if (!query.trim()) return true;
@@ -61,7 +65,6 @@ export default function ClubMembersScreen() {
   const renderItem = ({ item: m }: { item: any }) => {
     const role = (m.role_title ?? 'member').toLowerCase();
     const roleColor = ROLE_COLORS[role] ?? colors.text.tertiary;
-    const isOwner = role === 'owner';
 
     return (
       <GlassCard variant="default" radius={12} padding={12} style={{ marginBottom: 8 }}>
@@ -100,13 +103,21 @@ export default function ClubMembersScreen() {
     <View style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: (insets.top || 0) + 4 }]}>
-        <Pressable style={styles.iconBtn} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.iconBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="chevron-back" size={20} color="#fff" />
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Members</Text>
           {!loading && (
-            <Text style={styles.headerSub}>{members.length} total</Text>
+            <Text style={styles.headerSub}>
+              {canManage ? `${members.length} total · tap to manage` : `${members.length} total`}
+            </Text>
           )}
         </View>
         <View style={{ width: 38 }} />
@@ -125,7 +136,7 @@ export default function ClubMembersScreen() {
             returnKeyType="search"
           />
           {!!query && (
-            <Pressable onPress={() => setQuery('')} style={{ paddingRight: 10 }}>
+            <Pressable onPress={() => setQuery('')} style={{ paddingRight: 10 }} accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
               <Ionicons name="close-circle" size={16} color={colors.text.tertiary} />
             </Pressable>
           )}
