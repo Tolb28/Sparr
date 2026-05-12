@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -29,10 +29,8 @@ import {
   getClubSelectedCalendar,
   getClubTrainingPlans,
   listJoinRequests,
-  removeMember,
   reviewJoinRequest,
   updateClub,
-  updateMemberRole,
   uploadClubAvatar,
   uploadClubCover,
 } from '../api/clubs';
@@ -49,8 +47,6 @@ const ROLE_COLORS: Record<string, string> = {
   coach:  '#06b6d4',
   member: colors.text.tertiary,
 };
-
-const ROLE_OPTIONS = ['owner', 'admin', 'coach', 'member'] as const;
 
 export default function ManageClubScreen() {
   const insets = useSafeAreaInsets();
@@ -110,7 +106,11 @@ export default function ManageClubScreen() {
     }
   }, [clubId]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   const loadSelectedCalendar = useCallback(async () => {
     setCalendarLoading(true);
@@ -345,54 +345,6 @@ export default function ManageClubScreen() {
     }
   };
 
-  const handleRoleChange = (m: any) => {
-    Alert.alert(
-      'Change Role',
-      `Set role for ${m.display_name || m.username}:`,
-      [
-        ...ROLE_OPTIONS.map((role) => ({
-          text: role.charAt(0).toUpperCase() + role.slice(1),
-          onPress: async () => {
-            try {
-              setSaving(true);
-              await updateMemberRole(clubId, m.id_profiles, role);
-              await load();
-            } catch (e: any) {
-              Alert.alert('Error', e?.message ?? 'Unable to change role');
-            } finally {
-              setSaving(false);
-            }
-          },
-        })),
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
-  };
-
-  const handleKick = (m: any) => {
-    Alert.alert(
-      'Remove Member',
-      `Remove ${m.display_name || m.username} from this club?`,
-      [
-        {
-          text: 'Remove', style: 'destructive',
-          onPress: async () => {
-            try {
-              setSaving(true);
-              await removeMember(clubId, m.id_profiles);
-              await load();
-            } catch (e: any) {
-              Alert.alert('Error', e?.message ?? 'Unable to remove member');
-            } finally {
-              setSaving(false);
-            }
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]
-    );
-  };
-
   if (loading) {
     return (
       <View style={[styles.root, styles.center]}>
@@ -407,7 +359,13 @@ export default function ManageClubScreen() {
     <View style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: (insets.top || 0) + 4 }]}>
-        <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn}>
+        <Pressable
+  onPress={() => navigation.goBack()}
+  style={styles.iconBtn}
+  accessibilityRole="button"
+  accessibilityLabel="Back"
+  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+>
           <Ionicons name="chevron-back" size={20} color="#fff" />
         </Pressable>
         <View style={styles.headerCenter}>
@@ -493,6 +451,14 @@ export default function ManageClubScreen() {
         {activeTab === 'Members' && (
           <>
             <Text style={styles.sectionTitle}>{members.length} Members</Text>
+            <Text style={styles.sectionHint}>Open the members manager to change roles and remove members.</Text>
+            <SparrButton
+              label="Open Members Manager"
+              variant="outline"
+              fullWidth
+              style={{ marginBottom: 8 }}
+              onPress={() => navigation.navigate('ClubMembers', { clubId, canManage: true })}
+            />
             {members.length === 0 ? (
               <EmptyState icon="people-outline" title="No members yet" />
             ) : (
@@ -500,8 +466,11 @@ export default function ManageClubScreen() {
                 const role = (m.role_title ?? 'member').toLowerCase();
                 const roleColor = ROLE_COLORS[role] ?? colors.text.tertiary;
                 return (
-                  <GlassCard key={String(m.id_profiles)} variant="default" radius={12} padding={12}>
-                    <View style={styles.memberManageRow}>
+                  <GlassCard key={String(m.id_profiles)} variant="default" radius={12} padding={0}>
+                    <TouchableOpacity
+                      style={[styles.memberManageRow, { padding: 12 }]}
+                      onPress={() => navigation.navigate('ClubMembers', { clubId, canManage: true })}
+                    >
                       <Avatar size="sm">
                         <AvatarFallbackText>{m.display_name?.[0] ?? '?'}</AvatarFallbackText>
                         <AvatarImage source={m.avatar_url ? { uri: m.avatar_url } : undefined} />
@@ -512,15 +481,10 @@ export default function ManageClubScreen() {
                           <Text style={[styles.roleBadgeText, { color: roleColor }]}>{m.role_title}</Text>
                         </View>
                       </View>
-                      <TouchableOpacity style={styles.memberActionBtn} onPress={() => handleRoleChange(m)}>
-                        <Ionicons name="shield-outline" size={16} color={colors.primary.main} />
-                      </TouchableOpacity>
-                      {role !== 'owner' && (
-                        <TouchableOpacity style={[styles.memberActionBtn, styles.kickBtn]} onPress={() => handleKick(m)}>
-                          <Ionicons name="person-remove-outline" size={16} color="#ef4444" />
-                        </TouchableOpacity>
-                      )}
-                    </View>
+                      <View style={styles.memberActionBtn}>
+                        <Ionicons name="chevron-forward" size={16} color={colors.primary.main} />
+                      </View>
+                    </TouchableOpacity>
                   </GlassCard>
                 );
               })
@@ -828,6 +792,7 @@ const styles = StyleSheet.create({
 
   // Section
   sectionTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  sectionHint: { color: colors.text.tertiary, fontSize: 12, marginBottom: 8 },
 
   // Request
   requestRow:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
