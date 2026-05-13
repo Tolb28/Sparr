@@ -121,6 +121,7 @@ export default function CalendarScreen() {
   const [challengeActionLoading, setChallengeActionLoading] = useState(false);
   const { refresh: refreshProgress, badges, loading: progressLoading, error: progressError } = useProgress();
   const progressRefreshTimer = React.useRef<any>(null);
+  const pendingProgressRefresh = React.useRef(false);
 
   const upcomingBadges = useMemo(() => {
     if (!badges || badges.length === 0) return [];
@@ -334,11 +335,8 @@ export default function CalendarScreen() {
           showSuccessNotification('Challenge progress updated.');
         }
 
-        // Refresh aggregated progress in background but debounce to avoid full-screen refresh on every click
-        if (progressRefreshTimer.current) clearTimeout(progressRefreshTimer.current);
-        progressRefreshTimer.current = setTimeout(() => {
-          refreshProgress(true).catch(() => {});
-        }, 1500);
+        // Defer aggregated progress refresh until modal closes to avoid re-render behind the modal
+        pendingProgressRefresh.current = true;
       } catch (error) {
         // rollback
         setChallenges(priorChallenges);
@@ -891,6 +889,10 @@ export default function CalendarScreen() {
         onClose={() => {
           setChallengeModalVisible(false);
           setActiveChallenge(null);
+          if (pendingProgressRefresh.current) {
+            pendingProgressRefresh.current = false;
+            refreshProgress(true).catch(() => {});
+          }
         }}
         onStart={handleStartChallenge}
         onLogProgress={handleLogChallengeProgress}
