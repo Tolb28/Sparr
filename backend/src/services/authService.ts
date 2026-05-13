@@ -254,7 +254,7 @@ export async function loginLocalUser(
       eventType: "login_conflict",
       status: "info",
       provider: "local",
-      userId: user.id,
+      userId: appUserWithEmail.id,
       message: "Email ownership conflict on login",
       metadata: { conflictUserId: appUserWithEmail.id },
     });
@@ -330,7 +330,7 @@ export async function loginWithGoogleIdToken(
       eventType: "google_login_conflict",
       status: "info",
       provider: "google",
-      userId: user.id,
+      userId: existingByEmail.id,
       requestId: context.requestId ?? null,
       ipAddress: context.ipAddress ?? null,
       userAgent: context.userAgent ?? null,
