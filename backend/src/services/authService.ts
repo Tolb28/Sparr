@@ -267,9 +267,26 @@ export async function loginLocalUser(
     try {
       await client.query("BEGIN");
 
-      // Rotate the old account email and inactivate it
-      const recoveryEmail = recoveryEmailFor(appUserWithEmail.email, appUserWithEmail.id);
-        // Ensure an app users row exists for the current authenticated user id
+      // Lock both user rows to avoid race conditions
+      await client.query(
+        "SELECT id, email FROM users WHERE id = $1 OR id = $2 FOR UPDATE",
+        [conflictUserId, currentUserId]
+      );
+
+      // Rotate the old account email and inactivate it first to free the unique email
+      const recoveryEmail = recoveryEmailFor(appUserWithEmail.email, conflictUserId);
+      await client.query(
+        `UPDATE users
+         SET email = $1,
+             account_status = 'inaccessible',
+             inaccessible_reason = $2,
+             inaccessible_at = NOW(),
+             updated_at = NOW()
+         WHERE id = $3`,
+        [recoveryEmail, 'local_login_transfer', conflictUserId]
+      );
+
+      // Ensure an app users row exists for the current authenticated user id (now safe)
       await client.query(
         `INSERT INTO users (id, email, password_hash, auth_provider, google_sub, account_status, created_at, updated_at)
          VALUES ($1, $2, NULL, 'local', NULL, 'active', NOW(), NOW())
@@ -285,18 +302,6 @@ export async function loginLocalUser(
       await client.query(
         `UPDATE profiles SET user_id = $1 WHERE user_id = $2`,
         [currentUserId, conflictUserId]
-      );
-
-      // Rotate the old account email and inactivate it
-      await client.query(
-        `UPDATE users
-         SET email = $1,
-             account_status = 'inaccessible',
-             inaccessible_reason = $2,
-             inaccessible_at = NOW(),
-             updated_at = NOW()
-         WHERE id = $3`,
-        [recoveryEmail, 'local_login_transfer', conflictUserId]
       );
 
       await client.query("COMMIT");
