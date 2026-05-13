@@ -247,18 +247,75 @@ export async function loginLocalUser(
   // Ensure we don't attempt to insert a new users row with an email that already exists
   // under a different app user ID. Handle the same conflict policy as registration.
   const appUserWithEmail = await getAppUserByEmail(user.email);
+
   if (appUserWithEmail && appUserWithEmail.id !== user.id && appUserWithEmail.account_status !== "inaccessible") {
     // There is an existing active app account for this email belonging to another user id.
-    // Treat as a conflict so callers can surface an ownership decision (similar to Google flow).
+    // Resolve automatically by transferring ownership to the currently-authenticated Supabase user.
+    const currentUserId = user.id;
+    const conflictUserId = appUserWithEmail.id;
+
     await logAuthEventSafe({
       eventType: "login_conflict",
       status: "info",
       provider: "local",
-      userId: appUserWithEmail.id,
-      message: "Email ownership conflict on login",
-      metadata: { conflictUserId: appUserWithEmail.id },
+      userId: conflictUserId,
+      message: "Email ownership conflict detected; attempting automatic transfer",
+      metadata: { conflictUserId },
     });
-    throw new AuthServiceError(409, "Email already exists", "EMAIL_CONFLICT");
+
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Rotate the old account email and inactivate it
+      const recoveryEmail = recoveryEmailFor(appUserWithEmail.email, appUserWithEmail.id);
+      await client.query(
+        `UPDATE users
+         SET email = $1,
+             account_status = 'inaccessible',
+             inaccessible_reason = $2,
+             inaccessible_at = NOW(),
+             updated_at = NOW()
+         WHERE id = $3`,
+        [recoveryEmail, 'local_login_transfer', conflictUserId]
+      );
+
+      // Transfer any profiles from the old user to the new/current user
+      await client.query(
+        `UPDATE profiles SET user_id = $1 WHERE user_id = $2`,
+        [currentUserId, conflictUserId]
+      );
+
+      // Ensure an app users row exists for the current authenticated user id
+      await client.query(
+        `INSERT INTO users (id, email, password_hash, auth_provider, google_sub, account_status, created_at, updated_at)
+         VALUES ($1, $2, NULL, 'local', NULL, 'active', NOW(), NOW())
+         ON CONFLICT (id) DO UPDATE
+           SET email = EXCLUDED.email,
+               auth_provider = EXCLUDED.auth_provider,
+               account_status = 'active',
+               updated_at = NOW()`,
+        [currentUserId, normalizeEmail(user.email)]
+      );
+
+      await client.query("COMMIT");
+
+      await logAuthEventSafe({
+        eventType: "login_conflict_resolved",
+        status: "success",
+        provider: "local",
+        userId: currentUserId,
+        message: "Transferred ownership and activated current user",
+        metadata: { previousOwner: conflictUserId },
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      // Log failure but allow upstream to surface a generic login error
+      console.error('Error resolving login conflict automatically', error instanceof Error ? error.message : String(error));
+      throw new AuthServiceError(500, "Failed to resolve account conflict", "CONFLICT_RESOLUTION_FAILED");
+    } finally {
+      client.release();
+    }
   }
 
   if (appUserWithEmail && appUserWithEmail.id !== user.id && appUserWithEmail.account_status === "inaccessible") {
