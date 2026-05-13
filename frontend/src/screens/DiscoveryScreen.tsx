@@ -699,6 +699,7 @@ export default function DiscoveryScreen() {
           renderItem={({ item: club }) => (
             <ClubCard
               club={club}
+              fullWidth
               onPress={() => (navigation as any).navigate('ClubProfile', { clubId: Number(club.idclubs) })}
             />
           )}
