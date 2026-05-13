@@ -221,8 +221,10 @@ const styles = StyleSheet.create({
     minHeight: 160,
   },
   cardFull: {
-    width: '100%',
+    width: '90%',
+    alignSelf: 'center',
     minHeight: 160,
+    marginVertical: 10,
   },
   cardAvatarContainer: {
     alignItems: 'center',
