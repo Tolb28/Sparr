@@ -43,12 +43,13 @@ export function RecommendationSection({ title, icon, children, onSeeAll }: Recom
 interface ClubCardProps {
   club: NearbyClub;
   onPress: () => void;
+  fullWidth?: boolean;
 }
 
-export function ClubCard({ club, onPress }: ClubCardProps) {
+export function ClubCard({ club, onPress, fullWidth }: ClubCardProps) {
   return (
     <Pressable onPress={onPress}>
-      <GlassCard variant="medium" radius={14} padding={14} style={styles.card}>
+      <GlassCard variant="medium" radius={14} padding={14} style={fullWidth ? styles.cardFull : styles.card}>
         <View style={styles.cardAvatarContainer}>
           <Avatar size="lg">
             <AvatarFallbackText>{club.title?.[0] || 'C'}</AvatarFallbackText>
@@ -217,6 +218,10 @@ const styles = StyleSheet.create({
   },
   card: {
     width: CARD_WIDTH,
+    minHeight: 160,
+  },
+  cardFull: {
+    width: '100%',
     minHeight: 160,
   },
   cardAvatarContainer: {
