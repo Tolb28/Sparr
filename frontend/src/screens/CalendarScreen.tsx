@@ -266,87 +266,29 @@ export default function CalendarScreen() {
 
   const handleLogChallengeProgress = useCallback(
     async (challengeId: number, requirementId: number, increment: number) => {
-      // Optimistic UI: update local state immediately, send API in background, rollback on failure
+      // Let the modal manage optimistic UI; parent only calls API and defers heavy refresh.
       setChallengeActionLoading(true);
-
-      const priorChallenges = challenges;
       try {
-        // Build optimistic updated challenges array
-        const updated = challenges.map((ch) => {
-          if (ch.id_challenges !== challengeId) return ch;
-          // clone
-          const newCh: ChallengeSummary = {
-            ...ch,
-            requirements: ch.requirements.map((r) => ({ ...r })),
-          };
-
-          // Ensure challenge is in-progress locally
-          if (!newCh.profile_challenge_id) newCh.profile_challenge_id = -1 as any;
-          newCh.status = newCh.profile_challenge_id ? 'in_progress' : newCh.status;
-
-          // Apply increment to the requirement
-          let updatedAny = false;
-          for (const req of newCh.requirements) {
-            if (req.id_challenge_requirements === requirementId) {
-              req.current_value = (Number(req.current_value) || 0) + increment;
-              if (req.current_value >= req.target_value) {
-                req.current_value = req.target_value;
-                req.is_complete = true;
-              }
-              updatedAny = true;
-              break;
-            }
-          }
-
-          if (updatedAny) {
-            // Recompute progress
-            const targetTotal = newCh.requirements.reduce((s, r) => s + (r.target_value || 0), 0);
-            const currentTotal = newCh.requirements.reduce((s, r) => s + Math.min(r.current_value || 0, r.target_value || 0), 0);
-            newCh.progress = targetTotal > 0 ? currentTotal / targetTotal : 0;
-            // If all requirements complete mark completed
-            if (newCh.requirements.length > 0 && newCh.requirements.every((r) => r.is_complete)) {
-              newCh.status = 'completed';
-              newCh.progress = 1;
-            }
-          }
-          return newCh;
-        });
-
-        setChallenges(updated);
-        setActiveChallenge((curr) => (curr && curr.id_challenges === challengeId ? updated.find((c) => c.id_challenges === challengeId) || null : curr));
-
-        // Fire API call but don't reload full list unless necessary
         const result = await logChallengeProgress(challengeId, { requirement_id: requirementId, increment });
-
         if (result?.newly_awarded_badge) {
           showBadgeNotification({
             title: result.newly_awarded_badge.title,
             icon_name: result.newly_awarded_badge.icon_name || 'ribbon-outline',
             color: result.newly_awarded_badge.color || colors.primary.main,
           });
-          // attach badge locally
-          setChallenges((cur) =>
-            cur.map((ch) => {
-              if (ch.id_challenges !== challengeId) return ch;
-              return { ...ch, badge: { ...(ch.badge || {}), id_badges: result.newly_awarded_badge.id_badges, title: result.newly_awarded_badge.title, description: result.newly_awarded_badge.description || '', icon_name: result.newly_awarded_badge.icon_name || 'ribbon-outline', color: result.newly_awarded_badge.color || colors.primary.main, earned: true } } as ChallengeSummary;
-            })
-          );
         } else {
           showSuccessNotification('Challenge progress updated.');
         }
-
-        // Defer aggregated progress refresh until modal closes to avoid re-render behind the modal
+        // Defer aggregated progress refresh until modal closes
         pendingProgressRefresh.current = true;
       } catch (error) {
-        // rollback
-        setChallenges(priorChallenges);
         const message = error instanceof Error ? error.message : 'Failed to update challenge progress.';
         showErrorNotification(message);
       } finally {
         setChallengeActionLoading(false);
       }
     },
-    [challenges, refreshProgress]
+    [refreshProgress]
   );
 
   const handleCompleteChallenge = useCallback(

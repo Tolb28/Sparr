@@ -36,12 +36,39 @@ export default function ChallengeDetailModal({
 }: ChallengeDetailModalProps) {
   const insets = useSafeAreaInsets();
 
-  if (!challenge) return null;
+  const [localChallenge, setLocalChallenge] = React.useState<ChallengeSummary | null>(challenge);
+  React.useEffect(() => {
+    if (visible) setLocalChallenge(challenge);
+  }, [challenge, visible]);
+
+  if (!localChallenge) return null;
 
   const allComplete =
-    challenge.requirements.length > 0 && challenge.requirements.every((requirement) => requirement.is_complete);
-  const challengeColor = challenge.badge?.color || colors.primary.main;
-  const progressPercent = Math.round(Math.max(0, Math.min(1, challenge.progress || 0)) * 100);
+    localChallenge.requirements.length > 0 && localChallenge.requirements.every((requirement) => requirement.is_complete);
+  const challengeColor = localChallenge.badge?.color || colors.primary.main;
+  const progressPercent = Math.round(Math.max(0, Math.min(1, localChallenge.progress || 0)) * 100);
+
+  const handleLocalIncrement = (requirement: ChallengeRequirement, increment: number) => {
+    setLocalChallenge((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, requirements: prev.requirements.map((r) => ({ ...r })) } as ChallengeSummary;
+      for (const r of updated.requirements) {
+        if (r.id_challenge_requirements === requirement.id_challenge_requirements) {
+          r.current_value = Math.min(r.target_value, (Number(r.current_value) || 0) + increment);
+          r.is_complete = r.current_value >= r.target_value;
+          break;
+        }
+      }
+      const targetTotal = updated.requirements.reduce((s, r) => s + (r.target_value || 0), 0);
+      const currentTotal = updated.requirements.reduce((s, r) => s + Math.min(Number(r.current_value || 0), r.target_value || 0), 0);
+      updated.progress = targetTotal > 0 ? currentTotal / targetTotal : 0;
+      if (updated.requirements.length > 0 && updated.requirements.every((r) => r.is_complete)) {
+        updated.status = 'completed';
+        updated.progress = 1;
+      }
+      return updated;
+    });
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -51,12 +78,12 @@ export default function ChallengeDetailModal({
         <View style={[styles.sheet, { paddingBottom: (insets.bottom || 0) + 20 }]}>
           <View style={styles.header}>
             <View style={[styles.iconWrap, { backgroundColor: colorUtils.hexToRgba(challengeColor, 0.2) }]}>
-              <Ionicons name={(challenge.badge?.icon_name as any) || 'shield-outline'} size={18} color={challengeColor} />
+              <Ionicons name={(localChallenge.badge?.icon_name as any) || 'shield-outline'} size={18} color={challengeColor} />
             </View>
             <View style={styles.headerText}>
-              <Text style={styles.title}>{challenge.title}</Text>
+              <Text style={styles.title}>{localChallenge.title}</Text>
               <Text style={styles.subtitle}>
-                {String(challenge.difficulty || 'unranked').toUpperCase()} · {progressPercent}% complete
+                {String(localChallenge.difficulty || 'unranked').toUpperCase()} · {progressPercent}% complete
               </Text>
             </View>
             <Pressable onPress={onClose} style={styles.closeButton}>
@@ -64,25 +91,25 @@ export default function ChallengeDetailModal({
             </Pressable>
           </View>
 
-          <Text style={styles.description}>{challenge.description}</Text>
+          <Text style={styles.description}>{localChallenge.description}</Text>
 
           <GlassCard variant="medium" radius={12} padding={12} style={styles.badgeCard}>
             <Text style={styles.badgeLabel}>Challenge Badge</Text>
             <View style={styles.badgeRow}>
               <Ionicons
-                name={(challenge.badge?.icon_name as any) || 'ribbon-outline'}
+                name={(localChallenge.badge?.icon_name as any) || 'ribbon-outline'}
                 size={18}
-                color={challenge.badge?.earned ? challengeColor : colors.text.tertiary}
+                color={localChallenge.badge?.earned ? challengeColor : colors.text.tertiary}
               />
               <Text style={styles.badgeText}>
-                {challenge.badge?.title || 'Badge reward'}
-                {challenge.badge?.earned ? ' · unlocked' : ''}
+                {localChallenge.badge?.title || 'Badge reward'}
+                {localChallenge.badge?.earned ? ' · unlocked' : ''}
               </Text>
             </View>
           </GlassCard>
 
           <ScrollView style={styles.requirementsScroll} contentContainerStyle={styles.requirementsContent}>
-            {challenge.requirements.map((requirement) => {
+            {localChallenge.requirements.map((requirement) => {
               const progressWidth = `${Math.min(
                 100,
                 Math.round((Math.max(0, requirement.current_value) / Math.max(1, requirement.target_value)) * 100)
@@ -118,12 +145,15 @@ export default function ChallengeDetailModal({
                       {requirement.is_complete ? 'Completed' : 'In progress'}
                     </Text>
                     {requirement.source === 'manual' &&
-                    challenge.status !== 'completed' &&
-                    challenge.status !== 'not_started' ? (
+                    localChallenge.status !== 'completed' &&
+                    localChallenge.status !== 'not_started' ? (
                       <Pressable
-                        onPress={() =>
-                          onLogProgress(challenge.id_challenges, requirement.id_challenge_requirements, increment)
-                        }
+                        onPress={() => {
+                          // update local UI immediately
+                          handleLocalIncrement(requirement, increment);
+                          // call parent to persist; parent will defer heavy refresh
+                          onLogProgress(localChallenge.id_challenges, requirement.id_challenge_requirements, increment);
+                        }}
                         disabled={loading}
                         style={[styles.incrementButton, loading && styles.disabledButton]}
                         accessibilityRole="button"
@@ -142,19 +172,19 @@ export default function ChallengeDetailModal({
             })}
           </ScrollView>
 
-          {challenge.status === 'not_started' ? (
+          {localChallenge.status === 'not_started' ? (
             <Pressable
               style={[styles.primaryButton, loading && styles.disabledButton]}
-              onPress={() => onStart(challenge.id_challenges)}
+              onPress={() => onStart(localChallenge.id_challenges)}
               disabled={loading}
               accessibilityRole="button"
-              accessibilityLabel={`Start ${challenge.title}`}
+              accessibilityLabel={`Start ${localChallenge.title}`}
               testID="ChallengeModal_Start"
             >
               <Ionicons name="play" size={14} color="#fff" />
               <Text style={styles.primaryButtonText}>Start challenge</Text>
             </Pressable>
-          ) : challenge.status === 'completed' ? (
+          ) : localChallenge.status === 'completed' ? (
             <View style={styles.completedRow}>
               <Ionicons name="checkmark-circle" size={18} color={colors.success.main} />
               <Text style={styles.completedText}>Challenge completed</Text>
@@ -166,10 +196,10 @@ export default function ChallengeDetailModal({
                 !allComplete && styles.inactiveButton,
                 loading && styles.disabledButton,
               ]}
-              onPress={() => onComplete(challenge.id_challenges)}
+              onPress={() => onComplete(localChallenge.id_challenges)}
               disabled={loading || !allComplete}
               accessibilityRole="button"
-              accessibilityLabel={`Complete ${challenge.title}`}
+              accessibilityLabel={`Complete ${localChallenge.title}`}
               testID="ChallengeModal_Complete"
             >
               <Ionicons name="checkmark" size={14} color="#fff" />
