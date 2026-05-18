@@ -52,6 +52,7 @@ import {
   deleteCalendar,
   deleteTrainingFromCalendar,
   reorderCalendarTrainings,
+  getWeeklyStats,
 } from "../controllers/trainingCalendarsController";
 
 const router = Router();
@@ -100,6 +101,7 @@ router.post("/calendars", authenticate, createCalendar);
 router.get("/calendars/public", authenticate, listPublicCalendars);
 router.get("/calendars/mine", authenticate, listUserCalendars);
 router.get("/calendars/selected", authenticate, getSelectedCalendarForProfile);
+router.get("/calendars/week-stats", authenticate, getWeeklyStats);
 router.get("/calendars/:id", getCalendar);
 router.get("/calendars/:id/preview", authenticate, getCalendarPreview);
 router.post("/calendars/:id/trainings", authenticate, addTrainingToCalendar);

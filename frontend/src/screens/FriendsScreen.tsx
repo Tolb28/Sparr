@@ -1,15 +1,14 @@
 import React, { useState, useCallback } from 'react';
-import { FlatList, View, Text, Pressable, ActivityIndicator, TextInput, StyleSheet } from 'react-native';
+import { FlatList, View, Pressable, ActivityIndicator, TextInput, StyleSheet } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { getFriends, getPendingRequests, acceptFriendRequest, declineFriendRequest } from '../api/friends';
+import { fetchConversations } from '../api/chatApi';
 import Friend from '../components/Friend';
 import FriendRequest from '../components/FriendRequest';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { fetchConversations } from '../api/chatApi';
-import { ConversationPreview } from '../types/chat';
 import ChatListItem from '../components/ChatListItem';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabBar } from '@/components/ui/tab-bar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { colors } from '@/src/theme/colors';
@@ -18,12 +17,12 @@ export default function FriendsScreen() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const route = useRoute<RouteProp<any>>();
-  const initialTab = (route.params?.activeTab as 'friends' | 'requests' | 'chats') || 'friends';
-  const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'chats'>(initialTab);
+  const initialTab = (route.params?.activeTab as 'friends' | 'requests' | 'conversations') || 'friends';
+  const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'conversations'>(initialTab);
   const [query, setQuery] = useState('');
   const [friends, setFriends] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
-  const [conversations, setConversations] = useState<ConversationPreview[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(false);
@@ -31,7 +30,6 @@ export default function FriendsScreen() {
   const loadFriends = useCallback(async () => {
     setLoadingFriends(true);
     try {
-      console.log('Loading friends...');
       const data = await getFriends();
       setFriends(data || []);
     } catch (err) {
@@ -45,7 +43,6 @@ export default function FriendsScreen() {
   const loadRequests = useCallback(async () => {
     setLoadingRequests(true);
     try {
-      console.log('Loading pending friend requests...');
       const data = await getPendingRequests();
       setRequests(data || []);
     } catch (err) {
@@ -80,7 +77,6 @@ export default function FriendsScreen() {
   const handleAccept = async (friendRequestId: number, profiles_id_profiles: number) => {
     try {
       await acceptFriendRequest(friendRequestId, profiles_id_profiles);
-      // Refresh both lists after accepting
       loadFriends();
       loadRequests();
     } catch (e) {
@@ -91,7 +87,6 @@ export default function FriendsScreen() {
   const handleDecline = async (friendRequestId: number, profiles_id_profiles: number) => {
     try {
       await declineFriendRequest(friendRequestId, profiles_id_profiles);
-      // Refresh requests list after declining
       loadRequests();
     } catch (e) {
       console.error('Failed to decline friend request', e);
@@ -110,89 +105,44 @@ export default function FriendsScreen() {
     return (f.display_name || '').toLowerCase().includes(q) || (f.username || '').toLowerCase().includes(q);
   });
 
-  const filteredConversations = conversations.filter((conversation) => {
+  const filteredConversations = conversations.filter((c) => {
     if (!query) return true;
     const q = query.toLowerCase();
-    return (
-      conversation.otherParticipantName?.toLowerCase().includes(q) ||
-      conversation.lastMessage?.toLowerCase().includes(q)
-    );
+    return (c.otherParticipantName || '').toLowerCase().includes(q) || (c.title || '').toLowerCase().includes(q);
   });
-
-  const renderFriendsTab = () => (
-    <FlatList
-      data={filteredFriends}
-      keyExtractor={(item) => String(item.id_profiles)}
-      renderItem={({ item }) => <Friend friend={item} />}
-      contentContainerStyle={{ paddingBottom: 110, paddingTop: 8 }}
-      ListEmptyComponent={() => (
-        <View style={{ padding: 20 }}>
-          <Text style={{ textAlign: 'center', color: '#cb9090' }}>{loadingFriends ? 'Loading...' : 'No friends found'}</Text>
-        </View>
-      )}
-    />
-  );
-
-  const renderRequestsTab = () => (
-    <FlatList
-      data={filteredRequests}
-      keyExtractor={(item) => String(item.id_friend)}
-      renderItem={({ item }) => (
-        <FriendRequest
-          request={item}
-          onAccept={handleAccept}
-          onDecline={handleDecline}
-        />
-      )}
-      contentContainerStyle={{ paddingBottom: 110, paddingTop: 8 }}
-      ListEmptyComponent={() => (
-        <View style={{ padding: 20 }}>
-          <Text style={{ textAlign: 'center', color: '#cb9090' }}>{loadingRequests ? 'Loading...' : 'No pending friend requests'}</Text>
-        </View>
-      )}
-    />
-  );
-
-  const renderChatsTab = () => (
-    <FlatList
-      data={filteredConversations}
-      keyExtractor={(item) => String(item.id_conversations)}
-      renderItem={({ item }) => <ChatListItem conversation={item} />}
-      contentContainerStyle={{ paddingBottom: 110, paddingTop: 8 }}
-      ListEmptyComponent={() => (
-        <View style={{ padding: 20 }}>
-          <Text style={{ textAlign: 'center', color: '#cb9090' }}>{loadingConversations ? 'Loading...' : 'No conversations yet'}</Text>
-        </View>
-      )}
-    />
-  );
 
   const FRIENDS_TABS = [
     { key: 'friends', label: 'Friends' },
-    { key: 'chats', label: 'Chats' },
     { key: 'requests', label: `Requests${requests.length > 0 ? ` (${requests.length})` : ''}` },
+    { key: 'conversations', label: 'Messages' },
   ];
 
   return (
     <View style={[styles.root, { paddingTop: (insets.top || 0) + 10 }]}>
-      {/* Search + new conversation */}
+      {/* Search bar with new conversation button */}
       <View style={styles.searchRow}>
-        <View style={styles.searchBar}>
+        <View style={[styles.searchBar, { backgroundColor: colors.glass.surface, borderColor: colors.glass.border }]}>
           <Ionicons name="search-outline" size={18} color={colors.text.tertiary} />
           <TextInput
-            placeholder={activeTab === 'chats' ? 'Search conversations...' : 'Search friends...'}
+            placeholder={activeTab === 'conversations' ? 'Search messages...' : 'Search friends...'}
             placeholderTextColor={colors.text.tertiary}
             value={query}
             onChangeText={setQuery}
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text.primary }]}
           />
+          {query && (
+            <Pressable onPress={() => setQuery('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={16} color={colors.text.tertiary} />
+            </Pressable>
+          )}
         </View>
-        {activeTab === 'chats' && (
-          <Pressable
-            style={styles.newChatBtn}
-            onPress={() => navigation.navigate('NewConversation' as never)}
+        {activeTab === 'conversations' && (
+          <Pressable 
+            onPress={() => navigation.navigate('NewConversation')}
+            hitSlop={8}
+            style={styles.newConversationButton}
           >
-            <Ionicons name="create-outline" size={20} color={colors.primary.main} />
+            <Ionicons name="add-circle" size={28} color={colors.primary.main} />
           </Pressable>
         )}
       </View>
@@ -202,7 +152,7 @@ export default function FriendsScreen() {
         <TabBar
           tabs={FRIENDS_TABS}
           activeTab={activeTab}
-          onTabChange={(t) => setActiveTab(t as 'friends' | 'requests' | 'chats')}
+          onTabChange={(t) => setActiveTab(t as 'friends' | 'requests' | 'conversations')}
         />
       </View>
 
@@ -218,19 +168,7 @@ export default function FriendsScreen() {
               ? <ActivityIndicator color={colors.primary.main} style={{ marginTop: 40 }} />
               : <EmptyState icon="people-outline" title="No friends yet" subtitle="Find boxers to connect with in Discovery" style={styles.emptyState} />
           }
-        />
-      )}
-      {activeTab === 'chats' && (
-        <FlatList
-          data={filteredConversations}
-          keyExtractor={(item) => String(item.id_conversations)}
-          renderItem={({ item }) => <ChatListItem conversation={item} />}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={
-            loadingConversations
-              ? <ActivityIndicator color={colors.primary.main} style={{ marginTop: 40 }} />
-              : <EmptyState icon="chatbubbles-outline" title="No conversations yet" subtitle="Message a friend to start chatting" style={styles.emptyState} />
-          }
+          scrollIndicatorInsets={{ right: 1 }}
         />
       )}
       {activeTab === 'requests' && (
@@ -246,6 +184,33 @@ export default function FriendsScreen() {
               ? <ActivityIndicator color={colors.primary.main} style={{ marginTop: 40 }} />
               : <EmptyState icon="person-add-outline" title="No pending requests" subtitle="Your incoming friend requests appear here" style={styles.emptyState} />
           }
+          scrollIndicatorInsets={{ right: 1 }}
+        />
+      )}
+      {activeTab === 'conversations' && (
+        <FlatList
+          data={filteredConversations}
+          keyExtractor={(item) => String(item.id_conversations)}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() =>
+                navigation.navigate('ChatDetail', {
+                  conversationId: item.id_conversations,
+                  otherParticipantName: item.otherParticipantName,
+                  otherParticipantAvatar: item.otherParticipantAvatar,
+                })
+              }
+            >
+              <ChatListItem conversation={item} />
+            </Pressable>
+          )}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            loadingConversations
+              ? <ActivityIndicator color={colors.primary.main} style={{ marginTop: 40 }} />
+              : <EmptyState icon="chatbubbles-outline" title="No conversations yet" subtitle="Start a conversation with your friends" style={styles.emptyState} />
+          }
+          scrollIndicatorInsets={{ right: 1 }}
         />
       )}
     </View>
@@ -256,16 +221,16 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background.secondary },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, marginBottom: 10 },
   searchBar: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: colors.background.card, borderRadius: 12,
-    paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border.light,
+    flex: 1, 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8,
+    borderRadius: 12,
+    paddingHorizontal: 12, 
+    borderWidth: 1,
   },
-  searchInput: { flex: 1, color: colors.text.primary, paddingVertical: 10, fontSize: 14 },
-  newChatBtn: {
-    width: 44, height: 44, borderRadius: 12,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, fontWeight: '500' },
+  newConversationButton: { padding: 4 },
   tabBarWrapper: { marginHorizontal: 14, marginBottom: 4 },
   list: { paddingBottom: 110, paddingTop: 6 },
   emptyState: { paddingTop: 60 },

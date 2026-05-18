@@ -1,5 +1,3 @@
-// Post.tsx
-import { getCommentsForPost } from "../api/discovery";
 import CommentSection from "./CommentSection";
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { getToken, ServerIP } from '../api/tokenHandler';
@@ -7,21 +5,19 @@ import { Box } from "@/components/ui/box";
 import { HStack } from "@/components/ui/hstack";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import { Image as RNImage, View } from "react-native";
-import { Modal } from "react-native";
+import { Image as RNImage, Modal } from "react-native";
 import { useVideoPlayer, VideoView } from 'expo-video';
 import {
-  User,
   ThumbsUp,
   ThumbsDown,
   MessageCircle,
 } from "lucide-react-native";
 import { Pressable } from "@/components/ui/pressable";
 import { useNavigation, useFocusEffect } from "@react-navigation/core";
-import { getProfile } from "../api/profileHandler";
 
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Avatar, AvatarFallbackText, AvatarImage } from "@/components/ui/avatar";
+import { colors } from "@/src/theme/colors";
 
 interface FeedPostProps {
   post: {
@@ -40,17 +36,8 @@ interface FeedPostProps {
   };
 }
 
-interface UserProfile {
-  id_profiles: number;
-  display_name: string;
-  avatar?: string | null;
-  avatar_url?: string | null;
-}
-
 function FeedPost({ post }: FeedPostProps) {
   const navigation = useNavigation();
-
-  console.log("Post:", post);
 
   const [likes, setLikes] = useState(Number(post.likes_count) || 0);
   const [commentsCount, setCommentsCount] = useState(Number(post.comments_count) || 0);
@@ -204,9 +191,16 @@ function FeedPost({ post }: FeedPostProps) {
 
   return (
     <>
-    <Box className="mx-3 mb-4 rounded-2xl border overflow-hidden" style={{ backgroundColor: '#2a1515', borderColor: '#4b2626' }}>
+    <Box
+      className="mx-3 mb-4 rounded-2xl border overflow-hidden"
+      style={{ backgroundColor: colors.background.card, borderColor: colors.border.medium }}
+    >
       {/* User row */}
-      <Pressable onPress={() => (navigation as any).navigate('ForeignProfile', { foreign_profile_id: post.id_profiles })}>
+      <Pressable
+        onPress={() => (navigation as any).navigate('ForeignProfile', { foreign_profile_id: post.id_profiles })}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${post.display_name} profile`}
+      >
         <HStack className="items-center gap-2 px-4 pt-4 pb-3">
           <Avatar size="md">
           <AvatarFallbackText className="text-white">
@@ -220,7 +214,14 @@ function FeedPost({ post }: FeedPostProps) {
 
       {/* Post media */}
       {post.source && (
-        <Box className="mb-3 overflow-hidden border-y" style={{ backgroundColor: '#341818', borderColor: '#3a1d1d', aspectRatio: mediaDimensions ? mediaDimensions.width / mediaDimensions.height : 1 }}>
+        <Box
+          className="mb-3 overflow-hidden border-y"
+          style={{
+            backgroundColor: colors.background.tertiary,
+            borderColor: colors.border.light,
+            aspectRatio: mediaDimensions ? mediaDimensions.width / mediaDimensions.height : 1
+          }}
+        >
           {isVideo ? (
             <VideoView
               player={player}
@@ -240,7 +241,11 @@ function FeedPost({ post }: FeedPostProps) {
       )}
 
       {/* Text description */}
-      {!!post.description && <Text className="text-[#f5d6d6] leading-5 px-4 mb-2">{post.description}</Text>}
+      {!!post.description && (
+        <Text className="leading-5 px-4 mb-2" style={{ color: colors.text.secondary }}>
+          {post.description}
+        </Text>
+      )}
 
       {/* Hashtag */}
       {post.hashtag && (
@@ -251,35 +256,35 @@ function FeedPost({ post }: FeedPostProps) {
 
       {/* Reactions */}
       <HStack className="gap-6 items-center px-4 pb-4">
-        <Pressable onPress={handleLike}>
+        <Pressable onPress={handleLike} accessibilityRole="button" accessibilityLabel="Like post">
           <Animated.View style={likeStyle}>
             <HStack className="items-center gap-1">
               <ThumbsUp
                 size={18}
-                color={interaction === 'like' ? '#2563eb' : '#6b7280'}
-                fill={interaction === 'like' ? '#2563eb' : 'transparent'}
+                color={interaction === 'like' ? colors.info.main : colors.text.tertiary}
+                fill={interaction === 'like' ? colors.info.main : 'transparent'}
               />
               <Text className="text-sm text-white">{likes}</Text>
             </HStack>
           </Animated.View>
         </Pressable>
 
-        <Pressable onPress={handleDislike}>
+        <Pressable onPress={handleDislike} accessibilityRole="button" accessibilityLabel="Dislike post">
           <Animated.View style={dislikeStyle}>
             <HStack className="items-center gap-1">
               <ThumbsDown
                 size={18}
-                color={interaction === 'dislike' ? '#dc2626' : '#6b7280'}
-                fill={interaction === 'dislike' ? '#dc2626' : 'transparent'}
+                color={interaction === 'dislike' ? colors.error.dark : colors.text.tertiary}
+                fill={interaction === 'dislike' ? colors.error.dark : 'transparent'}
               />
               <Text className="text-sm text-white">{dislikes}</Text>
             </HStack>
           </Animated.View>
         </Pressable>
 
-        <Pressable onPress={handleCommentOpen}>
+        <Pressable onPress={handleCommentOpen} accessibilityRole="button" accessibilityLabel="Open comments">
           <HStack className="items-center gap-1">
-            <Icon as={MessageCircle} size="md" className="text-[#cb9090]" />
+            <Icon as={MessageCircle} size="md" style={{ color: colors.text.secondary }} />
             <Text className="text-sm text-white">{commentsCount}</Text>
           </HStack>
         </Pressable>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Pressable as RNPressable } from 'react-native';
+import { View, Pressable as RNPressable, StyleSheet } from 'react-native';
 import { Box } from '@/components/ui/box';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
@@ -7,6 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { Avatar, AvatarImage, AvatarFallbackText } from '@/components/ui/avatar';
 import { useNavigation } from '@react-navigation/core';
+import { colors } from '@/src/theme/colors';
 
 interface FriendRequestProps {
   request: {
@@ -26,43 +27,105 @@ interface FriendRequestProps {
 export default function FriendRequest({ request, onAccept, onDecline }: FriendRequestProps) {
   const navigation = useNavigation();
 
+  const handleProfilePress = () => {
+    (navigation as any).navigate('ForeignProfile', { foreign_profile_id: request.id_profiles });
+  };
+
   return (
-    <Box className="mx-3 mb-3 rounded-lg border" style={{ backgroundColor: '#341818', borderColor: '#4b2626' }}>
-      <RNPressable onPress={() => (navigation as any).navigate('ForeignProfile', { foreign_profile_id: request.id_profiles })}>
-        <Box className="p-3 pb-0">
-          <HStack className="items-center gap-3 mb-3">
+    <Box style={[styles.container, { backgroundColor: colors.background.tertiary, borderColor: colors.border.light }]}>
+      <RNPressable onPress={handleProfilePress}>
+        <Box style={styles.profileSection}>
+          <HStack style={styles.profileRow}>
             <Avatar size="md">
               {request.avatar_url ? (
-                <AvatarImage source={{ uri: request.avatar_url }} />
+                <AvatarImage source={{ uri: request.avatar_url }} alt={request.display_name} />
               ) : (
-                <AvatarFallbackText>{(request.display_name || 'U')}</AvatarFallbackText>
+                <AvatarFallbackText>{(request.display_name || 'U')?.charAt(0).toUpperCase()}</AvatarFallbackText>
               )}
             </Avatar>
 
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: '600', color: '#fff' }}>{request.display_name ?? 'No name'}</Text>
-              <Text style={{ color: '#cb9090' }}>@{request.username ?? 'unknown'}</Text>
+            <View style={styles.profileContent}>
+              <Text style={[styles.displayName, { color: colors.text.primary }]}>
+                {request.display_name ?? 'No name'}
+              </Text>
+              <Text style={[styles.username, { color: colors.text.secondary }]}>
+                @{request.username ?? 'unknown'}
+              </Text>
             </View>
           </HStack>
         </Box>
       </RNPressable>
-      
-      <HStack className="gap-2 justify-end p-3 pt-0">
+
+      <HStack style={styles.actionRow}>
         <Pressable
           onPress={() => onDecline(request.id_friend, request.profiles_id_profiles)}
-          className="flex-1 px-3 py-2 rounded-md"
-          style={{ backgroundColor: '#6d2e2e' }}
+          style={[styles.btn, styles.declineBtn, { borderColor: colors.border.medium, backgroundColor: colors.background.card }]}
         >
-          <Text className="text-white text-center font-bold text-sm">Decline</Text>
+          <Text style={[styles.btnText, { color: colors.text.secondary }]}>Decline</Text>
         </Pressable>
         <Pressable
           onPress={() => onAccept(request.id_friend, request.profiles_id_profiles)}
-          className="flex-1 px-3 py-2 rounded-md"
-          style={{ backgroundColor: '#f20d0d' }}
+          style={[styles.btn, styles.acceptBtn, { backgroundColor: colors.primary.main }]}
         >
-          <Text className="text-white text-center font-bold text-sm">Accept</Text>
+          <Text style={[styles.btnText, { color: colors.text.inverse }]}>Accept</Text>
         </Pressable>
       </HStack>
     </Box>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginHorizontal: 12,
+    marginVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  profileSection: {
+    padding: 12,
+  },
+  profileRow: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  profileContent: {
+    flex: 1,
+  },
+  displayName: {
+    fontWeight: '600',
+    fontSize: 15,
+    letterSpacing: 0.2,
+  },
+  username: {
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  actionRow: {
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
+  btn: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  declineBtn: {
+    borderWidth: 1,
+  },
+  acceptBtn: {
+    borderWidth: 0,
+  },
+  btnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+});

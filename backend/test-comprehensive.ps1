@@ -41,7 +41,7 @@ function Wait-ForServer {
   $maxAttempts = 20
   for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
     try {
-      Invoke-WebRequest -Method Head -Uri $Url -TimeoutSec 3 | Out-Null
+      Invoke-WebRequest -Method Head -Uri $Url -TimeoutSec 3 -UseBasicParsing | Out-Null
       Write-Status "Backend is reachable at $Url"
       return
     } catch {

@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable, StyleSheet } from 'react-native';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Message } from '../types/chat';
+import { colors } from '@/src/theme/colors';
 
 interface MessageBubbleProps {
   message: Message;
@@ -39,14 +40,19 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     });
   };
 
+  const bubbleBackgroundColor = isMe ? colors.primary.main : colors.background.card;
+  const bubbleBorderColor = isMe ? 'transparent' : colors.border.light;
+  const textColor = isMe ? colors.text.inverse : colors.text.primary;
+
   return (
     <HStack
-      className={`items-end space-x-2 px-4 py-2 ${
-        isMe ? 'flex-row-reverse' : 'flex-row'
-      }`}
+      style={[
+        styles.container,
+        isMe && styles.containerMe,
+      ]}
     >
       {!isMe && (
-        <Pressable onPress={onSenderPress} disabled={!onSenderPress}>
+        <Pressable onPress={onSenderPress} disabled={!onSenderPress} style={styles.avatar}>
           <Avatar size="sm">
             {message.senderAvatar ? (
               <AvatarImage
@@ -63,42 +69,108 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       )}
 
       <VStack
-        space="xs"
-        className={`max-w-xs ${
-          isMe ? 'items-end' : 'items-start'
-        }`}
+        style={[
+          styles.messageGroup,
+          isMe && styles.messageGroupMe,
+        ]}
       >
         {!isMe && (
-          <Text size="xs" className="text-[#cb9090] px-3">
+          <Text style={[styles.senderName, { color: colors.text.secondary }]}>
             {message.senderName}
           </Text>
         )}
 
         <Box
-          className={`px-4 py-2 rounded-2xl ${
-            isMe
-              ? 'bg-primary-500 rounded-br-none'
-              : 'rounded-bl-none'
-          }`}
-          style={!isMe ? { backgroundColor: '#2a2a2a' } : undefined}
+          style={[
+            styles.bubble,
+            {
+              backgroundColor: bubbleBackgroundColor,
+              borderColor: bubbleBorderColor,
+            },
+            isMe && styles.bubbleMe,
+          ]}
         >
-          <Text
-            className={`${
-              isMe ? 'text-white' : 'text-gray-900'
-            }`}
-            style={!isMe ? { color: '#ffffff' } : undefined}
-          >
+          <Text style={[styles.content, { color: textColor }]}>
             {message.content}
           </Text>
         </Box>
 
-        <Text size="xs" className="text-[#8f6d6d] px-3">
-          {formatTime(message.created_at)}
-          {message.edited_at && ' (edited)'}
-        </Text>
+        <View style={[styles.metadata, isMe && styles.metadataMe]}>
+          <Text style={[styles.time, { color: colors.text.tertiary }]}>
+            {formatTime(message.created_at)}
+          </Text>
+          {message.edited_at && (
+            <Text style={[styles.editedLabel, { color: colors.text.tertiary }]}>
+              (edited)
+            </Text>
+          )}
+        </View>
       </VStack>
     </HStack>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    alignItems: 'flex-end',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    gap: 8,
+  },
+  containerMe: {
+    flexDirection: 'row-reverse',
+  },
+  avatar: {
+    marginBottom: 8,
+  },
+  messageGroup: {
+    alignItems: 'flex-start',
+    gap: 4,
+    maxWidth: '80%',
+  },
+  messageGroupMe: {
+    alignItems: 'flex-end',
+  },
+  senderName: {
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+    paddingHorizontal: 4,
+  },
+  bubble: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  bubbleMe: {
+    borderTopRightRadius: 4,
+    borderWidth: 0,
+  },
+  content: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '400',
+    letterSpacing: 0.15,
+  },
+  metadata: {
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 4,
+  },
+  metadataMe: {
+    justifyContent: 'flex-end',
+  },
+  time: {
+    fontSize: 10,
+    fontWeight: '400',
+    letterSpacing: 0.1,
+  },
+  editedLabel: {
+    fontSize: 10,
+    fontWeight: '400',
+    fontStyle: 'italic',
+  },
+});
 
 export default MessageBubble;
