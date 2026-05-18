@@ -1,34 +1,70 @@
-// src/api/login.ts
-import { Platform } from 'react-native';
-import {ServerIP} from './tokenHandler';
+import { ServerIP } from "./tokenHandler";
 
+export interface AuthResponse {
+  token: string;
+  user: { id: string; email: string };
+  needsProfileSetup?: boolean;
+}
 
-export async function login(email: string, password: string) {
+const parseErrorResponse = async (response: Response, fallback: string) => {
+  try {
+    const data = await response.json();
+    const err: any = new Error(data?.error || fallback);
+    if (data?.code) err.code = data.code;
+    if (data) err.data = data;
+    throw err;
+  } catch (e: any) {
+    if (e instanceof Error && (e as any).data) throw e;
+    throw new Error(`Server error: ${response.statusText || fallback}`);
+  }
+};
+
+export async function login(email: string, password: string): Promise<AuthResponse> {
   const response = await fetch(`${ServerIP}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
 
   if (!response.ok) {
-    // 1. Try to parse the response body as JSON first
-    let errorData;
-    try {
-      errorData = await response.json();
-    } catch (e) {
-      // If the body isn't JSON, throw a generic error instead
-      throw new Error(`Server error: ${response.statusText}`);
-    }
-    
-    // 2. Access the specific 'error' property from the parsed JSON object
-    // The server sends { "error": "Invalid credentials" }
-    const errorMessage = errorData.error;
-
-    // 3. Throw a new clean Error object using just the specific message string
-    throw new Error(errorMessage || 'Login failed');
+    await parseErrorResponse(response, "Login failed");
   }
-
-  // If the response was OK (status 200), parse and return the successful data
 
   return response.json();
 }
+
+export async function loginWithGoogle(idToken: string): Promise<AuthResponse> {
+  const response = await fetch(`${ServerIP}/auth/google/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+
+  if (!response.ok) {
+    await parseErrorResponse(response, "Google login failed");
+  }
+
+  return response.json();
+}
+
+export async function resolveGoogleConflictDecision(
+  token: string,
+  decision: "mine" | "not_mine",
+  conflictUserId: string
+): Promise<{ success: boolean; needsProfileSetup: boolean }> {
+  const response = await fetch(`${ServerIP}/auth/google/conflict-decision`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ decision, conflictUserId }),
+  });
+
+  if (!response.ok) {
+    await parseErrorResponse(response, "Failed to resolve ownership conflict");
+  }
+
+  return response.json();
+}
+

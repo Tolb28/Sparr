@@ -200,3 +200,74 @@ export async function getTrainingContentRecommendations(
   const data = await response.json();
   return data?.recommendations || { techniques: [], drills: [], combinations: [] };
 }
+
+export type FavoriteContentType = 'technique' | 'drill' | 'combination';
+
+export async function getUserFavorites(contentType?: FavoriteContentType): Promise<Array<{ content_type: FavoriteContentType; content_id: number }>> {
+  const headers = await buildAuthHeaders({
+    'Content-Type': 'application/json',
+  });
+
+  const query = contentType ? `?contentType=${contentType}` : '';
+  const response = await fetch(`${ServerIP}/auth/training/favorites${query}`, {
+    method: 'GET',
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      throw new Error(`Server error: ${response.statusText}`);
+    }
+    const errorMessage = errorData?.error || errorData?.message;
+    throw new Error(errorMessage || 'Failed to fetch favorites');
+  }
+
+  return response.json();
+}
+
+export async function addFavorite(contentType: FavoriteContentType, contentId: number): Promise<void> {
+  const headers = await buildAuthHeaders({
+    'Content-Type': 'application/json',
+  });
+
+  const response = await fetch(`${ServerIP}/auth/training/favorites/${contentType}/${contentId}`, {
+    method: 'POST',
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      throw new Error(`Server error: ${response.statusText}`);
+    }
+    const errorMessage = errorData?.error || errorData?.message;
+    throw new Error(errorMessage || 'Failed to add favorite');
+  }
+}
+
+export async function removeFavorite(contentType: FavoriteContentType, contentId: number): Promise<void> {
+  const headers = await buildAuthHeaders({
+    'Content-Type': 'application/json',
+  });
+
+  const response = await fetch(`${ServerIP}/auth/training/favorites/${contentType}/${contentId}`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      throw new Error(`Server error: ${response.statusText}`);
+    }
+    const errorMessage = errorData?.error || errorData?.message;
+    throw new Error(errorMessage || 'Failed to remove favorite');
+  }
+}

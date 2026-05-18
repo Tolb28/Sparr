@@ -27,6 +27,11 @@ export async function getSelectedCalendarForProfile() {
   return authFetch('/auth/training/calendars/selected');
 }
 
+export async function getWeeklyStats(dateStr?: string) {
+  const queryStr = dateStr ? `?date=${dateStr}` : '';
+  return authFetch(`/auth/training/calendars/week-stats${queryStr}`);
+}
+
 export async function listPublicCalendars() {
   return authFetch('/auth/training/calendars/public');
 }

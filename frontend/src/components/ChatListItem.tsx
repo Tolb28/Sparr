@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Text } from '@/components/ui/text';
 import { HStack } from '@/components/ui/hstack';
@@ -7,6 +7,7 @@ import { VStack } from '@/components/ui/vstack';
 import { Divider } from '@/components/ui/divider';
 import { ConversationPreview } from '../types/chat';
 import { useNavigation } from '@react-navigation/native';
+import { colors } from '@/src/theme/colors';
 
 interface ChatListItemProps {
   conversation: ConversationPreview;
@@ -33,7 +34,8 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
       .substring(0, 2);
   };
 
-  const formatTimestamp = (timestamp: string) => {
+  const formatTimestamp = useMemo(() => {
+    const timestamp = conversation.lastMessageTimestamp;
     const date = new Date(timestamp);
     const today = new Date();
     const yesterday = new Date(today);
@@ -43,6 +45,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
       return date.toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
+        hour12: true,
       });
     } else if (date.toDateString() === yesterday.toDateString()) {
       return 'Yesterday';
@@ -52,50 +55,132 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
         day: 'numeric',
       });
     }
-  };
+  }, [conversation.lastMessageTimestamp]);
 
-  const truncateMessage = (message: string, maxLength: number = 40) => {
+  const truncateMessage = (message: string, maxLength: number = 45) => {
     return message.length > maxLength ? message.substring(0, maxLength) + '...' : message;
   };
 
+  // Check if conversation has unread messages (placeholder implementation)
+  const hasUnread = false; // TODO: Add unread status when backend provides it
+
   return (
-    <View>
+    <View style={styles.root}>
       <TouchableOpacity
         onPress={handlePress}
-        activeOpacity={0.7}
-        className="px-4 py-3"
+        activeOpacity={0.65}
+        style={[styles.content, hasUnread && styles.contentUnread]}
       >
-        <HStack space="md" className="items-center">
-          <Avatar size="lg">
-            {conversation.otherParticipantAvatar ? (
-              <AvatarImage
-                source={{ uri: conversation.otherParticipantAvatar }}
-                alt={conversation.otherParticipantName}
-              />
-            ) : (
-              <AvatarFallbackText>
-                {getInitials(conversation.otherParticipantName)}
-              </AvatarFallbackText>
-            )}
-          </Avatar>
+        <HStack style={styles.row}>
+          <View style={styles.avatarWrapper}>
+            <Avatar size="lg">
+              {conversation.otherParticipantAvatar ? (
+                <AvatarImage
+                  source={{ uri: conversation.otherParticipantAvatar }}
+                  alt={conversation.otherParticipantName}
+                />
+              ) : (
+                <AvatarFallbackText>
+                  {getInitials(conversation.otherParticipantName)}
+                </AvatarFallbackText>
+              )}
+            </Avatar>
+            {/* Optional: Online indicator */}
+            {/* <View style={[styles.statusIndicator, { backgroundColor: colors.status.online }]} /> */}
+          </View>
 
-          <VStack space="xs" className="flex-1">
-            <Text size="lg" bold className="text-white">
+          <VStack style={styles.messageContent}>
+            <Text style={[styles.participantName, hasUnread && styles.unreadText, { color: colors.text.primary }]}>
               {conversation.otherParticipantName}
             </Text>
-            <Text size="sm" className="text-[#cb9090]">
+            <Text
+              style={[styles.lastMessage, hasUnread && styles.unreadMessageText, { color: colors.text.secondary }]}
+              numberOfLines={1}
+            >
               {truncateMessage(conversation.lastMessage || 'No messages yet')}
             </Text>
           </VStack>
 
-          <Text size="xs" className="text-[#cb9090]">
-            {formatTimestamp(conversation.lastMessageTimestamp)}
-          </Text>
+          <VStack style={styles.rightContent}>
+            <Text style={[styles.timestamp, hasUnread && styles.unreadTimestamp, { color: colors.text.tertiary }]}>
+              {formatTimestamp}
+            </Text>
+            {hasUnread && <View style={[styles.unreadBadge, { backgroundColor: colors.primary.main }]} />}
+          </VStack>
         </HStack>
       </TouchableOpacity>
-      <Divider className="my-0" style={{ backgroundColor: '#3a1d1d' }} />
+      <Divider style={[styles.divider, { backgroundColor: colors.border.light }]} />
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  root: {
+    width: '100%',
+  },
+  content: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  contentUnread: {
+    backgroundColor: `${colors.glass.redSurface}`,
+  },
+  row: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  avatarWrapper: {
+    position: 'relative',
+  },
+  statusIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: colors.background.secondary,
+  },
+  messageContent: {
+    flex: 1,
+    gap: 4,
+  },
+  participantName: {
+    fontWeight: '600',
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+  lastMessage: {
+    fontSize: 13,
+  },
+  rightContent: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  timestamp: {
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 0.1,
+  },
+  unreadBadge: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  unreadText: {
+    fontWeight: '700',
+  },
+  unreadMessageText: {
+    fontWeight: '600',
+  },
+  unreadTimestamp: {
+    fontWeight: '700',
+    color: colors.primary.main,
+  },
+  divider: {
+    marginLeft: 72,
+  },
+});
 
 export default ChatListItem;

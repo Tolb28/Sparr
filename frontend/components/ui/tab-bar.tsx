@@ -10,6 +10,7 @@ interface TabBarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   scrollable?: boolean;
+  appearance?: 'underline' | 'segmented';
   style?: object;
 }
 
@@ -20,7 +21,14 @@ function getLabel(tab: TabItem): string {
   return typeof tab === 'string' ? tab : tab.label;
 }
 
-export function TabBar({ tabs, activeTab, onTabChange, scrollable = false, style }: TabBarProps) {
+export function TabBar({
+  tabs,
+  activeTab,
+  onTabChange,
+  scrollable = false,
+  appearance = 'underline',
+  style,
+}: TabBarProps) {
   const [containerWidth, setContainerWidth] = useState(0);
 
   const tabCount = tabs.length;
@@ -46,7 +54,12 @@ export function TabBar({ tabs, activeTab, onTabChange, scrollable = false, style
                   onPress={() => handleTabPress(key)}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: key === activeTab }}
-                  style={[styles.tab, styles.tabFixed]}
+                  style={[
+                    styles.tab,
+                    styles.tabFixed,
+                    appearance === 'segmented' && styles.segmentedTab,
+                    key === activeTab && appearance === 'segmented' && styles.segmentedTabActive,
+                  ]}
                 >
                   <Text style={[styles.tabText, key === activeTab ? styles.tabActive : styles.tabInactive]}>
                     {getLabel(tab)}
@@ -69,7 +82,12 @@ export function TabBar({ tabs, activeTab, onTabChange, scrollable = false, style
                 onPress={() => handleTabPress(key)}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: key === activeTab }}
-                style={[styles.tab, styles.tabFlex]}
+                style={[
+                  styles.tab,
+                  styles.tabFlex,
+                  appearance === 'segmented' && styles.segmentedTab,
+                  key === activeTab && appearance === 'segmented' && styles.segmentedTabActive,
+                ]}
               >
                 <Text style={[styles.tabText, key === activeTab ? styles.tabActive : styles.tabInactive]}>
                   {getLabel(tab)}
@@ -77,10 +95,12 @@ export function TabBar({ tabs, activeTab, onTabChange, scrollable = false, style
               </Pressable>
             );
           })}
-          <View pointerEvents="none" style={[styles.indicator, { left: indicatorLeft, width: tabWidth }]} />
+          {appearance === 'underline' && (
+            <View pointerEvents="none" style={[styles.indicator, { left: indicatorLeft, width: tabWidth }]} />
+          )}
         </View>
       )}
-      <View style={styles.bottomBorder} />
+      {appearance === 'underline' ? <View style={styles.bottomBorder} /> : null}
     </View>
   );
 }
@@ -96,6 +116,19 @@ const styles = StyleSheet.create({
   tabInactive: { color: colors.text.tertiary, fontWeight: '500' },
   indicator: { position: 'absolute', left: 0, bottom: 1, height: 2, backgroundColor: colors.primary.main, borderRadius: 2 },
   bottomBorder: { height: 1, backgroundColor: colors.border.light },
+  segmentedTab: {
+    marginHorizontal: 4,
+    marginTop: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.glass.border,
+    backgroundColor: colors.glass.surface,
+    paddingVertical: 9,
+  },
+  segmentedTabActive: {
+    backgroundColor: colors.glass.redSurface,
+    borderColor: colors.glass.redBorder,
+  },
 });
 
 export default TabBar;

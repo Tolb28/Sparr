@@ -1,7 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// 1. Import all screens statically at the top
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import EditProfileScreen from '../screens/ProfileEditScreen';
@@ -19,6 +18,7 @@ import TrainingScreen from '../screens/TrainingScreen';
 import ConversationsScreen from '../screens/ConversationsScreen';
 import ChatDetailScreen from '../screens/ChatDetailScreen';
 import NewConversationScreen from '../screens/NewConversationScreen';
+import ConversationInfoScreen from '../screens/ConversationInfoScreen';
 import ClubProfileScreen from '../screens/ClubProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import CreateClubProfileStepOneScreen from '../screens/CreateClubProfileStepOneScreen';
@@ -52,6 +52,7 @@ export type RootStackParamList = {
   Conversations: undefined;
   ChatDetail: { conversationId: number; otherParticipantName: string; otherParticipantAvatar: string | null };
   NewConversation: undefined;
+  ConversationInfo: { conversationId: number; conversationTitle: string; isGroup?: boolean };
   ClubProfile: { clubId: number };
   Settings: undefined;
   CreateClubStepOne: undefined;
@@ -159,6 +160,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="NewConversation"
         component={NewConversationScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ConversationInfo"
+        component={ConversationInfoScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

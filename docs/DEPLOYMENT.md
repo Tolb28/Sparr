@@ -23,6 +23,12 @@ This guide covers deploying the new progress tracking system (Phases 1-7) to pro
 - [ ] Environment variables set:
   - `REDIS_URL` (optional; uses in-memory if not set)
   - `CACHE_TTL_MS` (optional; defaults to 3600000)
+  - `SUPABASE_URL` (required for auth)
+  - `SUPABASE_ANON_KEY` (required for Supabase Auth sign-in/sign-up)
+  - `SUPABASE_SERVICE_ROLE_KEY` (required for backend admin auth operations)
+  - `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` (required for iOS Google login)
+  - `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` (required for Android Google login)
+  - `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` (required for web Google login)
 - [ ] Error logging configured (logs should go to monitoring system)
 - [ ] Monitoring/alerting set up for:
   - Metric computation time (alert if >5s)

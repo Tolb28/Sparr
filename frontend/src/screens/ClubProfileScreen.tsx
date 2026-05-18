@@ -38,6 +38,9 @@ import WeeklyCalendar from '../components/WeeklyCalendar';
 import TrainingCard from '../components/TrainingCard';
 import DayTimelineView, { TimelineTraining } from '../components/DayTimelineView';
 import { colors } from '@/src/theme/colors';
+import ClubHeader from '../components/ClubHeader';
+import ClubUpcomingEvents from '../components/ClubUpcomingEvents';
+import ClubReviewsLocation from '../components/ClubReviewsLocation';
 
 type ClubProfileRouteProp = RouteProp<RootStackParamList, 'ClubProfile'>;
 
@@ -86,6 +89,7 @@ export default function ClubProfileScreen() {
   const [resolvedTrainings, setResolvedTrainings] = useState<TimelineTraining[]>([]);
   const [dayTrainingsLoading, setDayTrainingsLoading] = useState(false);
   const [dayTrainingsError, setDayTrainingsError] = useState<string | null>(null);
+  const [todayResolvedTrainings, setTodayResolvedTrainings] = useState<TimelineTraining[]>([]);
 
   const todayDate = useMemo(() => {
     const now = new Date();
@@ -119,6 +123,13 @@ export default function ClubProfileScreen() {
   }, [clubId, getErrorMessage]);
 
   useEffect(() => { load().catch(() => {}); }, [load]);
+
+  // Pre-load Schedule tab data (calendar) for the Today section
+  useEffect(() => {
+    if (plans.length === 0) {
+      loadTabContent('Schedule').catch(() => {});
+    }
+  }, [clubId]);
 
   const handleTabPress = useCallback((tab: Tab) => {
     setActiveTab(tab);
@@ -270,6 +281,36 @@ export default function ClubProfileScreen() {
     }
   }, [calendar, calendarItems, selectedDate]);
 
+  // Get today's calendar items using the same rotation logic
+  const todayTrainings = useMemo(() => {
+    if (!calendar || calendarItems.length === 0) return [];
+
+    if (calendar.calendar_type === 'order') {
+      const startDate = calendar.order_start_date
+        ? String(calendar.order_start_date).substring(0, 10)
+        : calendar.created_at?.split('T')[0] || todayDate;
+      if (!startDate) return [];
+      const totalDays = daysBetween(startDate, todayDate);
+      const uniqueOrders = [...new Set(calendarItems.filter((i: any) => i.order != null).map((i: any) => Number(i.order)))].sort((a, b) => a - b);
+      if (uniqueOrders.length === 0) return [];
+      const n = uniqueOrders.length;
+      const cycleIndex = totalDays >= 0
+        ? totalDays % n
+        : ((n - (Math.abs(totalDays) % n)) % n);
+      const targetOrder = uniqueOrders[cycleIndex];
+      return calendarItems.filter((it: any) => it.order != null && Number(it.order) === targetOrder);
+    } else {
+      const dow = dayOfWeekFromDate(todayDate);
+      const createdAt = calendar.created_at?.split('T')[0] || todayDate;
+      const totalDays = daysBetween(createdAt, todayDate);
+      const numWeeks = calendar.num_weeks || 1;
+      const weekInRotation = totalDays >= 0
+        ? (Math.floor(totalDays / 7) % numWeeks) + 1
+        : ((numWeeks - (Math.floor(Math.abs(totalDays) / 7) % numWeeks)) % numWeeks) + 1;
+      return calendarItems.filter((it: any) => Number(it.day_of_week) === dow && Number(it.week_number) === weekInRotation);
+    }
+  }, [calendar, calendarItems, todayDate]);
+
   const buildCalendarEvents = useMemo(() => {
     if (!calendar || calendarItems.length === 0) return {};
     const events: Record<string, { color: string; count: number }> = {};
@@ -365,6 +406,42 @@ export default function ClubProfileScreen() {
     };
   }, [dayTrainings]);
 
+  // Fetch full training details for today's sessions
+  useEffect(() => {
+    const trainingsToResolve = todayTrainings.filter((it: any) => !!it.id_trainings);
+    if (trainingsToResolve.length === 0) {
+      setTodayResolvedTrainings([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const results: TimelineTraining[] = [];
+      for (const item of trainingsToResolve) {
+        try {
+          const resp = await getTraining(Number(item.id_trainings));
+          const training = resp.training;
+          const components = resp.components || [];
+          results.push({
+            id: item.id_training_calendar_trainings || item.id_trainings,
+            title: training?.title || 'Training',
+            description: training?.description,
+            duration: calculateDuration(components),
+            start_time: item.start_time || null,
+            components: [],
+            trainingComponents: components,
+            trainingName: training?.title || '',
+          });
+        } catch { /* skip failed fetches */ }
+      }
+      if (!cancelled) {
+        setTodayResolvedTrainings(results);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [todayTrainings]);
+
   if (loading) {
     return (
       <View style={[styles.root, styles.center]}>
@@ -389,143 +466,25 @@ export default function ClubProfileScreen() {
           />
         }
       >
-        {/* ── Cover + Header overlay ─────────────────────────────── */}
-        <View style={styles.coverWrapper}>
-          <ImageBackground
-            source={club?.cover_url ? { uri: club.cover_url } : undefined}
-            style={styles.cover}
-            imageStyle={styles.coverImage}
-          >
-            {!club?.cover_url && (
-              <View style={styles.coverFallback}>
-                <View style={styles.coverFallbackInner} />
-              </View>
-            )}
-            {/* Gradient overlay */}
-            <View style={styles.coverGradient} />
 
-            {/* Transparent header bar */}
-            <View style={[styles.headerBar, { paddingTop: (insets.top || 0) + 4 }]}>
-              <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                style={styles.iconBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Back"
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="chevron-back" size={20} color="#fff" />
-              </TouchableOpacity>
-              <View style={styles.headerRight}>
-                {club?.can_manage && (
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('ManageClub', { clubId })}
-                    style={[styles.iconBtn, styles.manageIconBtn]}
-                  >
-                    <Ionicons name="settings-outline" size={18} color={colors.primary.main} />
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  style={[styles.iconBtn, sharing && { opacity: 0.65 }]}
-                  onPress={handleShareClub}
-                  accessibilityLabel="Share club"
-                  disabled={sharing}
-                >
-                  <Ionicons name="share-social-outline" size={18} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </ImageBackground>
+        {/* Injected ClubHeader component (new) */}
+        <ClubHeader
+          club={club}
+          canManage={canManageClub}
+          joining={joining}
+          leaving={leaving}
+          sharing={sharing}
+          onJoin={handleJoin}
+          onLeave={handleLeave}
+          onManage={() => navigation.navigate('ManageClub', { clubId })}
+          onShare={handleShareClub}
+        />
 
-          {/* Avatar overlapping cover */}
-          <View style={styles.avatarAnchor}>
-            <View style={styles.avatarRing}>
-              <Avatar size="2xl">
-                <AvatarFallbackText>{club?.title?.[0] ?? 'C'}</AvatarFallbackText>
-                <AvatarImage source={club?.avatar_url ? { uri: club.avatar_url } : undefined} />
-              </Avatar>
-            </View>
-            {club?.is_verified && (
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={18} color={colors.primary.main} />
-              </View>
-            )}
-          </View>
-        </View>
+        {/* Upcoming events preview */}
+        <ClubUpcomingEvents clubId={clubId} calendarItems={todayTrainings} calendar={calendar} resolvedTrainings={todayResolvedTrainings} />
 
-        {/* ── Club identity row ──────────────────────────────────── */}
-        <View style={styles.identityBlock}>
-          <View style={styles.identityLeft}>
-            <Text style={styles.clubName}>{club?.title ?? 'Club'}</Text>
-            {!!club?.location && (
-              <View style={styles.locationRow}>
-                <Ionicons name="location-outline" size={12} color={colors.text.tertiary} />
-                <Text style={styles.locationText}>{club.location}</Text>
-              </View>
-            )}
-            {!!club?.join_policy && (
-              <View style={styles.policyChip}>
-                <Text style={styles.policyChipText}>
-                  {club.join_policy === 'open' ? '🔓 Open' : '🔒 Approval'}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
 
-        {/* ── Stats row ──────────────────────────────────────────── */}
-        <View style={styles.statsRow}>
-          {[
-            { label: 'Members', value: club?.members_count ?? 0 },
-            { label: 'Posts',   value: club?.posts_count ?? 0 },
-            { label: 'Plans',   value: club?.training_plans_count ?? 0 },
-          ].map((stat, i) => (
-            <View key={stat.label} style={[styles.statItem, i === 1 && styles.statItemMiddle]}>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
 
-        {/* ── Join / Leave CTA ───────────────────────────────────── */}
-        <View style={styles.ctaRow}>
-          {canManageClub ? (
-            <GlassCard variant="medium" radius={12} padding={12}>
-              <View style={styles.manageHintRow}>
-                <Ionicons name="shield-checkmark-outline" size={16} color={colors.primary.main} />
-                <Text style={styles.manageHintText}>You manage this club.</Text>
-              </View>
-            </GlassCard>
-          ) : (
-            <>
-              {isMember ? (
-                <SparrButton
-                  label="Leave Club"
-                  variant="outline"
-                  loading={leaving}
-                  onPress={handleLeave}
-                  disabled={leaving}
-                  fullWidth
-                />
-              ) : club?.join_status === 'requested' ? (
-                <SparrButton
-                  label="Requested"
-                  variant="outline"
-                  disabled
-                  fullWidth
-                />
-              ) : (
-                <SparrButton
-                  label={(club?.join_policy || 'open') === 'open' ? 'Join Club' : 'Request to Join'}
-                  variant="primary"
-                  loading={joining}
-                  onPress={handleJoin}
-                  disabled={joining}
-                  fullWidth
-                />
-              )}
-            </>
-          )}
-        </View>
 
         {/* ── Tab bar ───────────────────────────────────────────── */}
         <View
@@ -591,7 +550,10 @@ export default function ClubProfileScreen() {
             />
           )}
           {activeTab === 'About' && (
-            <AboutTab club={club} />
+            <>
+              <AboutTab club={club} />
+              <ClubReviewsLocation club={club} reviews={club?.reviews ?? []} />
+            </>
           )}
         </View>
       </ScrollView>
