@@ -382,3 +382,130 @@ export async function reorderCalendarTrainings(
     [orderedItemIds, orderedItemIds.length, calendarId]
   );
 }
+
+// ---------------------------------------------------------------------------
+// Weekly stats (for weekly goal display)
+// ---------------------------------------------------------------------------
+
+/**
+ * Get weekly completion stats for a profile.
+ * Returns completed workouts, scheduled trainings, and completion percentage for a given week.
+ * @param profileId Profile ID
+ * @param dateStr Date string in YYYY-MM-DD format (any day in the target week)
+ * @returns { completed: number, scheduled: number, percent: number }
+ */
+export async function getWeeklyStats(profileId: number, dateStr: string) {
+  // Parse the date and calculate week start (Monday) and end (Sunday)
+  const parts = dateStr.split('-').map(Number);
+  const y = parts[0] || new Date().getFullYear();
+  const m = parts[1] || 1;
+  const d = parts[2] || 1;
+  const date = new Date(y, m - 1, d);
+  const dayOfWeek = date.getDay(); // 0 = Sunday
+  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  
+  const weekStart = new Date(date);
+  weekStart.setDate(date.getDate() - daysToMonday);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  
+  const weekStartStr = formatDate(weekStart);
+  const weekEndStr = formatDate(weekEnd);
+
+  // Count completed workouts in this week
+  const { rows: completedRows } = await pool.query(
+    `SELECT COUNT(*)::int AS count FROM workout_completions 
+     WHERE profile_id = $1 
+     AND DATE(completed_at) >= $2 
+     AND DATE(completed_at) <= $3`,
+    [profileId, weekStartStr, weekEndStr]
+  );
+  const completed = completedRows[0]?.count ?? 0;
+
+  // Count scheduled trainings (days with training slots) in this week
+  // This counts unique days that have at least one training assigned in the selected calendar
+  const { rows: profileCalendarRows } = await pool.query(
+    `SELECT training_calendar_id_training_calendar FROM profiles_training_calendar 
+     WHERE profiles_id_profiles = $1 LIMIT 1`,
+    [profileId]
+  );
+  
+  const calendarId = profileCalendarRows[0]?.training_calendar_id_training_calendar;
+  let scheduled = 0;
+  
+  if (calendarId) {
+    // Get calendar info
+    const { rows: calRows } = await pool.query(
+      `SELECT calendar_type, num_weeks, order_start_date, created_at 
+       FROM training_calendar WHERE id_training_calendar = $1`,
+      [calendarId]
+    );
+    const calendar = calRows[0];
+    
+    if (calendar) {
+      const calType = calendar.calendar_type || 'order';
+      const { rows: itemRows } = await pool.query(
+        `SELECT * FROM training_calendar_trainings WHERE id_training_calendar = $1`,
+        [calendarId]
+      );
+      
+      // Count days in the week that have scheduled trainings
+      for (let d = 0; d < 7; d++) {
+        const dayDate = new Date(weekStart);
+        dayDate.setDate(weekStart.getDate() + d);
+        const checkDateStr = formatDate(dayDate);
+        
+        let hasTraining = false;
+        
+        if (calType === 'day') {
+          const numWeeks = calendar.num_weeks || 1;
+          const createdAt = calendar.created_at 
+            ? calendar.created_at.substring(0, 10)
+            : checkDateStr;
+          const dow = ((dayDate.getDay() + 6) % 7); // 0 = Monday
+          const totalDays = daysBetween(createdAt, checkDateStr);
+          const weekInRotation = totalDays >= 0
+            ? (Math.floor(totalDays / 7) % numWeeks) + 1
+            : ((numWeeks - (Math.floor(Math.abs(totalDays) / 7) % numWeeks)) % numWeeks) + 1;
+          
+          hasTraining = itemRows.some(
+            (it: any) => Number(it.day_of_week) === dow && Number(it.week_number) === weekInRotation
+          );
+        } else {
+          const rawStart = calendar.order_start_date;
+          const startDate = rawStart ? String(rawStart).substring(0, 10) : checkDateStr;
+          const uniqueOrders = [...new Set(itemRows.map((it: any) => Number(it.order)))].sort((a, b) => a - b);
+          const n = uniqueOrders.length || 1;
+          const totalDays = daysBetween(startDate, checkDateStr);
+          const cycleIdx = totalDays >= 0 ? totalDays % n : ((n - (Math.abs(totalDays) % n)) % n);
+          const targetOrder = uniqueOrders[cycleIdx];
+          
+          hasTraining = itemRows.some(
+            (it: any) => Number(it.order) === targetOrder && it.id_trainings
+          );
+        }
+        
+        if (hasTraining) scheduled++;
+      }
+    }
+  }
+  
+  const percent = scheduled > 0 ? (completed / scheduled) * 100 : 0;
+  
+  return { completed, scheduled, percent };
+}
+
+// Helper: Format date to YYYY-MM-DD string
+function formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Helper: Days between two YYYY-MM-DD dates
+function daysBetween(d1: string, d2: string): number {
+  const a = new Date(d1 + 'T00:00:00');
+  const b = new Date(d2 + 'T00:00:00');
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}

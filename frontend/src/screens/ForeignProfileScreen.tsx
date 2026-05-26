@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, ActivityIndicator, RefreshControl, View, Pressable, StyleSheet } from 'react-native';
+import { ScrollView, ActivityIndicator, RefreshControl, View, Pressable, StyleSheet, Share } from 'react-native';
 import { useNavigation, RouteProp, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getForeignProfile } from '../api/profile';
 import { checkFriendStatus, sendFriendRequest, unfriend } from '../api/friends';
+import { createConversation } from '../api/chatApi';
 import { Text } from '@/components/ui/text';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import ProfilePosts from '../components/ProfilePosts';
@@ -48,6 +49,7 @@ export default function ForeignProfileScreen() {
   const [badges, setBadges] = useState<any[]>([]);
   const [progress, setProgress] = useState<any | null>(null);
   const [clubMemberships, setClubMemberships] = useState<any[]>([]);
+  const [messagingLoading, setMessagingLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -127,6 +129,33 @@ export default function ForeignProfileScreen() {
     }
   };
 
+  const handleMessage = async () => {
+    if (!profile?.id_profiles) return;
+    setMessagingLoading(true);
+    try {
+      const conversation = await createConversation([profile.id_profiles], 0);
+      (navigation as any).navigate('ChatDetail', {
+        conversationId: conversation.id_conversations,
+        otherParticipantName: profile.display_name,
+        otherParticipantAvatar: profile.avatar_url,
+      });
+    } catch (error) {
+      console.error('Failed to create or open conversation:', error);
+    } finally {
+      setMessagingLoading(false);
+    }
+  };
+
+  const handleShareProfile = async () => {
+    if (!profile) return;
+    const displayName = profile.display_name || profile.username || 'an athlete';
+    try {
+      await Share.share({
+        message: `Check out ${displayName}'s profile on Sparr.`,
+      });
+    } catch {}
+  };
+
   if (loading) {
     return (
       <View style={[styles.root, styles.center]}>
@@ -156,11 +185,23 @@ export default function ForeignProfileScreen() {
       >
         {/* Header */}
         <View style={[styles.header, { paddingTop: (insets.top || 0) + 4 }]}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn}>
+          <Pressable
+  onPress={() => navigation.goBack()}
+  style={styles.iconBtn}
+  accessibilityRole="button"
+  accessibilityLabel="Back"
+  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+>
             <Ionicons name="chevron-back" size={20} color="#fff" />
           </Pressable>
           <Text style={styles.headerTitle}>Athlete Profile</Text>
-          <Pressable style={styles.iconBtn}>
+          <Pressable
+  style={styles.iconBtn}
+  onPress={handleShareProfile}
+  accessibilityLabel="Share profile"
+  accessibilityRole="button"
+  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+>
             <Ionicons name="share-social-outline" size={18} color="#fff" />
           </Pressable>
         </View>
@@ -207,7 +248,8 @@ export default function ForeignProfileScreen() {
             )}
             <Pressable
               style={styles.iconCircleBtn}
-              onPress={() => (navigation as any).navigate('ChatDetail', { conversationId: null, otherParticipantName: profile?.display_name })}
+              onPress={handleMessage}
+              disabled={messagingLoading}
               accessibilityLabel="Message"
             >
               <Ionicons name="chatbubble-outline" size={20} color={colors.text.secondary} />

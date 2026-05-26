@@ -62,7 +62,13 @@ export default function SettingsScreen() {
     <View style={styles.root}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         <View style={[styles.header, { paddingTop: (insets.top || 0) + 4 }]}>
-          <Pressable onPress={() => navigation.goBack()} style={styles.iconBtn}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={styles.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="chevron-back" size={20} color="#fff" />
           </Pressable>
           <Text style={styles.headerTitle}>Settings</Text>
@@ -112,6 +118,13 @@ export default function SettingsScreen() {
               <Text style={styles.actionText}>Create New Athlete Profile</Text>
               <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
             </Pressable>
+          </GlassCard>
+
+          <Text style={[styles.sectionTitle, { marginTop: 6 }]}>Club Profile</Text>
+          <Text style={styles.sectionSub}>
+            Create a club profile here. Manage club members and settings inside each club page.
+          </Text>
+          <GlassCard variant="default" radius={12} padding={0} style={styles.actionGroup}>
             <Pressable
               disabled={saving}
               onPress={() => navigation.navigate('CreateClubStepOne')}

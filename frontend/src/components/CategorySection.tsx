@@ -5,6 +5,7 @@ import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import ItemCard from './ItemCard';
 import { colors } from '../theme';
+import { DifficultyLevel } from './DifficultyBadge';
 
 interface Item {
   id_techniques?: number;
@@ -13,6 +14,7 @@ interface Item {
   title: string;
   description?: string;
   source_url?: string | null;
+  difficulty?: DifficultyLevel;
 }
 
 interface CategorySectionProps {
@@ -20,6 +22,8 @@ interface CategorySectionProps {
   items: Item[];
   itemType?: 'drill' | 'technique' | 'combination';
   onItemPress: (item: Item, categoryName: string) => void;
+  favorites?: Set<string>;
+  onFavoriteToggle?: (itemKey: string) => void;
 }
 
 export default function CategorySection({
@@ -27,6 +31,8 @@ export default function CategorySection({
   items,
   itemType,
   onItemPress,
+  favorites = new Set(),
+  onFavoriteToggle,
 }: CategorySectionProps) {
   return (
     <VStack className="mb-6">
@@ -42,6 +48,9 @@ export default function CategorySection({
         {items.map((item) => {
           const id = item.id_techniques || item.id_drills || item.id_combinations;
           const type = itemType || (item.id_drills ? 'drill' : item.id_techniques ? 'technique' : 'combination');
+          const itemKey = `${type}-${id}`;
+          const isFavorited = favorites.has(itemKey);
+
           return (
             <ItemCard
               key={id}
@@ -50,7 +59,10 @@ export default function CategorySection({
               source_url={item.source_url}
               itemType={type as 'drill' | 'technique' | 'combination'}
               itemId={id}
+              difficulty={item.difficulty}
+              isFavorited={isFavorited}
               onPress={() => onItemPress(item, categoryName)}
+              onFavoriteToggle={() => onFavoriteToggle?.(itemKey)}
             />
           );
         })}

@@ -8,7 +8,10 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "seed:progress-mock": "node scripts/seed-progress-mock-data.js"
+    "seed:progress-mock": "node scripts/seed-progress-mock-data.js",
+    "test:load:manifest": "node tests/load/endpoint-manifest.js --write",
+    "test:load": "node tests/load/load-runner.js --write-manifest",
+    "test:load:full": "powershell -ExecutionPolicy Bypass -File .\\test-load.ps1"
   },
   "keywords": [],
   "author": "",
@@ -22,7 +25,8 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "pg": "^8.16.3",
-    "redis": "^4.7.1"
+    "redis": "^4.7.1",
+    "@supabase/supabase-js": "^2.58.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

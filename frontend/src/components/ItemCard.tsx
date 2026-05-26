@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Image } from 'react-native';
+import { View, Image, StyleSheet } from 'react-native';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { VStack } from '@/components/ui/vstack';
 import { ServerIP } from '../api/tokenHandler';
 import { colors } from '../theme';
+import { DifficultyBadge, DifficultyLevel } from './DifficultyBadge';
+import { FavoriteButton } from './FavoriteButton';
+import { ContentTypeIndicator } from './ContentTypeIndicator';
 
 interface ItemCardProps {
   title: string;
@@ -13,7 +16,10 @@ interface ItemCardProps {
   source_url?: string | null;
   itemType?: 'drill' | 'technique' | 'combination';
   itemId?: number;
+  difficulty?: DifficultyLevel;
+  isFavorited?: boolean;
   onPress?: () => void;
+  onFavoriteToggle?: (isFavorited: boolean) => void;
 }
 
 export default function ItemCard({
@@ -22,7 +28,10 @@ export default function ItemCard({
   source_url,
   itemType,
   itemId,
+  difficulty,
+  isFavorited = false,
   onPress,
+  onFavoriteToggle,
 }: ItemCardProps) {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,11 +68,12 @@ export default function ItemCard({
     fetchPreviewUrl();
     */
   }, [itemType, itemId]);
+
   return (
     <Pressable onPress={onPress} className="flex-1 m-2 min-w-[45%]">
       <Box className="rounded-xl overflow-hidden border border-[#3a1d1d]" style={{ backgroundColor: '#341818' }}>
         {/* Image Container - Smaller */}
-        <View className="w-full aspect-video items-center justify-center" style={{ backgroundColor: '#2a1414' }}>
+        <View className="w-full aspect-video items-center justify-center relative" style={{ backgroundColor: '#2a1414' }}>
           {imageUri ? (
             <Image
               source={{ uri: imageUri }}
@@ -84,6 +94,21 @@ export default function ItemCard({
               </Text>
             </View>
           )}
+
+          {/* Badges Overlay */}
+          <View style={styles.badgesContainer}>
+            {itemType && <ContentTypeIndicator type={itemType} variant="compact" />}
+            {difficulty && <DifficultyBadge difficulty={difficulty} size="sm" />}
+          </View>
+
+          {/* Favorite Button Overlay */}
+          <View style={styles.favoriteContainer}>
+            <FavoriteButton
+              isFavorited={isFavorited}
+              onToggle={onFavoriteToggle}
+              size="md"
+            />
+          </View>
         </View>
 
         {/* Content */}
@@ -100,3 +125,18 @@ export default function ItemCard({
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  badgesContainer: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    flexDirection: 'column',
+    gap: 6,
+  },
+  favoriteContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+});

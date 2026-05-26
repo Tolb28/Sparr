@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, View, Pressable, StyleSheet, RefreshControl } from 'react-native';
+import { ScrollView, View, Pressable, StyleSheet, RefreshControl, Share } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -83,6 +83,15 @@ export default function ProfileScreen() {
     setRefreshing(false);
   };
 
+  const handleShareProfile = async () => {
+    const displayName = profile?.display_name || profile?.username || 'an athlete';
+    try {
+      await Share.share({
+        message: `Check out ${displayName}'s profile on Sparr.`,
+      });
+    } catch {}
+  };
+
   useEffect(() => { loadProfile(); }, []);
   useFocusEffect(React.useCallback(() => { loadProfile(); }, []));
 
@@ -143,7 +152,7 @@ export default function ProfileScreen() {
             <Ionicons name="settings-outline" size={18} color={colors.text.primary} />
           </Pressable>
           <Text style={styles.headerTitle}>Athlete Profile</Text>
-          <Pressable style={styles.iconBtn} accessibilityLabel="Share profile">
+          <Pressable style={styles.iconBtn} accessibilityLabel="Share profile" onPress={handleShareProfile}>
             <Ionicons name="share-social-outline" size={18} color={colors.text.primary} />
           </Pressable>
         </View>
@@ -314,23 +323,40 @@ export default function ProfileScreen() {
                 style={styles.emptyState}
               />
             ) : (
-              memberships.map((m: any) => (
-                <Pressable
-                  key={String(m.idclubs)}
-                  onPress={() => navigation.navigate('ClubProfile', { clubId: Number(m.idclubs) })}
-                >
-                  <GlassCard variant="medium" radius={14} padding={14} style={styles.clubCard}>
-                    <View style={styles.clubCardRow}>
-                      <View style={styles.clubDot} />
-                      <View style={styles.flex1}>
-                        <Text style={styles.clubTitle}>{m.role_title || 'Member'} · {m.title}</Text>
-                        {!!m.location && <Text style={styles.clubLocation}>{m.location}</Text>}
+              memberships.map((m: any) => {
+                const role = String(m.role_title || 'member').toLowerCase();
+                const canManageClub = role === 'owner' || role === 'admin';
+                return (
+                  <Pressable
+                    key={String(m.idclubs)}
+                    onPress={() => navigation.navigate('ClubProfile', { clubId: Number(m.idclubs) })}
+                  >
+                    <GlassCard variant="medium" radius={14} padding={14} style={styles.clubCard}>
+                      <View style={styles.clubCardRow}>
+                        <View style={styles.clubDot} />
+                        <View style={styles.flex1}>
+                          <Text style={styles.clubTitle}>{m.role_title || 'Member'} · {m.title}</Text>
+                          {!!m.location && <Text style={styles.clubLocation}>{m.location}</Text>}
+                        </View>
+                        {canManageClub ? (
+                          <Pressable
+                            style={styles.manageClubBtn}
+                            onPress={(e: any) => {
+                              e?.stopPropagation?.();
+                              navigation.navigate('ManageClub', { clubId: Number(m.idclubs) });
+                            }}
+                          >
+                            <Ionicons name="settings-outline" size={13} color={colors.primary.main} />
+                            <Text style={styles.manageClubBtnText}>Manage</Text>
+                          </Pressable>
+                        ) : (
+                          <Ionicons name="chevron-forward" size={14} color={colors.text.tertiary} />
+                        )}
                       </View>
-                      <Ionicons name="chevron-forward" size={14} color={colors.text.tertiary} />
-                    </View>
-                  </GlassCard>
-                </Pressable>
-              ))
+                    </GlassCard>
+                  </Pressable>
+                );
+              })
             )}
           </View>
         )}
@@ -467,6 +493,18 @@ const styles = StyleSheet.create({
   flex1: { flex: 1 },
   clubTitle: { color: colors.text.primary, fontSize: 13, fontWeight: '600' },
   clubLocation: { color: colors.text.tertiary, fontSize: 11, marginTop: 2 },
+  manageClubBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.glass.redBorder,
+    backgroundColor: colors.glass.redSurface,
+  },
+  manageClubBtnText: { color: colors.primary.main, fontSize: 12, fontWeight: '700' },
   aboutText: { color: colors.text.secondary, fontSize: 14, lineHeight: 20 },
   loadingHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',

@@ -118,6 +118,24 @@ CREATE TABLE public.comments (
   CONSTRAINT comments_posts_id_posts_fkey FOREIGN KEY (posts_id_posts) REFERENCES public.posts(id_posts),
   CONSTRAINT comments_id_profile_fkey FOREIGN KEY (id_profile) REFERENCES public.profiles(id_profiles)
 );
+CREATE TABLE public.content_personalization_rules (
+  id_content_personalization_rules bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  content_type character varying NOT NULL CHECK (content_type::text = ANY (ARRAY['technique'::character varying, 'drill'::character varying, 'combination'::character varying]::text[])),
+  content_id integer NOT NULL,
+  boxing_style_id integer,
+  weight_class_id integer,
+  min_height_cm integer,
+  max_height_cm integer,
+  min_experience_level character varying CHECK (min_experience_level IS NULL OR (min_experience_level::text = ANY (ARRAY['beginner'::character varying, 'intermediate'::character varying, 'advanced'::character varying]::text[]))),
+  max_experience_level character varying CHECK (max_experience_level IS NULL OR (max_experience_level::text = ANY (ARRAY['beginner'::character varying, 'intermediate'::character varying, 'advanced'::character varying]::text[]))),
+  boost_score integer NOT NULL DEFAULT 10,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp without time zone NOT NULL DEFAULT now(),
+  updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  CONSTRAINT content_personalization_rules_pkey PRIMARY KEY (id_content_personalization_rules),
+  CONSTRAINT content_personalization_rules_boxing_style_fkey FOREIGN KEY (boxing_style_id) REFERENCES public.boxing_style(id_boxing_style),
+  CONSTRAINT content_personalization_rules_weight_class_fkey FOREIGN KEY (weight_class_id) REFERENCES public.weight_class(id_weight_class)
+);
 CREATE TABLE public.conversations (
   id_conversations integer NOT NULL DEFAULT nextval('conversations_id_conversations_seq'::regclass),
   is_group smallint,
@@ -215,6 +233,8 @@ CREATE TABLE public.profile_progress_snapshots (
   score integer NOT NULL DEFAULT 0,
   created_at timestamp without time zone NOT NULL DEFAULT now(),
   updated_at timestamp without time zone NOT NULL DEFAULT now(),
+  skill_level integer NOT NULL DEFAULT 0,
+  intensity_score integer NOT NULL DEFAULT 0,
   CONSTRAINT profile_progress_snapshots_pkey PRIMARY KEY (id_profile_progress_snapshots),
   CONSTRAINT profile_progress_snapshots_profile_id_fkey FOREIGN KEY (profile_id) REFERENCES public.profiles(id_profiles)
 );
@@ -231,6 +251,8 @@ CREATE TABLE public.profiles (
   updated_at timestamp without time zone DEFAULT now(),
   user_id uuid NOT NULL,
   is_club_profile boolean NOT NULL DEFAULT false,
+  experience_level character varying CHECK (experience_level IS NULL OR (experience_level::text = ANY (ARRAY['beginner'::character varying, 'intermediate'::character varying, 'advanced'::character varying]::text[]))),
+  height_cm integer CHECK (height_cm IS NULL OR height_cm >= 120 AND height_cm <= 240),
   CONSTRAINT profiles_pkey PRIMARY KEY (id_profiles),
   CONSTRAINT profiles_weight_class_id_weight_class_fkey FOREIGN KEY (weight_class_id_weight_class) REFERENCES public.weight_class(id_weight_class),
   CONSTRAINT fk_profiles_user FOREIGN KEY (user_id) REFERENCES public.users(id),

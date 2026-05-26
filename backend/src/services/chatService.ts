@@ -355,8 +355,9 @@ export const getConversationParticipants = async (
   const query = `
     SELECT
       p.id_profiles,
-      p.display_name as name,
+      p.display_name,
       p.avatar,
+      p.updated_at,
       cp.joined_at,
       cp.id_last_read
     FROM conversations_profiles cp
@@ -365,5 +366,10 @@ export const getConversationParticipants = async (
   `;
 
   const { rows } = await pool.query(query, [conversationId]);
-  return rows;
+  
+  // Generate avatar URLs for each participant
+  return rows.map(row => ({
+    ...row,
+    avatar_url: row.avatar ? cloudinaryService.generateAvatarUrl(row.avatar, row.updated_at) : null
+  }));
 };
