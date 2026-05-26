@@ -1,0 +1,13 @@
+{
+  "name": "Mass Testing Scenarios",
+  "scenarios": [
+    "integration.json",
+    "skill-level.json",
+    "intensity-score.json",
+    "caching.json",
+    "security.json",
+    "isolation.json",
+    "edge-cases.json",
+    "badge-integration.json"
+  ]
+}

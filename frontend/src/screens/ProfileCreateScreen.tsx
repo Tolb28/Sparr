@@ -6,6 +6,9 @@ import {
   Pressable,
   Modal,
   FlatList,
+  View,
+  TextInput,
+  StyleSheet,
 } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
@@ -14,18 +17,16 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { createProfile } from '../api/profile';
 import { getProfileReferences } from '../api/references';
 
-import { Box } from '@/components/ui/box';
-import { VStack } from '@/components/ui/vstack';
-import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
-import { Input, InputField } from '@/components/ui/input';
-import { Button, ButtonText } from '@/components/ui/button';
 import {
   Avatar,
   AvatarFallbackText,
   AvatarImage,
 } from '@/components/ui/avatar';
-import { ChevronDownIcon } from '@/components/ui/icon';
+import { GlassCard } from '@/components/ui/glass-card';
+import { SparrButton } from '@/components/ui/sparr-button';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { colors } from '@/src/theme/colors';
 
 interface ProfileForm {
   display_name?: string;
@@ -34,12 +35,22 @@ interface ProfileForm {
   bio?: string;
   id_weight_class?: number | null;
   id_boxing_style?: number | null;
+  experience_level?: 'beginner' | 'intermediate' | 'advanced' | null;
+  height_cm?: number | null;
   avatar?: string | null; // preview URI
 }
+
+const EXPERIENCE_LEVELS = [
+  { value: null, label: 'None' },
+  { value: 'beginner', label: 'Beginner' },
+  { value: 'intermediate', label: 'Intermediate' },
+  { value: 'advanced', label: 'Advanced' },
+] as const;
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CreateProfile'>;
 
 export default function ProfileCreateScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const [form, setForm] = useState<ProfileForm>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -50,8 +61,10 @@ export default function ProfileCreateScreen({ navigation }: Props) {
 
   const [selectedWeightClassTitle, setSelectedWeightClassTitle] = useState<string | null>(null);
   const [selectedBoxingStyleTitle, setSelectedBoxingStyleTitle] = useState<string | null>(null);
+  const [selectedExperienceTitle, setSelectedExperienceTitle] = useState<string | null>(null);
   const [weightDropdownOpen, setWeightDropdownOpen] = useState(false);
   const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
+  const [experienceDropdownOpen, setExperienceDropdownOpen] = useState(false);
 
   const [avatarFile, setAvatarFile] = useState<null | {
     uri: string;
@@ -131,6 +144,10 @@ export default function ProfileCreateScreen({ navigation }: Props) {
         fd.append('id_weight_class', String(form.id_weight_class));
       if (form.id_boxing_style != null)
         fd.append('id_boxing_style', String(form.id_boxing_style));
+      if (form.experience_level != null)
+        fd.append('experience_level', String(form.experience_level));
+      if (form.height_cm != null)
+        fd.append('height_cm', String(form.height_cm));
 
       if (avatarFile) {
         // React Native FormData expects a file object with uri, name, and type
@@ -155,188 +172,236 @@ export default function ProfileCreateScreen({ navigation }: Props) {
 
   if (loading) {
     return (
-      <Box className="flex-1 justify-center items-center bg-white">
-        <ActivityIndicator size="large" />
-      </Box>
+      <View style={[styles.root, styles.center]}>
+        <ActivityIndicator size="large" color={colors.primary.main} />
+      </View>
     );
   }
 
   return (
-    <Box className="flex-1 bg-white">
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className='pt-5'>
-        <VStack className="p-5 gap-4">
-          {/* Avatar Picker */}
-          <HStack className="justify-center">
-            <Pressable onPress={pickImage}>
-              <Avatar size="xl" className="bg-indigo-600">
-                <AvatarFallbackText className="text-white text-xl">
-                  +
-                </AvatarFallbackText>
+    <View style={styles.root}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 100, paddingTop: (insets.top || 0) + 8 }}>
+        <View style={styles.body}>
+          <Text style={styles.pageTitle}>Create Profile</Text>
+          <Text style={styles.pageSub}>Set up your athlete identity</Text>
+
+          {/* Avatar */}
+          <View style={styles.avatarCenter}>
+            <Pressable onPress={pickImage} style={styles.avatarWrap}>
+              <Avatar size="xl">
+                <AvatarFallbackText>+</AvatarFallbackText>
                 <AvatarImage source={{ uri: form.avatar || undefined }} />
               </Avatar>
+              <View style={styles.cameraOverlay}>
+                <Text style={styles.cameraIcon}>📷</Text>
+              </View>
             </Pressable>
-          </HStack>
+            <Text style={styles.avatarHint}>Tap to add photo</Text>
+          </View>
 
-          <Text className="text-center text-gray-500 text-sm">
-            Tap to change photo
-          </Text>
-
-          {error && (
-            <Box className="bg-red-100 p-3 rounded">
-              <Text className="text-red-600">{error}</Text>
-            </Box>
+          {!!error && (
+            <GlassCard variant="red" radius={10} padding={12}>
+              <Text style={styles.errorText}>{error}</Text>
+            </GlassCard>
           )}
 
-          <VStack className="gap-3">
-            <Input>
-              <InputField
-                placeholder="Display name"
-                value={form.display_name ?? ''}
-                onChangeText={(t) =>
-                  setForm({ ...form, display_name: t })
-                }
-              />
-            </Input>
+          {/* Basic info */}
+          <GlassCard variant="medium" radius={14} padding={16}>
+            <Text style={styles.label}>Display Name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Display name"
+              value={form.display_name ?? ''}
+              onChangeText={(t) => setForm({ ...form, display_name: t })}
+              placeholderTextColor={colors.text.tertiary}
+            />
 
-            <Input>
-              <InputField
-                placeholder="Username"
-                value={form.username ?? ''}
-                onChangeText={(t) =>
-                  setForm({ ...form, username: t })
-                }
-              />
-            </Input>
+            <Text style={[styles.label, { marginTop: 14 }]}>Username</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              value={form.username ?? ''}
+              onChangeText={(t) => setForm({ ...form, username: t })}
+              placeholderTextColor={colors.text.tertiary}
+              autoCapitalize="none"
+            />
 
-            <Input>
-              <InputField
-                placeholder="Location"
-                value={form.location ?? ''}
-                onChangeText={(t) =>
-                  setForm({ ...form, location: t })
-                }
-              />
-            </Input>
+            <Text style={[styles.label, { marginTop: 14 }]}>Location</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Location"
+              value={form.location ?? ''}
+              onChangeText={(t) => setForm({ ...form, location: t })}
+              placeholderTextColor={colors.text.tertiary}
+            />
 
-            <VStack className="gap-1">
-              <Text className="font-semibold text-gray-700">Weight Class</Text>
-              <Pressable
-                className="border border-gray-300 rounded px-4 py-2.5 flex-row items-center justify-between active:bg-gray-50"
-                onPress={() => setWeightDropdownOpen(true)}
-              >
-                <Text className="text-gray-700">{selectedWeightClassTitle || 'Weight class'}</Text>
-              </Pressable>
+            <Text style={[styles.label, { marginTop: 14 }]}>Bio</Text>
+            <TextInput
+              style={[styles.input, styles.inputMultiline]}
+              placeholder="Bio"
+              multiline
+              numberOfLines={4}
+              value={form.bio ?? ''}
+              onChangeText={(t) => setForm({ ...form, bio: t })}
+              placeholderTextColor={colors.text.tertiary}
+            />
+          </GlassCard>
 
-              <Modal
-                visible={weightDropdownOpen}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setWeightDropdownOpen(false)}
-              >
-                <Pressable
-                  className="flex-1"
-                  onPress={() => setWeightDropdownOpen(false)}
-                >
-                  <VStack className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-96 overflow-hidden">
-                    <VStack className="p-4 border-b border-gray-200">
-                      <Text className="text-lg font-semibold text-gray-900">Select Weight Class</Text>
-                    </VStack>
-                    <FlatList
-                      data={[{ id_weight_class: null, title_weight: 'None' }, ...weightClasses]}
-                      keyExtractor={(item) => String(item.id_weight_class)}
-                      scrollEnabled={true}
-                      renderItem={({ item }) => (
-                        <Pressable
-                          className="px-4 py-3 border-b border-gray-100 active:bg-gray-50"
-                          onPress={() => {
-                            setSelectedWeightClassTitle(item.title_weight);
-                            setForm({
-                              ...form,
-                              id_weight_class: item.id_weight_class,
-                            });
-                            setWeightDropdownOpen(false);
-                          }}
-                        >
-                          <Text className="text-gray-900">{item.title_weight}</Text>
-                        </Pressable>
-                      )}
-                    />
-                  </VStack>
-                </Pressable>
-              </Modal>
-            </VStack>
+          {/* Weight class + boxing style */}
+          <GlassCard variant="medium" radius={14} padding={16}>
+            <Text style={styles.label}>Weight Class</Text>
+            <Pressable style={styles.select} onPress={() => setWeightDropdownOpen(true)}>
+              <Text style={{ color: selectedWeightClassTitle ? colors.text.primary : colors.text.tertiary, fontSize: 14 }}>
+                {selectedWeightClassTitle || '— select weight class —'}
+              </Text>
+            </Pressable>
 
-            <VStack className="gap-1">
-              <Text className="font-semibold text-gray-700">Boxing Style</Text>
-              <Pressable
-                className="border border-gray-300 rounded px-4 py-2.5 flex-row items-center justify-between active:bg-gray-50"
-                onPress={() => setStyleDropdownOpen(true)}
-              >
-                <Text className="text-gray-700">{selectedBoxingStyleTitle || 'Boxing style'}</Text>
-              </Pressable>
+            <Text style={[styles.label, { marginTop: 14 }]}>Boxing Style</Text>
+            <Pressable style={styles.select} onPress={() => setStyleDropdownOpen(true)}>
+              <Text style={{ color: selectedBoxingStyleTitle ? colors.text.primary : colors.text.tertiary, fontSize: 14 }}>
+                {selectedBoxingStyleTitle || '— select boxing style —'}
+              </Text>
+            </Pressable>
 
-              <Modal
-                visible={styleDropdownOpen}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setStyleDropdownOpen(false)}
-              >
-                <Pressable
-                  className="flex-1"
-                  onPress={() => setStyleDropdownOpen(false)}
-                >
-                  <VStack className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-96 overflow-hidden">
-                    <VStack className="p-4 border-b border-gray-200">
-                      <Text className="text-lg font-semibold text-gray-900">Select Boxing Style</Text>
-                    </VStack>
-                    <FlatList
-                      data={[{ id_boxing_style: null, title_style: 'None' }, ...boxingStyles]}
-                      keyExtractor={(item) => String(item.id_boxing_style)}
-                      scrollEnabled={true}
-                      renderItem={({ item }) => (
-                        <Pressable
-                          className="px-4 py-3 border-b border-gray-100 active:bg-gray-50"
-                          onPress={() => {
-                            setSelectedBoxingStyleTitle(item.title_style);
-                            setForm({
-                              ...form,
-                              id_boxing_style: item.id_boxing_style,
-                            });
-                            setStyleDropdownOpen(false);
-                          }}
-                        >
-                          <Text className="text-gray-900">{item.title_style}</Text>
-                        </Pressable>
-                      )}
-                    />
-                  </VStack>
-                </Pressable>
-              </Modal>
-            </VStack>
+            <Text style={[styles.label, { marginTop: 14 }]}>Experience Level</Text>
+            <Pressable style={styles.select} onPress={() => setExperienceDropdownOpen(true)}>
+              <Text style={{ color: selectedExperienceTitle ? colors.text.primary : colors.text.tertiary, fontSize: 14 }}>
+                {selectedExperienceTitle || '— select experience level —'}
+              </Text>
+            </Pressable>
 
-            <Input className="h-32">
-              <InputField
-                placeholder="Bio"
-                multiline
-                numberOfLines={4}
-                value={form.bio ?? ''}
-                onChangeText={(t) => setForm({ ...form, bio: t })}
-              />
-            </Input>
-          </VStack>
+            <Text style={[styles.label, { marginTop: 14 }]}>Height (cm)</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="number-pad"
+              placeholder="e.g. 178"
+              value={form.height_cm != null ? String(form.height_cm) : ''}
+              onChangeText={(t) => {
+                const onlyDigits = t.replace(/[^0-9]/g, '');
+                setForm({ ...form, height_cm: onlyDigits ? Number(onlyDigits) : null });
+              }}
+              placeholderTextColor={colors.text.tertiary}
+            />
+          </GlassCard>
 
-          <Button
+          {/* Modals */}
+          <Modal visible={weightDropdownOpen} transparent animationType="slide" onRequestClose={() => setWeightDropdownOpen(false)}>
+            <Pressable style={styles.modalOverlay} onPress={() => setWeightDropdownOpen(false)}>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Weight Class</Text>
+                </View>
+                <FlatList
+                  data={[{ id_weight_class: null, title_weight: 'None' }, ...weightClasses]}
+                  keyExtractor={(item) => String(item.id_weight_class)}
+                  renderItem={({ item }) => (
+                    <Pressable style={styles.modalItem} onPress={() => {
+                      setSelectedWeightClassTitle(item.title_weight);
+                      setForm({ ...form, id_weight_class: item.id_weight_class });
+                      setWeightDropdownOpen(false);
+                    }}>
+                      <Text style={styles.modalItemText}>{item.title_weight}</Text>
+                    </Pressable>
+                  )}
+                />
+              </View>
+            </Pressable>
+          </Modal>
+
+          <Modal visible={styleDropdownOpen} transparent animationType="slide" onRequestClose={() => setStyleDropdownOpen(false)}>
+            <Pressable style={styles.modalOverlay} onPress={() => setStyleDropdownOpen(false)}>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Boxing Style</Text>
+                </View>
+                <FlatList
+                  data={[{ id_boxing_style: null, title_style: 'None' }, ...boxingStyles]}
+                  keyExtractor={(item) => String(item.id_boxing_style)}
+                  renderItem={({ item }) => (
+                    <Pressable style={styles.modalItem} onPress={() => {
+                      setSelectedBoxingStyleTitle(item.title_style);
+                      setForm({ ...form, id_boxing_style: item.id_boxing_style });
+                      setStyleDropdownOpen(false);
+                    }}>
+                      <Text style={styles.modalItemText}>{item.title_style}</Text>
+                    </Pressable>
+                  )}
+                />
+              </View>
+            </Pressable>
+          </Modal>
+
+          <Modal visible={experienceDropdownOpen} transparent animationType="slide" onRequestClose={() => setExperienceDropdownOpen(false)}>
+            <Pressable style={styles.modalOverlay} onPress={() => setExperienceDropdownOpen(false)}>
+              <View style={styles.modalSheet}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Select Experience Level</Text>
+                </View>
+                <FlatList
+                  data={EXPERIENCE_LEVELS}
+                  keyExtractor={(item) => String(item.value ?? 'none')}
+                  renderItem={({ item }) => (
+                    <Pressable style={styles.modalItem} onPress={() => {
+                      setSelectedExperienceTitle(item.label);
+                      setForm({ ...form, experience_level: item.value });
+                      setExperienceDropdownOpen(false);
+                    }}>
+                      <Text style={styles.modalItemText}>{item.label}</Text>
+                    </Pressable>
+                  )}
+                />
+              </View>
+            </Pressable>
+          </Modal>
+
+          <SparrButton
+            label={saving ? 'Creating...' : 'Create Profile'}
+            variant="primary"
+            loading={saving}
             onPress={handleCreate}
-            disabled={saving}
-            variant="outline"
-            className="mt-6"
-          >
-            <ButtonText>
-              {saving ? 'Creating...' : 'Create Profile'}
-            </ButtonText>
-          </Button>
-        </VStack>
+            fullWidth
+          />
+        </View>
       </ScrollView>
-    </Box>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background.secondary },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  body: { padding: 16, gap: 14 },
+  pageTitle: { color: colors.text.primary, fontSize: 22, fontWeight: '800', textAlign: 'center' },
+  pageSub: { color: colors.text.secondary, fontSize: 13, textAlign: 'center', marginTop: -6 },
+  avatarCenter: { alignItems: 'center', gap: 6, marginVertical: 8 },
+  avatarWrap: { position: 'relative' },
+  cameraOverlay: {
+    position: 'absolute', bottom: 4, right: 4,
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: colors.primary.main, alignItems: 'center', justifyContent: 'center',
+  },
+  cameraIcon: { fontSize: 12 },
+  avatarHint: { color: colors.text.tertiary, fontSize: 12 },
+  errorText: { color: '#ffb3b3', fontSize: 13 },
+  label: { color: colors.text.secondary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' },
+  input: {
+    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
+    borderColor: colors.glass.border, color: colors.text.primary,
+    paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
+  },
+  inputMultiline: { height: 88, textAlignVertical: 'top', paddingTop: 10 },
+  select: {
+    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
+    borderColor: colors.glass.border, paddingHorizontal: 12, paddingVertical: 12,
+  },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: colors.background.secondary, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: 400, overflow: 'hidden',
+    borderTopWidth: 1, borderColor: colors.glass.border,
+  },
+  modalHeader: { padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border.light },
+  modalTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  modalItem: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border.light },
+  modalItemText: { color: colors.text.primary, fontSize: 14 },
+});

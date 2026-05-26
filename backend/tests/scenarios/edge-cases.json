@@ -1,0 +1,33 @@
+{
+  "name": "Edge Case & Boundary Tests",
+  "tests": [
+    {
+      "name": "Zero workouts handled",
+      "verify": "no division errors, metrics = 0"
+    },
+    {
+      "name": "Zero interactions handled",
+      "verify": "interactions_count = 0"
+    },
+    {
+      "name": "Max streak capped",
+      "verify": "streak_days <= 100"
+    },
+    {
+      "name": "Empty snapshots included",
+      "verify": "snapshots array includes dates with 0 metrics"
+    },
+    {
+      "name": "Decimal precision",
+      "verify": "total_hours correctly computed from duration_seconds (no rounding errors)"
+    },
+    {
+      "name": "Negative values rejected",
+      "verify": "all metrics >= 0"
+    },
+    {
+      "name": "Large numbers handled",
+      "verify": "1000+ workouts don't overflow"
+    }
+  ]
+}

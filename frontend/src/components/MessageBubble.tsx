@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { HStack } from '@/components/ui/hstack';
@@ -11,12 +11,14 @@ interface MessageBubbleProps {
   message: Message;
   isMe: boolean;
   currentUserId: number;
+  onSenderPress?: () => void;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,
   isMe,
   currentUserId,
+  onSenderPress,
 }) => {
   const getInitials = (name: string | undefined) => {
     if (!name) return '?';
@@ -44,18 +46,20 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
       }`}
     >
       {!isMe && (
-        <Avatar size="sm">
-          {message.senderAvatar ? (
-            <AvatarImage
-              source={{ uri: message.senderAvatar }}
-              alt={message.senderName}
-            />
-          ) : (
-            <AvatarFallbackText>
-              {getInitials(message.senderName)}
-            </AvatarFallbackText>
-          )}
-        </Avatar>
+        <Pressable onPress={onSenderPress} disabled={!onSenderPress}>
+          <Avatar size="sm">
+            {message.senderAvatar ? (
+              <AvatarImage
+                source={{ uri: message.senderAvatar }}
+                alt={message.senderName}
+              />
+            ) : (
+              <AvatarFallbackText>
+                {getInitials(message.senderName)}
+              </AvatarFallbackText>
+            )}
+          </Avatar>
+        </Pressable>
       )}
 
       <VStack
@@ -65,7 +69,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         }`}
       >
         {!isMe && (
-          <Text size="xs" className="text-gray-600 px-3">
+          <Text size="xs" className="text-[#cb9090] px-3">
             {message.senderName}
           </Text>
         )}
@@ -73,20 +77,22 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         <Box
           className={`px-4 py-2 rounded-2xl ${
             isMe
-              ? 'bg-blue-500 rounded-br-none'
-              : 'bg-gray-200 rounded-bl-none'
+              ? 'bg-primary-500 rounded-br-none'
+              : 'rounded-bl-none'
           }`}
+          style={!isMe ? { backgroundColor: '#2a2a2a' } : undefined}
         >
           <Text
             className={`${
               isMe ? 'text-white' : 'text-gray-900'
             }`}
+            style={!isMe ? { color: '#ffffff' } : undefined}
           >
             {message.content}
           </Text>
         </Box>
 
-        <Text size="xs" className="text-gray-500 px-3">
+        <Text size="xs" className="text-[#8f6d6d] px-3">
           {formatTime(message.created_at)}
           {message.edited_at && ' (edited)'}
         </Text>

@@ -1,25 +1,32 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { FlatList, View, Text, Pressable, ActivityIndicator } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
+import { FlatList, View, Text, Pressable, ActivityIndicator, TextInput, StyleSheet } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useRoute, RouteProp } from '@react-navigation/native';
-import { Box } from '@/components/ui/box';
-import { HStack } from '@/components/ui/hstack';
-import { VStack } from '@/components/ui/vstack';
-import { Input, InputField, InputSlot } from '@/components/ui/input';
 import { Ionicons } from '@expo/vector-icons';
 import { getFriends, getPendingRequests, acceptFriendRequest, declineFriendRequest } from '../api/friends';
 import Friend from '../components/Friend';
 import FriendRequest from '../components/FriendRequest';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { fetchConversations } from '../api/chatApi';
+import { ConversationPreview } from '../types/chat';
+import ChatListItem from '../components/ChatListItem';
+import { TabBar } from '@/components/ui/tab-bar';
+import { EmptyState } from '@/components/ui/empty-state';
+import { colors } from '@/src/theme/colors';
 
 export default function FriendsScreen() {
+  const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const route = useRoute<RouteProp<any>>();
-  const initialTab = (route.params?.activeTab as 'friends' | 'requests') || 'friends';
-  const [activeTab, setActiveTab] = useState<'friends' | 'requests'>(initialTab);
+  const initialTab = (route.params?.activeTab as 'friends' | 'requests' | 'chats') || 'friends';
+  const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'chats'>(initialTab);
   const [query, setQuery] = useState('');
   const [friends, setFriends] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<ConversationPreview[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(false);
 
   const loadFriends = useCallback(async () => {
     setLoadingFriends(true);
@@ -49,11 +56,25 @@ export default function FriendsScreen() {
     }
   }, []);
 
+  const loadConversations = useCallback(async () => {
+    setLoadingConversations(true);
+    try {
+      const data = await fetchConversations();
+      setConversations(data || []);
+    } catch (err) {
+      console.error('Failed to load conversations', err);
+      setConversations([]);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       loadFriends();
       loadRequests();
-    }, [loadFriends, loadRequests])
+      loadConversations();
+    }, [loadFriends, loadRequests, loadConversations])
   );
 
   const handleAccept = async (friendRequestId: number, profiles_id_profiles: number) => {
@@ -89,6 +110,15 @@ export default function FriendsScreen() {
     return (f.display_name || '').toLowerCase().includes(q) || (f.username || '').toLowerCase().includes(q);
   });
 
+  const filteredConversations = conversations.filter((conversation) => {
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return (
+      conversation.otherParticipantName?.toLowerCase().includes(q) ||
+      conversation.lastMessage?.toLowerCase().includes(q)
+    );
+  });
+
   const renderFriendsTab = () => (
     <FlatList
       data={filteredFriends}
@@ -97,7 +127,7 @@ export default function FriendsScreen() {
       contentContainerStyle={{ paddingBottom: 110, paddingTop: 8 }}
       ListEmptyComponent={() => (
         <View style={{ padding: 20 }}>
-          <Text style={{ textAlign: 'center', color: '#666' }}>{loadingFriends ? 'Loading...' : 'No friends found'}</Text>
+          <Text style={{ textAlign: 'center', color: '#cb9090' }}>{loadingFriends ? 'Loading...' : 'No friends found'}</Text>
         </View>
       )}
     />
@@ -117,64 +147,126 @@ export default function FriendsScreen() {
       contentContainerStyle={{ paddingBottom: 110, paddingTop: 8 }}
       ListEmptyComponent={() => (
         <View style={{ padding: 20 }}>
-          <Text style={{ textAlign: 'center', color: '#666' }}>{loadingRequests ? 'Loading...' : 'No pending friend requests'}</Text>
+          <Text style={{ textAlign: 'center', color: '#cb9090' }}>{loadingRequests ? 'Loading...' : 'No pending friend requests'}</Text>
         </View>
       )}
     />
   );
 
-  return (
-    <Box className="flex-1 bg-gray-100 py-4">
-      {/* Tab Navigation */}
+  const renderChatsTab = () => (
+    <FlatList
+      data={filteredConversations}
+      keyExtractor={(item) => String(item.id_conversations)}
+      renderItem={({ item }) => <ChatListItem conversation={item} />}
+      contentContainerStyle={{ paddingBottom: 110, paddingTop: 8 }}
+      ListEmptyComponent={() => (
+        <View style={{ padding: 20 }}>
+          <Text style={{ textAlign: 'center', color: '#cb9090' }}>{loadingConversations ? 'Loading...' : 'No conversations yet'}</Text>
+        </View>
+      )}
+    />
+  );
 
-      {/* Search Input */}
-      <HStack className="items-center px-3 mb-4 gap-2 pt-10">
-        <Input variant="outline" className="flex-1 border border-gray-300 rounded-lg p-1 bg-transparent">
-          <InputField
-            className="p-0"
-            placeholder="Search friends..."
+  const FRIENDS_TABS = [
+    { key: 'friends', label: 'Friends' },
+    { key: 'chats', label: 'Chats' },
+    { key: 'requests', label: `Requests${requests.length > 0 ? ` (${requests.length})` : ''}` },
+  ];
+
+  return (
+    <View style={[styles.root, { paddingTop: (insets.top || 0) + 10 }]}>
+      {/* Search + new conversation */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={18} color={colors.text.tertiary} />
+          <TextInput
+            placeholder={activeTab === 'chats' ? 'Search conversations...' : 'Search friends...'}
+            placeholderTextColor={colors.text.tertiary}
             value={query}
             onChangeText={setQuery}
+            style={styles.searchInput}
           />
-          <InputSlot>
-            <Ionicons name="search-outline" size={20} color="#6B7280" />
-          </InputSlot>
-        </Input>
-      </HStack>
+        </View>
+        {activeTab === 'chats' && (
+          <Pressable
+            style={styles.newChatBtn}
+            onPress={() => navigation.navigate('NewConversation' as never)}
+          >
+            <Ionicons name="create-outline" size={20} color={colors.primary.main} />
+          </Pressable>
+        )}
+      </View>
 
-      <HStack className="mx-3 mb-4 gap-2 bg-white rounded-lg p-1 shadow-sm">
-        <Pressable
-          onPress={() => setActiveTab('friends')}
-          className={`flex-1 py-3 px-4 rounded-md ${
-            activeTab === 'friends' ? 'bg-blue-500' : 'bg-transparent'
-          }`}
-        >
-          <Text
-            className={`text-center font-bold ${
-              activeTab === 'friends' ? 'text-white' : 'text-gray-700'
-            }`}
-          >
-            Friends
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setActiveTab('requests')}
-          className={`flex-1 py-3 px-4 rounded-md ${
-            activeTab === 'requests' ? 'bg-blue-500' : 'bg-transparent'
-          }`}
-        >
-          <Text
-            className={`text-center font-bold ${
-              activeTab === 'requests' ? 'text-white' : 'text-gray-700'
-            }`}
-          >
-            Requests ({requests.length})
-          </Text>
-        </Pressable>
-      </HStack>
-      {/* Tab Content */}
-      {activeTab === 'friends' && renderFriendsTab()}
-      {activeTab === 'requests' && renderRequestsTab()}
-    </Box>
+      {/* Tab bar */}
+      <View style={styles.tabBarWrapper}>
+        <TabBar
+          tabs={FRIENDS_TABS}
+          activeTab={activeTab}
+          onTabChange={(t) => setActiveTab(t as 'friends' | 'requests' | 'chats')}
+        />
+      </View>
+
+      {/* Content */}
+      {activeTab === 'friends' && (
+        <FlatList
+          data={filteredFriends}
+          keyExtractor={(item) => String(item.id_profiles)}
+          renderItem={({ item }) => <Friend friend={item} />}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            loadingFriends
+              ? <ActivityIndicator color={colors.primary.main} style={{ marginTop: 40 }} />
+              : <EmptyState icon="people-outline" title="No friends yet" subtitle="Find boxers to connect with in Discovery" style={styles.emptyState} />
+          }
+        />
+      )}
+      {activeTab === 'chats' && (
+        <FlatList
+          data={filteredConversations}
+          keyExtractor={(item) => String(item.id_conversations)}
+          renderItem={({ item }) => <ChatListItem conversation={item} />}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            loadingConversations
+              ? <ActivityIndicator color={colors.primary.main} style={{ marginTop: 40 }} />
+              : <EmptyState icon="chatbubbles-outline" title="No conversations yet" subtitle="Message a friend to start chatting" style={styles.emptyState} />
+          }
+        />
+      )}
+      {activeTab === 'requests' && (
+        <FlatList
+          data={filteredRequests}
+          keyExtractor={(item) => String(item.id_friend)}
+          renderItem={({ item }) => (
+            <FriendRequest request={item} onAccept={handleAccept} onDecline={handleDecline} />
+          )}
+          contentContainerStyle={styles.list}
+          ListEmptyComponent={
+            loadingRequests
+              ? <ActivityIndicator color={colors.primary.main} style={{ marginTop: 40 }} />
+              : <EmptyState icon="person-add-outline" title="No pending requests" subtitle="Your incoming friend requests appear here" style={styles.emptyState} />
+          }
+        />
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background.secondary },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, marginBottom: 10 },
+  searchBar: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.background.card, borderRadius: 12,
+    paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border.light,
+  },
+  searchInput: { flex: 1, color: colors.text.primary, paddingVertical: 10, fontSize: 14 },
+  newChatBtn: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  tabBarWrapper: { marginHorizontal: 14, marginBottom: 4 },
+  list: { paddingBottom: 110, paddingTop: 6 },
+  emptyState: { paddingTop: 60 },
+});

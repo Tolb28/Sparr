@@ -10,7 +10,7 @@ import CreatePostScreen from '../screens/CreatePostScreen';
 import BottomTabNavigator from './BottomTabNavigator';
 import BrowseCalendarsScreen from '../screens/BrowseCalendarsScreen'; // Import this
 import CreateCalendarScreen from '../screens/CreateCalendarScreen';   // Import this
-import ForeignProfileScreen from '../screens/ForeignProfileScreen';   // Import this
+import ForeignProfileScreen from '@/src/screens/ForeignProfileScreen';   // Import this
 import TechniqueScreen from '../screens/TechniqueScreen';
 import TechniqueDetailScreen from '../screens/TechniqueDetailScreen';
 import DrillDetailScreen from '../screens/DrillDetailScreen';
@@ -19,15 +19,29 @@ import TrainingScreen from '../screens/TrainingScreen';
 import ConversationsScreen from '../screens/ConversationsScreen';
 import ChatDetailScreen from '../screens/ChatDetailScreen';
 import NewConversationScreen from '../screens/NewConversationScreen';
+import ClubProfileScreen from '../screens/ClubProfileScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import CreateClubProfileStepOneScreen from '../screens/CreateClubProfileStepOneScreen';
+import CreateClubProfileStepTwoScreen from '../screens/CreateClubProfileStepTwoScreen';
+import ManageClubScreen from '../screens/ManageClubScreen';
+import ConversationSettingsScreen from '../screens/ConversationSettingsScreen';
+import ClubMembersScreen from '../screens/ClubMembersScreen';
+import ClubMemberDetailScreen from '../screens/ClubMemberDetailScreen';
+import CreateClubPlanScreen from '../screens/CreateClubPlanScreen';
+import CreateClubCalendarScreen from '../screens/CreateClubCalendarScreen';
+import CreateTrainingScreen from '../screens/CreateTrainingScreen';
+import EditTrainingScreen from '../screens/EditTrainingScreen';
+import EditCalendarScreen from '../screens/EditCalendarScreen';
+import CalendarPreviewScreen from '../screens/CalendarPreviewScreen';
 
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   EditProfile: undefined;
   CreateProfile: undefined;
-  CreatePost: undefined;
+  CreatePost: { clubId?: number } | undefined;
   Main: undefined;
-  BrowseCalendars: undefined;
+  BrowseCalendars: { clubId?: number } | undefined;
   CreateCalendar: undefined;
   ForeignProfile: { foreign_profile_id: number };
   Technique: undefined;
@@ -38,6 +52,20 @@ export type RootStackParamList = {
   Conversations: undefined;
   ChatDetail: { conversationId: number; otherParticipantName: string; otherParticipantAvatar: string | null };
   NewConversation: undefined;
+  ClubProfile: { clubId: number };
+  Settings: undefined;
+  CreateClubStepOne: undefined;
+  CreateClubStepTwo: { title: string; location?: string | null; bio?: string | null; joinPolicy: 'open' | 'approval' };
+  ManageClub: { clubId: number };
+  ConversationSettings: { conversationId: number; conversationTitle: string };
+  ClubMembers: { clubId: number; canManage: boolean };
+  ClubMemberDetail: { clubId: number; member: any };
+  CreateClubPlan: { clubId: number };
+  CreateClubCalendar: { clubId: number };
+  CreateTraining: undefined;
+  EditTraining: { trainingId: number };
+  EditCalendar: { calendarId: number };
+  CalendarPreview: { calendarId: number; clubId?: number };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -73,26 +101,25 @@ export default function AppNavigator() {
       <Stack.Screen
         name="CreatePost"
         component={CreatePostScreen}
-        options={{ title: 'Create Post', headerBackTitle: 'Back' }}
+        options={{ headerShown: false }}
       />
       
-      {/* 2. Use the imported component directly */}
       <Stack.Screen
         name="BrowseCalendars"
         component={BrowseCalendarsScreen}
-        options={{ title: 'Browse Calendars' }}
+        options={{ headerShown: false }}
       />
       
       <Stack.Screen
         name="CreateCalendar"
         component={CreateCalendarScreen}
-        options={{ title: 'Create Calendar' }}
+        options={{ headerShown: false }}
       />
 
       <Stack.Screen
         name="ForeignProfile"
         component={ForeignProfileScreen}
-        options={{ title: 'Foreign Profile' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Technique"
@@ -132,6 +159,76 @@ export default function AppNavigator() {
       <Stack.Screen
         name="NewConversation"
         component={NewConversationScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ClubProfile"
+        component={ClubProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CreateClubStepOne"
+        component={CreateClubProfileStepOneScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CreateClubStepTwo"
+        component={CreateClubProfileStepTwoScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ManageClub"
+        component={ManageClubScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ConversationSettings"
+        component={ConversationSettingsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ClubMembers"
+        component={ClubMembersScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ClubMemberDetail"
+        component={ClubMemberDetailScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CreateClubPlan"
+        component={CreateClubPlanScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CreateClubCalendar"
+        component={CreateClubCalendarScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CreateTraining"
+        component={CreateTrainingScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="EditTraining"
+        component={EditTrainingScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="EditCalendar"
+        component={EditCalendarScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="CalendarPreview"
+        component={CalendarPreviewScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

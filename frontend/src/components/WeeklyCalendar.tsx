@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 
 export type CalendarEvent = {
   color?: string;
+  count?: number;
 };
 
 export type WeeklyCalendarProps = {
@@ -71,13 +72,21 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
               </Text>
 
               {hasEvent && (
-                <View 
-                  style={[
-                    styles.dot, 
-                    { backgroundColor: events[iso]?.color || '#06b6d4' },
-                    isSelected && { backgroundColor: '#ffffff' } // White dot on blue background
-                  ]} 
-                />
+                <View style={styles.dotRow}>
+                  {Array.from({ length: Math.min(events[iso]?.count || 1, 3) }).map((_, di) => (
+                    <View
+                      key={di}
+                      style={[
+                        styles.dot,
+                        { backgroundColor: events[iso]?.color || '#06b6d4' },
+                        isSelected && { backgroundColor: '#ffffff' },
+                      ]}
+                    />
+                  ))}
+                  {(events[iso]?.count || 1) > 3 && (
+                    <Text style={[styles.dotPlus, isSelected && { color: '#ffffff' }]}>+</Text>
+                  )}
+                </View>
               )}
             </Pressable>
           );
@@ -134,32 +143,32 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     paddingVertical: 10,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'transparent',
   },
   row: {
     flexDirection: 'row',
-    justifyContent: 'space-evenly', // Spreads days evenly across screen
-    paddingHorizontal: 8,
+    justifyContent: 'space-evenly',
+    paddingHorizontal: 2,
   },
   dayCard: {
-    flex: 1, // Each card takes exactly 1/7th of the available width
+    flex: 1,
     marginHorizontal: 2,
-    paddingVertical: 12,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 12,
-    height: 70,
+    borderRadius: 14,
+    height: 68,
   },
   unselectedCard: {
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(255,255,255,0.06)',
   },
   selectedCard: {
-    backgroundColor: '#2563eb', // Standard Blue from your screenshot
+    backgroundColor: '#f20d0d',
     ...Platform.select({
       ios: {
-        shadowColor: '#2563eb',
+        shadowColor: '#f20d0d',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
+        shadowOpacity: 0.28,
         shadowRadius: 4,
       },
       android: { elevation: 3 },
@@ -167,14 +176,14 @@ const styles = StyleSheet.create({
   },
   weekdayText: {
     fontSize: 10,
-    color: '#9ca3af',
-    fontWeight: '600',
+    color: '#8f6d6d',
+    fontWeight: '700',
     marginBottom: 4,
   },
   dayNumber: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#1f2937',
+    color: '#cb9090',
   },
   textWhite: {
     color: '#ffffff',
@@ -183,9 +192,19 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    marginTop: 4,
+  },
+  dotRow: {
+    flexDirection: 'row',
+    gap: 2,
     position: 'absolute',
-    bottom: 8,
+    bottom: 7,
+    alignItems: 'center',
+  },
+  dotPlus: {
+    fontSize: 8,
+    color: '#06b6d4',
+    fontWeight: '700',
+    marginLeft: 1,
   },
 });
 
