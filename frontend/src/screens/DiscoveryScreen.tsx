@@ -348,15 +348,33 @@ export default function DiscoveryScreen() {
           style={styles.quickActionsScroll}
           contentContainerStyle={styles.quickActionsRow}
         >
-          <Pressable style={styles.quickActionPill} onPress={() => handleTabChange('clubs')}>
+          <Pressable
+            style={styles.quickActionPill}
+            onPress={() => handleTabChange('clubs')}
+            accessibilityRole="button"
+            accessibilityLabel="Nearby clubs"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="location-outline" size={14} color={colors.text.secondary} />
             <Text style={styles.quickActionText}>Nearby clubs</Text>
           </Pressable>
-          <Pressable style={styles.quickActionPill} onPress={() => handleTabChange('boxers')}>
+          <Pressable
+            style={styles.quickActionPill}
+            onPress={() => handleTabChange('boxers')}
+            accessibilityRole="button"
+            accessibilityLabel="Find boxers"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="people-outline" size={14} color={colors.text.secondary} />
             <Text style={styles.quickActionText}>Find boxers</Text>
           </Pressable>
-          <Pressable style={styles.quickActionPill} onPress={() => handleTabChange('posts')}>
+          <Pressable
+            style={styles.quickActionPill}
+            onPress={() => handleTabChange('posts')}
+            accessibilityRole="button"
+            accessibilityLabel="Latest posts"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="newspaper-outline" size={14} color={colors.text.secondary} />
             <Text style={styles.quickActionText}>Latest posts</Text>
           </Pressable>
@@ -681,6 +699,7 @@ export default function DiscoveryScreen() {
           renderItem={({ item: club }) => (
             <ClubCard
               club={club}
+              fullWidth
               onPress={() => (navigation as any).navigate('ClubProfile', { clubId: Number(club.idclubs) })}
             />
           )}

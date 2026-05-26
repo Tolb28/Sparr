@@ -43,26 +43,51 @@ const formatHours = (value: number) => {
 
 const getDelta = (snapshots: Snapshot[], metricKey?: keyof Snapshot): ProgressDelta | null => {
   if (!metricKey || snapshots.length < 2) return null;
-  const latest = snapshots[snapshots.length - 1];
-  const previous = snapshots[snapshots.length - 2];
-  if (!latest || !previous) return null;
-  const currentVal = Number(latest[metricKey] ?? 0);
-  const previousVal = Number(previous[metricKey] ?? 0);
-  return calculateMetricDelta(currentVal, previousVal);
+  
+  try {
+    // Get today's snapshot (most recent)
+    const latest = snapshots[snapshots.length - 1];
+    if (!latest || !latest.snapshot_date) return null;
+    
+    // snapshot_date is YYYY-MM-DD format
+    const dateStr = latest.snapshot_date;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    
+    // Create a UTC date and safely subtract 7 days
+    const today = new Date(dateStr + 'T00:00:00Z');
+    if (isNaN(today.getTime())) return null;
+    
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 7);
+    
+    // Format back to YYYY-MM-DD
+    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+    
+    // Find snapshot from 7 days ago
+    const previousSnapshot = snapshots.find(s => s.snapshot_date === sevenDaysAgoStr);
+    
+    if (!previousSnapshot) return null;
+    
+    const currentVal = Number(latest[metricKey] ?? 0);
+    const previousVal = Number(previousSnapshot[metricKey] ?? 0);
+    return calculateMetricDelta(currentVal, previousVal);
+  } catch {
+    return null;
+  }
 };
 
 const getDeltaDisplay = (delta: ProgressDelta | null) => {
   if (!delta) {
     return { label: placeholderValue, color: colors.text.tertiary };
   }
-  const arrow = delta.trend === 'up' ? '↑' : delta.trend === 'down' ? '↓' : '→';
   const deltaValue = Number.isInteger(delta.delta) ? delta.delta : Number(delta.delta.toFixed(1));
-  const sign = deltaValue > 0 ? '+' : '';
-  const label = `${arrow} ${sign}${deltaValue}`;
+  const sign = deltaValue >= 0 ? '+' : '';
+  const label = `${sign}${deltaValue}`;
   const color =
-    delta.trend === 'up'
+    delta.delta > 0
       ? colors.success.main
-      : delta.trend === 'down'
+      : delta.delta < 0
         ? colors.error.main
         : colors.text.tertiary;
   return { label, color };
@@ -99,23 +124,7 @@ const MetricCardsRowBase: React.FC<MetricCardsRowProps> = ({ onMetricTap }) => {
         label: 'STREAK',
         icon: 'flame-outline',
         valueDisplay: formatNumber(streakValue),
-        delta: getDelta(snapshots, snapshotMetricMap.streak_days),
-      },
-      {
-        key: 'skill_level',
-        label: 'SKILL',
-        icon: 'trending-up-outline',
-        valueDisplay: placeholderValue,
         delta: null,
-        isPlaceholder: true,
-      },
-      {
-        key: 'intensity',
-        label: 'INTENSITY',
-        icon: 'speedometer-outline',
-        valueDisplay: placeholderValue,
-        delta: null,
-        isPlaceholder: true,
       },
     ];
   }, [metrics, snapshots]);
@@ -129,7 +138,7 @@ const MetricCardsRowBase: React.FC<MetricCardsRowProps> = ({ onMetricTap }) => {
         contentContainerStyle={[styles.scrollContainer, isSmallScreen && styles.scrollContainerCompact]}
         testID="MetricCardsRow_Scroll"
       >
-        {Array.from({ length: 5 }).map((_, index) => (
+        {Array.from({ length: 3 }).map((_, index) => (
           <GlassCard
             key={`metric-skeleton-${index}`}
             variant="default"
@@ -198,9 +207,16 @@ const MetricCardsRowBase: React.FC<MetricCardsRowProps> = ({ onMetricTap }) => {
               >
                 {metric.valueDisplay}
               </Text>
-              <Text style={[styles.metricDelta, { color: deltaDisplay.color }]}>
-                {deltaDisplay.label}
-              </Text>
+              <View style={styles.deltaContainer}>
+                {deltaDisplay.label !== placeholderValue && (
+                  <Text 
+                    style={[styles.metricDelta, { color: deltaDisplay.color }]}
+                    accessibilityLabel={`${metric.label} change: ${deltaDisplay.label}`}
+                  >
+                    {deltaDisplay.label}
+                  </Text>
+                )}
+              </View>
             </GlassCard>
           </Pressable>
         );
@@ -263,6 +279,9 @@ const styles = StyleSheet.create({
   metricDelta: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  deltaContainer: {
+    marginTop: 2,
   },
   skeletonGap: {
     marginTop: 8,

@@ -215,3 +215,27 @@ export const reorderCalendarTrainings = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Server error" });
   }
 };
+
+export const getWeeklyStats = async (req: Request, res: Response) => {
+  try {
+    // @ts-ignore
+    const userId = req.userId;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    
+    const profileId = await calendarService.getProfileIdForUser(userId);
+    if (!profileId) return res.status(400).json({ error: "Profile required" });
+    
+    // Get date from query params, default to today
+    let dateStr = req.query.date as string;
+    if (!dateStr) {
+      const today = new Date();
+      dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    }
+    
+    const stats = await calendarService.getWeeklyStats(profileId, dateStr);
+    res.json(stats);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};

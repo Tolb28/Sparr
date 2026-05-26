@@ -4,7 +4,6 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { register } from '../api/register';
 import { storeToken } from '../api/tokenHandler';
-import { login } from '../api/login';
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,13 +24,12 @@ export default function RegisterScreen({ navigation }: Props) {
     if (!email || !password) { setError('Please enter email and password'); return; }
     setLoading(true);
     try {
-      await register(email, password);
+      const registerResp = await register(email, password);
       setError(null);
-      try {
-        const loginResp = await login(email, password);
-        if (loginResp?.token) await storeToken(loginResp.token);
-      } catch {}
-      navigation.replace('CreateProfile');
+      if (registerResp?.token) {
+        await storeToken(registerResp.token);
+      }
+      navigation.replace(registerResp?.needsProfileSetup === false ? 'Main' : 'CreateProfile');
     } catch (err: any) {
       setError(err?.message ?? 'Registration failed');
     } finally {

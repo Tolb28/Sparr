@@ -8,7 +8,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import TrainingCard from '../components/TrainingCard';
 import DayTimelineView, { TimelineTraining } from '../components/DayTimelineView';
-import { getSelectedCalendarForProfile, getTraining } from '../api/trainingCalendars';
+import { getSelectedCalendarForProfile, getTraining, getWeeklyStats } from '../api/trainingCalendars';
+import {
+  ChallengeSummary,
+  completeChallenge,
+  listChallenges,
+  logChallengeProgress,
+  startChallenge,
+} from '@/src/api/challenges';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import { GlassCard } from '@/components/ui/glass-card';
@@ -18,7 +25,14 @@ import ProgressHeaderCard from '../components/ProgressHeaderCard';
 import MetricCardsRow from '../components/MetricCardsRow';
 import StatsBreakdownModal from '../components/StatsBreakdownModal';
 import BadgeProgressWidget from '../components/BadgeProgressWidget';
+import ChallengeProgressCard from '../components/ChallengeProgressCard';
+import ChallengeDetailModal from '../components/ChallengeDetailModal';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
+import {
+  showBadgeNotification,
+  showErrorNotification,
+  showSuccessNotification,
+} from '@/src/services/notificationService';
 
 /* ------------------------------------------------------------------ */
 /* Helpers                                                            */
@@ -99,7 +113,15 @@ export default function CalendarScreen() {
   const [weekPercent, setWeekPercent] = useState<number>(0);
   const [weekCompleted, setWeekCompleted] = useState<number>(0);
   const [weekScheduled, setWeekScheduled] = useState<number>(0);
+  const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
+  const [challengesLoading, setChallengesLoading] = useState(false);
+  const [challengesError, setChallengesError] = useState<string | null>(null);
+  const [activeChallenge, setActiveChallenge] = useState<ChallengeSummary | null>(null);
+  const [challengeModalVisible, setChallengeModalVisible] = useState(false);
+  const [challengeActionLoading, setChallengeActionLoading] = useState(false);
   const { refresh: refreshProgress, badges, loading: progressLoading, error: progressError } = useProgress();
+  const progressRefreshTimer = React.useRef<any>(null);
+  const pendingProgressRefresh = React.useRef(false);
 
   const upcomingBadges = useMemo(() => {
     if (!badges || badges.length === 0) return [];
@@ -113,6 +135,25 @@ export default function CalendarScreen() {
   const handleProgressRetry = useCallback(() => {
     refreshProgress(true).catch(() => {});
   }, [refreshProgress]);
+
+  const loadChallenges = useCallback(async () => {
+    setChallengesLoading(true);
+    setChallengesError(null);
+    try {
+      const challengeData = await listChallenges();
+      const normalized = Array.isArray(challengeData) ? challengeData : [];
+      setChallenges(normalized);
+      setActiveChallenge((current) =>
+        current ? normalized.find((item) => item.id_challenges === current.id_challenges) || null : null
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to load challenges.';
+      setChallengesError(message);
+      setChallenges([]);
+    } finally {
+      setChallengesLoading(false);
+    }
+  }, []);
 
   const getMetricLabel = (metricKey: string) => {
     switch (metricKey) {
@@ -156,9 +197,10 @@ export default function CalendarScreen() {
         setCalendar(null);
         setItems([]);
       }
+      await loadChallenges();
     })();
     loadProfile();
-  }, []);
+  }, [loadChallenges]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -175,18 +217,103 @@ export default function CalendarScreen() {
             setItems([]);
           }
         }
+        if (mounted) {
+          await loadChallenges();
+        }
       })();
       loadProfile();
       return () => {
         mounted = false;
       };
-    }, [])
+    }, [loadChallenges])
   );
 
   useFocusEffect(
     React.useCallback(() => {
       refreshProgress().catch(() => {});
     }, [refreshProgress])
+  );
+
+  const handleOpenChallenge = useCallback((challenge: ChallengeSummary) => {
+    setActiveChallenge(challenge);
+    setChallengeModalVisible(true);
+  }, []);
+
+  const handleStartChallenge = useCallback(
+    async (challengeId: number) => {
+      setChallengeActionLoading(true);
+      try {
+        const result = await startChallenge(challengeId);
+        if (result?.newly_awarded_badge) {
+          showBadgeNotification({
+            title: result.newly_awarded_badge.title,
+            icon_name: result.newly_awarded_badge.icon_name || 'ribbon-outline',
+            color: result.newly_awarded_badge.color || colors.primary.main,
+          });
+        } else {
+          showSuccessNotification('Challenge started.');
+        }
+        await Promise.all([loadChallenges(), refreshProgress(true).catch(() => {})]);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to start challenge.';
+        showErrorNotification(message);
+      } finally {
+        setChallengeActionLoading(false);
+      }
+    },
+    [loadChallenges, refreshProgress]
+  );
+
+  const handleLogChallengeProgress = useCallback(
+    async (challengeId: number, requirementId: number, increment: number) => {
+      // Let the modal manage optimistic UI; parent only calls API and defers heavy refresh.
+      setChallengeActionLoading(true);
+      try {
+        const result = await logChallengeProgress(challengeId, { requirement_id: requirementId, increment });
+        if (result?.newly_awarded_badge) {
+          showBadgeNotification({
+            title: result.newly_awarded_badge.title,
+            icon_name: result.newly_awarded_badge.icon_name || 'ribbon-outline',
+            color: result.newly_awarded_badge.color || colors.primary.main,
+          });
+        } else {
+          showSuccessNotification('Challenge progress updated.');
+        }
+        // Defer aggregated progress refresh until modal closes
+        pendingProgressRefresh.current = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to update challenge progress.';
+        showErrorNotification(message);
+      } finally {
+        setChallengeActionLoading(false);
+      }
+    },
+    [refreshProgress]
+  );
+
+  const handleCompleteChallenge = useCallback(
+    async (challengeId: number) => {
+      setChallengeActionLoading(true);
+      try {
+        const result = await completeChallenge(challengeId);
+        if (result?.newly_awarded_badge) {
+          showBadgeNotification({
+            title: result.newly_awarded_badge.title,
+            icon_name: result.newly_awarded_badge.icon_name || 'ribbon-outline',
+            color: result.newly_awarded_badge.color || colors.primary.main,
+          });
+        } else {
+          showSuccessNotification('Challenge completed.');
+        }
+        await Promise.all([loadChallenges(), refreshProgress(true).catch(() => {})]);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to complete challenge yet.';
+        showErrorNotification(message);
+      } finally {
+        setChallengeActionLoading(false);
+      }
+    },
+    [loadChallenges, refreshProgress]
   );
 
   /* ------------- Resolve which trainings belong to selected date ----------- */
@@ -311,106 +438,29 @@ export default function CalendarScreen() {
     setTrainingDuration(calculateDuration(trainingComponents));
   }, [trainingComponents]);
 
-  /* ------------- Weekly progress calculation ----------- */
+  /* ------------- Weekly progress calculation (from backend) ----------- */
   useEffect(() => {
-    if (!calendar || !items || items.length === 0) {
-      setWeekScheduled(0);
-      setWeekCompleted(0);
-      setWeekPercent(0);
-      return;
-    }
-
-    try {
-      const selected = new Date(selectedDate);
-      const dayIndex = (selected.getDay() + 6) % 7;
-      const weekStart = new Date(selected);
-      weekStart.setDate(selected.getDate() - dayIndex);
-
-      const calType: string = calendar.calendar_type || 'order';
-      let scheduled = 0;
-
-      if (calType === 'day') {
-        const numWeeks = calendar.num_weeks || 1;
-        const createdAt = calendar.created_at
-          ? calendar.created_at.substring(0, 10)
-          : formattedDate;
-
-        for (let d = 0; d < 7; d++) {
-          const dayDate = new Date(weekStart);
-          dayDate.setDate(weekStart.getDate() + d);
-          const dateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
-          const dow = dayOfWeekFromDate(dateStr);
-          const totalDays = daysBetween(createdAt, dateStr);
-          const weekInRotation = totalDays >= 0
-            ? (Math.floor(totalDays / 7) % numWeeks) + 1
-            : ((numWeeks - (Math.floor(Math.abs(totalDays) / 7) % numWeeks)) % numWeeks) + 1;
-          const count = items.filter(
-            (it: any) => Number(it.day_of_week) === dow && Number(it.week_number) === weekInRotation
-          ).length;
-          if (count > 0) scheduled++;
-        }
-      } else {
-        const rawStart = calendar.order_start_date;
-        const startDate = rawStart ? String(rawStart).substring(0, 10) : formattedDate;
-        const uniqueOrders = [...new Set(items.map((it: any) => Number(it.order)))].sort((a, b) => a - b);
-        const n = uniqueOrders.length || 1;
-
-        for (let d = 0; d < 7; d++) {
-          const dayDate = new Date(weekStart);
-          dayDate.setDate(weekStart.getDate() + d);
-          const dateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
-          const totalDays = daysBetween(startDate, dateStr);
-          const cycleIdx = totalDays >= 0 ? totalDays % n : ((n - (Math.abs(totalDays) % n)) % n);
-          const targetOrder = uniqueOrders[cycleIdx];
-          const hasTraining = items.some((it: any) => Number(it.order) === targetOrder && it.id_trainings);
-          if (hasTraining) scheduled++;
-        }
+    (async () => {
+      if (!selectedDate) {
+        setWeekScheduled(0);
+        setWeekCompleted(0);
+        setWeekPercent(0);
+        return;
       }
 
-      const now = new Date();
-      // Count completed days as days before today within this week
-      let completed = 0;
-      for (let d = 0; d < 7; d++) {
-        const dayDate = new Date(weekStart);
-        dayDate.setDate(weekStart.getDate() + d);
-        if (dayDate > now) break;
-        // Check if this day has trainings
-        const dateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
-        let dayHasTraining = false;
-        if (calType === 'day') {
-          const dow = dayOfWeekFromDate(dateStr);
-          const numWeeks = calendar.num_weeks || 1;
-          const createdAt = calendar.created_at ? calendar.created_at.substring(0, 10) : formattedDate;
-          const totalDays = daysBetween(createdAt, dateStr);
-          const weekInRotation = totalDays >= 0
-            ? (Math.floor(totalDays / 7) % numWeeks) + 1
-            : ((numWeeks - (Math.floor(Math.abs(totalDays) / 7) % numWeeks)) % numWeeks) + 1;
-          dayHasTraining = items.some(
-            (it: any) => Number(it.day_of_week) === dow && Number(it.week_number) === weekInRotation
-          );
-        } else {
-          const rawStart = calendar.order_start_date;
-          const startDate = rawStart ? String(rawStart).substring(0, 10) : formattedDate;
-          const uniqueOrders = [...new Set(items.map((it: any) => Number(it.order)))].sort((a, b) => a - b);
-          const n = uniqueOrders.length || 1;
-          const totalDays = daysBetween(startDate, dateStr);
-          const cycleIdx = totalDays >= 0 ? totalDays % n : ((n - (Math.abs(totalDays) % n)) % n);
-          const targetOrder = uniqueOrders[cycleIdx];
-          dayHasTraining = items.some((it: any) => Number(it.order) === targetOrder && it.id_trainings);
-        }
-        if (dayHasTraining) completed++;
+      try {
+        const stats = await getWeeklyStats(selectedDate);
+        setWeekScheduled(stats?.scheduled ?? 0);
+        setWeekCompleted(stats?.completed ?? 0);
+        setWeekPercent(stats?.percent ?? 0);
+      } catch (error) {
+        console.error('Error fetching weekly stats:', error);
+        setWeekScheduled(0);
+        setWeekCompleted(0);
+        setWeekPercent(0);
       }
-
-      const percent = scheduled > 0 ? (completed / scheduled) * 100 : 0;
-      setWeekScheduled(scheduled);
-      setWeekCompleted(completed);
-      setWeekPercent(percent);
-    } catch {
-      setWeekScheduled(0);
-      setWeekCompleted(0);
-      setWeekPercent(0);
-    }
-  }, [items, selectedDate, calendar]);
+    })();
+  }, [selectedDate]);
 
   /* ------------- Build events map for WeeklyCalendar ----------- */
   const buildEvents = () => {
@@ -584,6 +634,60 @@ export default function CalendarScreen() {
               </ScrollView>
             )}
           </View>
+          <View style={styles.challengeSection}>
+            <View style={styles.challengeSectionHeader}>
+              <Text style={styles.challengeSectionTitle}>CHALLENGES</Text>
+              <Pressable
+                onPress={() => loadChallenges()}
+                accessibilityRole="button"
+                accessibilityLabel="Refresh challenges"
+                testID="CalendarScreen_RefreshChallenges"
+              >
+                <Ionicons name="refresh" size={16} color={colors.text.tertiary} />
+              </Pressable>
+            </View>
+            {challengesError ? (
+              <GlassCard variant="medium" radius={14} padding={12}>
+                <Text style={styles.challengeEmptyText}>Challenge data unavailable right now.</Text>
+              </GlassCard>
+            ) : challengesLoading ? (
+              <ScrollView
+                horizontal
+                bounces={false}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.challengeScroll}
+              >
+                {[0, 1].map((idx) => (
+                  <GlassCard key={`challenge-skel-${idx}`} variant="medium" radius={16} padding={14} style={styles.challengeSkeleton}>
+                    <SkeletonLoader width={130} height={12} borderRadius={6} />
+                    <SkeletonLoader width={200} height={10} borderRadius={6} />
+                    <SkeletonLoader width={220} height={10} borderRadius={6} />
+                    <SkeletonLoader width={250} height={8} borderRadius={6} />
+                  </GlassCard>
+                ))}
+              </ScrollView>
+            ) : challenges.length === 0 ? (
+              <GlassCard variant="medium" radius={14} padding={12}>
+                <Text style={styles.challengeEmptyText}>No active challenges yet.</Text>
+              </GlassCard>
+            ) : (
+              <ScrollView
+                horizontal
+                bounces={false}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.challengeScroll}
+              >
+                {challenges.map((challenge) => (
+                  <ChallengeProgressCard
+                    key={String(challenge.id_challenges)}
+                    challenge={challenge}
+                    onPress={() => handleOpenChallenge(challenge)}
+                    onStart={() => handleStartChallenge(challenge.id_challenges)}
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </View>
           <StatsBreakdownModal
             isVisible={expandedChart !== null}
             onClose={() => setExpandedChart(null)}
@@ -720,6 +824,22 @@ export default function CalendarScreen() {
           )}
         </View>
       </ScrollView>
+      <ChallengeDetailModal
+        visible={challengeModalVisible}
+        challenge={activeChallenge}
+        loading={challengeActionLoading}
+        onClose={() => {
+          setChallengeModalVisible(false);
+          setActiveChallenge(null);
+          if (pendingProgressRefresh.current) {
+            pendingProgressRefresh.current = false;
+            refreshProgress(true).catch(() => {});
+          }
+        }}
+        onStart={handleStartChallenge}
+        onLogProgress={handleLogChallengeProgress}
+        onComplete={handleCompleteChallenge}
+      />
     </View>
   );
 }
@@ -799,6 +919,32 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   badgeEmptyText: {
+    color: colors.text.secondary,
+    fontSize: 12,
+  },
+  challengeSection: { gap: 10, minHeight: 170 },
+  challengeSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  challengeSectionTitle: {
+    color: colors.text.tertiary,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  challengeScroll: {
+    paddingVertical: 4,
+    gap: 12,
+    paddingHorizontal: 2,
+  },
+  challengeSkeleton: {
+    width: 280,
+    minHeight: 170,
+    gap: 10,
+  },
+  challengeEmptyText: {
     color: colors.text.secondary,
     fontSize: 12,
   },

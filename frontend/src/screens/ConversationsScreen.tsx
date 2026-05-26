@@ -76,24 +76,30 @@ export default function ConversationsScreen() {
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: (insets.top || 0) + 8 }]}>
         <View style={styles.headerRow}>
-          <Text style={styles.headerTitle}>Messages</Text>
+          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Messages</Text>
           <Pressable
-            style={styles.newBtn}
+            style={[styles.newBtn, { backgroundColor: colors.glass.surface, borderColor: colors.glass.border }]}
             onPress={() => navigation.navigate('NewConversation' as never)}
+            hitSlop={8}
           >
             <Ionicons name="create-outline" size={20} color={colors.primary.main} />
           </Pressable>
         </View>
 
-        <View style={styles.searchBar}>
+        <View style={[styles.searchBar, { backgroundColor: colors.glass.surface, borderColor: colors.glass.border }]}>
           <Ionicons name="search-outline" size={18} color={colors.text.tertiary} />
           <TextInput
             placeholder="Search messages..."
             placeholderTextColor={colors.text.tertiary}
             value={query}
             onChangeText={setQuery}
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.text.primary }]}
           />
+          {query && (
+            <Pressable onPress={() => setQuery('')} hitSlop={8}>
+              <Ionicons name="close-circle" size={16} color={colors.text.tertiary} />
+            </Pressable>
+          )}
         </View>
       </View>
 
@@ -120,6 +126,7 @@ export default function ConversationsScreen() {
           keyExtractor={(item) => item.id_conversations.toString()}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary.main} />}
           contentContainerStyle={{ paddingBottom: 100 }}
+          scrollIndicatorInsets={{ right: 1 }}
         />
       )}
     </View>
@@ -130,21 +137,34 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background.secondary },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    paddingHorizontal: 16, paddingBottom: 10,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    paddingHorizontal: 16, 
+    paddingBottom: 12,
+    borderBottomWidth: 1, 
+    borderBottomColor: colors.border.light,
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  headerTitle: { color: colors.text.primary, fontSize: 22, fontWeight: '800' },
+  headerRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    marginBottom: 12 
+  },
+  headerTitle: { fontSize: 22, fontWeight: '800', letterSpacing: 0.3 },
   newBtn: {
-    width: 38, height: 38, borderRadius: 10,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
-    alignItems: 'center', justifyContent: 'center',
+    width: 38, 
+    height: 38, 
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center', 
+    justifyContent: 'center',
   },
   searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: colors.background.card, borderRadius: 12,
-    paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border.light,
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8,
+    borderRadius: 12,
+    paddingHorizontal: 12, 
+    borderWidth: 1,
   },
-  searchInput: { flex: 1, color: colors.text.primary, paddingVertical: 10, fontSize: 14 },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, fontWeight: '500' },
   newConvoBtn: { marginTop: 16, minWidth: 200 },
 });

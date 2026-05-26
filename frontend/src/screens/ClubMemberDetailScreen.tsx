@@ -38,6 +38,7 @@ export default function ClubMemberDetailScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteType>();
   const { clubId, member } = route.params;
+  const memberName = member.display_name || member.username || 'This member';
 
   const role = (member.role_title ?? 'member').toLowerCase();
   const isOwner = role === 'owner';
@@ -54,6 +55,7 @@ export default function ClubMemberDetailScreen() {
       await updateMemberRole(clubId, member.id_profiles, newRole);
       setCurrentRole(newRole);
       setCurrentRoleLabel(label);
+      Alert.alert('Role updated', `${memberName} is now ${label}.`);
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Unable to change role');
     } finally {
@@ -70,17 +72,19 @@ export default function ClubMemberDetailScreen() {
         {
           text: 'Remove',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              setSaving(true);
-              await removeMember(clubId, member.id_profiles);
-              navigation.goBack();
-            } catch (e: any) {
-              Alert.alert('Error', e?.message ?? 'Unable to remove member');
-              setSaving(false);
-            }
+            onPress: async () => {
+              try {
+                setSaving(true);
+                await removeMember(clubId, member.id_profiles);
+                Alert.alert('Member removed', `${memberName} has been removed from this club.`);
+                navigation.goBack();
+              } catch (e: any) {
+                Alert.alert('Error', e?.message ?? 'Unable to remove member');
+              } finally {
+                setSaving(false);
+              }
+            },
           },
-        },
       ]
     );
   };
@@ -91,7 +95,13 @@ export default function ClubMemberDetailScreen() {
     <View style={styles.root}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: (insets.top || 0) + 4 }]}>
-        <Pressable style={styles.iconBtn} onPress={() => navigation.goBack()}>
+        <Pressable
+          style={styles.iconBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="chevron-back" size={20} color="#fff" />
         </Pressable>
         <Text style={styles.headerTitle}>Member Details</Text>

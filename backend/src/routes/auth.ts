@@ -1,6 +1,13 @@
 import { Router } from "express";
 import multer from "multer";
-import { register, login, getUser, updateUser } from "../controllers/userController";
+import {
+  register,
+  login,
+  getUser,
+  updateUser,
+  googleLogin,
+  resolveGoogleConflictDecision,
+} from "../controllers/userController";
 import { authenticate } from "../middleware/authMiddleware";
 import { createProfile, updateProfile, deleteProfile, getProfile, getProfilePosts, getForeignProfile, getMyProfiles } from "../controllers/profileController";
 import { getCommentsForPost, getDiscoveryBoxers, getDiscoveryFeed } from "../controllers/discoveryController";
@@ -27,6 +34,8 @@ const uploadFields = upload.fields([
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/google/login", googleLogin);
+router.post("/google/conflict-decision", authenticate, resolveGoogleConflictDecision);
 router.get("/user", authenticate, getUser);
 router.put("/user", authenticate, updateUser);
 router.post("/profile", authenticate, upload.any(), createProfile); // File upload for avatar

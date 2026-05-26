@@ -18,6 +18,10 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { TabBar } from '@/components/ui/tab-bar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { colors } from '@/src/theme/colors';
+import { DifficultyBadge, DifficultyLevel } from '../components/DifficultyBadge';
+import { FavoriteButton } from '../components/FavoriteButton';
+import { ContentTypeIndicator } from '../components/ContentTypeIndicator';
+import { FilterModal, FilterOptions } from '../components/FilterModal';
 
 type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -48,9 +52,47 @@ export default function TechniqueScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // New state for filtering and favorites
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState<FilterOptions>({
+    difficulties: [],
+    favoritesOnly: false,
+    sortBy: 'popularity',
+  });
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [recommendedItems, setRecommendedItems] = useState<RecommendedContentItem[]>([]);
   const [recommendationsLoading, setRecommendationsLoading] = useState(false);
+
+  // Helper: Add mock difficulty to items (temporary until backend implements)
+  const addMockDifficulty = (item: any) => {
+    if (!item.difficulty) {
+      const difficulties: DifficultyLevel[] = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
+      item.difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
+    }
+    return item;
+  };
+
+  // Helper: Generate unique key for content item
+  const getItemKey = (item: any, type: 'techniques' | 'drills' | 'combinations'): string => {
+    if (type === 'techniques') return `technique-${item.id_techniques}`;
+    if (type === 'drills') return `drill-${item.id_drills}`;
+    return `combo-${item.id_combinations}`;
+  };
+
+  // Toggle favorite
+  const toggleFavorite = useCallback((itemKey: string) => {
+    setFavorites((prev) => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(itemKey)) {
+        newFavorites.delete(itemKey);
+      } else {
+        newFavorites.add(itemKey);
+      }
+      return newFavorites;
+    });
+  }, []);
 
   const openSidebar = useCallback(() => {
     setSidebarOpen(true);
@@ -87,13 +129,25 @@ export default function TechniqueScreen() {
     try {
       if (activeTab === 'techniques') {
         const data = await getTechniquesGrouped();
-        setTechniquesData(data.grouped || []);
+        const grouped = (data.grouped || []).map((group: any) => ({
+          ...group,
+          items: group.items.map(addMockDifficulty),
+        }));
+        setTechniquesData(grouped);
       } else if (activeTab === 'drills') {
         const data = await getDrillsGrouped();
-        setDrillsData(data.grouped || []);
+        const grouped = (data.grouped || []).map((group: any) => ({
+          ...group,
+          items: group.items.map(addMockDifficulty),
+        }));
+        setDrillsData(grouped);
       } else {
         const data = await getCombinationsGrouped();
-        setCombinationsData(data.grouped || []);
+        const grouped = (data.grouped || []).map((group: any) => ({
+          ...group,
+          items: group.items.map(addMockDifficulty),
+        }));
+        setCombinationsData(grouped);
       }
     } finally {
       setLoading(false);
@@ -256,6 +310,7 @@ export default function TechniqueScreen() {
   const currentData = getCurrentData();
   const categories = Array.from(new Set(currentData.map((item) => item.categoryName))).sort();
 
+  // Apply filters to the data
   const filteredData = currentData
     .filter((categorySection) => {
       const categoryMatch = !selectedCategory || categorySection.categoryName === selectedCategory;
@@ -264,12 +319,40 @@ export default function TechniqueScreen() {
         categorySection.items.some((item: any) => item.title?.toLowerCase().includes(searchQuery.toLowerCase()));
       return categoryMatch && searchMatch;
     })
-    .map((categorySection) => ({
-      ...categorySection,
-      items: searchQuery
+    .map((categorySection) => {
+      let items = searchQuery
         ? categorySection.items.filter((item: any) => item.title?.toLowerCase().includes(searchQuery.toLowerCase()))
-        : categorySection.items,
-    }))
+        : categorySection.items;
+
+      // Apply difficulty filter
+      if (filters.difficulties.length > 0) {
+        items = items.filter((item: any) => filters.difficulties.includes(item.difficulty));
+      }
+
+      // Apply favorites filter
+      if (filters.favoritesOnly) {
+        const contentType = activeTab === 'drills' ? 'drill' : activeTab === 'techniques' ? 'technique' : 'combination';
+        items = items.filter((item: any) => {
+          const itemKey = `${contentType}-${item.id_techniques || item.id_drills || item.id_combinations}`;
+          return favorites.has(itemKey);
+        });
+      }
+
+      // Apply sorting
+      if (filters.sortBy === 'name') {
+        items = [...items].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      } else if (filters.sortBy === 'recent') {
+        items = [...items].sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+      } else {
+        // popularity (default)
+        items = [...items].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+      }
+
+      return {
+        ...categorySection,
+        items,
+      };
+    })
     .filter((section) => section.items.length > 0);
 
   const TECHNIQUE_TABS = [
@@ -304,29 +387,44 @@ export default function TechniqueScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.recommendedListContent}
           scrollEnabled={true}
-          renderItem={({ item }) => (
-            <Pressable onPress={() => handleRecommendedPress(item)} style={styles.recommendedCardPressable}>
-              <GlassCard variant="medium" radius={14} padding={12} style={styles.recommendedCard}>
-                <View style={styles.recommendedCardHeader}>
-                  <Text style={styles.recommendedCardType}>{item.content_type.toUpperCase()}</Text>
-                  <Text style={styles.recommendedCardScore}>Score {item.score}</Text>
-                </View>
-                <Text style={styles.recommendedCardTitle} numberOfLines={2}>{item.title}</Text>
-                {!!item.category_name && (
-                  <Text style={styles.recommendedCardCategory} numberOfLines={1}>
-                    {item.category_name}
-                  </Text>
-                )}
-                <View style={styles.reasonsRow}>
-                  {item.reasons.slice(0, 2).map((reason) => (
-                    <View key={reason} style={styles.reasonChip}>
-                      <Text style={styles.reasonChipText}>{formatReason(reason)}</Text>
-                    </View>
-                  ))}
-                </View>
-              </GlassCard>
-            </Pressable>
-          )}
+          renderItem={({ item }) => {
+            const itemKey = `${item.content_type}-${item.content_id}`;
+            const isFavorited = favorites.has(itemKey);
+            const difficulties: DifficultyLevel[] = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
+            const mockDifficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
+
+            return (
+              <Pressable onPress={() => handleRecommendedPress(item)} style={styles.recommendedCardPressable}>
+                <GlassCard variant="medium" radius={14} padding={12} style={styles.recommendedCard}>
+                  <View style={styles.recommendedCardHeader}>
+                    <ContentTypeIndicator type={item.content_type as 'technique' | 'drill' | 'combination'} variant="text" />
+                    <Text style={styles.recommendedCardScore}>Score {item.score}</Text>
+                  </View>
+                  <Text style={styles.recommendedCardTitle} numberOfLines={2}>{item.title}</Text>
+                  {!!item.category_name && (
+                    <Text style={styles.recommendedCardCategory} numberOfLines={1}>
+                      {item.category_name}
+                    </Text>
+                  )}
+                  <View style={styles.recommendedBadgesRow}>
+                    <DifficultyBadge difficulty={mockDifficulty} size="sm" />
+                    <FavoriteButton
+                      isFavorited={isFavorited}
+                      onToggle={() => toggleFavorite(itemKey)}
+                      size="sm"
+                    />
+                  </View>
+                  <View style={styles.reasonsRow}>
+                    {item.reasons.slice(0, 2).map((reason) => (
+                      <View key={reason} style={styles.reasonChip}>
+                        <Text style={styles.reasonChipText}>{formatReason(reason)}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </GlassCard>
+              </Pressable>
+            );
+          }}
         />
       )}
     </View>
@@ -337,22 +435,34 @@ export default function TechniqueScreen() {
         {/* Header */}
         <View style={[styles.header, { paddingTop: (insets.top || 0) + 6 }]}>
           <View style={styles.headerRow}>
+            <Text style={styles.headerTitle}>Technique Library</Text>
             <Pressable onPress={() => openSidebar()} style={styles.iconBtn}>
               <Ionicons name="menu" size={24} color="#ffffff" />
             </Pressable>
-            <Text style={styles.headerTitle}>Technique Library</Text>
-            <View style={styles.iconBtn} />
           </View>
 
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={18} color={colors.text.tertiary} />
-            <TextInput
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search techniques, drills..."
-              placeholderTextColor={colors.text.tertiary}
-              style={styles.searchInput}
-            />
+          {/* Search + Filter Bar */}
+          <View style={styles.searchFilterRow}>
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={18} color={colors.text.tertiary} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search techniques, drills..."
+                placeholderTextColor={colors.text.tertiary}
+                style={styles.searchInput}
+              />
+            </View>
+            <Pressable 
+              onPress={() => setFilterModalOpen(true)} 
+              style={[styles.filterBtn, (filters.difficulties.length > 0 || filters.favoritesOnly) && styles.filterBtnActive]}
+            >
+              <Ionicons 
+                name="options" 
+                size={20} 
+                color={(filters.difficulties.length > 0 || filters.favoritesOnly) ? colors.primary.main : colors.text.secondary} 
+              />
+            </Pressable>
           </View>
 
           <TabBar
@@ -388,15 +498,34 @@ export default function TechniqueScreen() {
                 }
 
                 if (item.type === 'featured') {
+                  const difficulties: DifficultyLevel[] = ['Beginner', 'Intermediate', 'Advanced', 'Expert'];
+                  const mockDifficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
+                  const contentType = activeTab === 'drills' ? 'drill' : activeTab === 'techniques' ? 'technique' : 'combination';
+                  const itemKey = `${contentType}-${item.item.id_techniques || item.item.id_drills || item.item.id_combinations}`;
+                  const isFavorited = favorites.has(itemKey);
+
                   return (
                     <Pressable
                       onPress={() => handleItemPress(item.item, item.categoryName)}
                       style={{ marginHorizontal: 14, marginTop: 6, marginBottom: 12 }}
                     >
                       <GlassCard variant="red" radius={14} padding={14}>
-                        <Text style={styles.featuredLabel}>Drill of the Day</Text>
-                        <Text style={styles.featuredTitle} numberOfLines={2}>{item.item.title}</Text>
-                        <Text style={styles.featuredCta}>Watch Now →</Text>
+                        <View style={styles.featuredHeaderRow}>
+                          <View>
+                            <Text style={styles.featuredLabel}>Featured Content</Text>
+                            <Text style={styles.featuredTitle} numberOfLines={2}>{item.item.title}</Text>
+                          </View>
+                          <FavoriteButton
+                            isFavorited={isFavorited}
+                            onToggle={() => toggleFavorite(itemKey)}
+                            size="md"
+                          />
+                        </View>
+                        <View style={styles.featuredBadgesRow}>
+                          <ContentTypeIndicator type={contentType} variant="badge" />
+                          <DifficultyBadge difficulty={mockDifficulty} size="sm" />
+                        </View>
+                        <Text style={styles.featuredCta}>Tap to View →</Text>
                       </GlassCard>
                     </Pressable>
                   );
@@ -408,6 +537,8 @@ export default function TechniqueScreen() {
                     items={item.items}
                     itemType={activeTab === 'drills' ? 'drill' : activeTab === 'techniques' ? 'technique' : 'combination'}
                     onItemPress={handleItemPress}
+                    favorites={favorites}
+                    onFavoriteToggle={toggleFavorite}
                   />
                 );
               }}
@@ -463,6 +594,14 @@ export default function TechniqueScreen() {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Filter Modal */}
+      <FilterModal
+        visible={filterModalOpen}
+        onClose={() => setFilterModalOpen(false)}
+        onApply={(appliedFilters) => setFilters(appliedFilters)}
+        currentFilters={filters}
+      />
     </View>
   );
 }
@@ -478,12 +617,23 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10 },
   headerTitle: { color: colors.text.primary, fontSize: 18, fontWeight: '800' },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
+  searchFilterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: colors.background.card, borderRadius: 12,
-    paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border.light, marginBottom: 10,
+    paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border.light,
   },
   searchInput: { flex: 1, color: colors.text.primary, paddingVertical: 11, fontSize: 14 },
+  filterBtn: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: colors.background.card,
+    borderWidth: 1, borderColor: colors.border.light,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  filterBtnActive: {
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderColor: colors.primary.main,
+  },
   tabs: { marginBottom: 0 },
   recommendedHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   recommendedTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },
@@ -497,7 +647,8 @@ const styles = StyleSheet.create({
   recommendedCardScore: { color: colors.text.tertiary, fontSize: 10 },
   recommendedCardTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700', marginTop: 6 },
   recommendedCardCategory: { color: colors.text.secondary, fontSize: 11, marginTop: 3 },
-  reasonsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 9 },
+  recommendedBadgesRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 9, marginBottom: 6 },
+  reasonsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 0 },
   reasonChip: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -509,6 +660,8 @@ const styles = StyleSheet.create({
   reasonChipText: { color: colors.text.secondary, fontSize: 10, fontWeight: '600' },
   featuredLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
   featuredTitle: { color: colors.text.primary, fontSize: 15, fontWeight: '700' },
+  featuredHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  featuredBadgesRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   featuredCta: { color: colors.primary.main, fontSize: 12, fontWeight: '600', marginTop: 6 },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyState: { paddingTop: 60 },

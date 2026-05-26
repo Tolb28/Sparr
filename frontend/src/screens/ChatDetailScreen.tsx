@@ -112,9 +112,10 @@ export default function ChatDetailScreen() {
   }, [currentUserId, conversationId, loadMessages]);
 
   const handleManage = () => {
-    navigation.navigate('ConversationSettings', {
+    navigation.navigate('ConversationInfo', {
       conversationId,
       conversationTitle: displayName || 'Chat',
+      isGroup: false, // TODO: Determine if conversation is a group from backend
     });
   };
 
