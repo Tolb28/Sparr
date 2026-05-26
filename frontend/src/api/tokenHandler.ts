@@ -25,6 +25,12 @@ export async function deleteToken() {
   }
 }
 
-export const ServerIP = Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.0.0.145:4000/api";
+export const ServerIP =
+  process.env.EXPO_PUBLIC_API_URL ??
+  (Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.0.0.121:4000/api");
 
 
+
+
+
+  

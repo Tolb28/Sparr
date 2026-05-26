@@ -46,24 +46,35 @@ export const getUserConversations = async (
         created_at
       FROM messages
       ORDER BY conversations_id_conversations, created_at DESC
+    ),
+    other_participants AS (
+      SELECT
+        cp2.conversations_id_conversations,
+        STRING_AGG(p.display_name, ', ' ORDER BY p.display_name) as participant_names,
+        (ARRAY_AGG(p.id_profiles ORDER BY p.id_profiles))[1] as first_participant_id,
+        (ARRAY_AGG(p.avatar ORDER BY p.id_profiles))[1] as first_avatar,
+        (ARRAY_AGG(p.updated_at ORDER BY p.id_profiles))[1] as first_updated_at
+      FROM conversations_profiles cp2
+      INNER JOIN profiles p ON cp2.profiles_id_profiles = p.id_profiles
+      WHERE cp2.profiles_id_profiles != $1
+      GROUP BY cp2.conversations_id_conversations
     )
     SELECT
       c.id_conversations,
       c.is_group,
       c.title,
-      COALESCE(lm.content, '') as lastMessage,
-      COALESCE(lm.created_at, c.created_at) as lastMessageTimestamp,
-      p.id_profiles as otherParticipantId,
-      p.display_name as otherParticipantName,
-      p.avatar,
-      p.updated_at
+      COALESCE(lm.content, '') as "lastMessage",
+      COALESCE(lm.created_at, c.created_at) as "lastMessageTimestamp",
+      op.first_participant_id as "otherParticipantId",
+      op.participant_names as "otherParticipantName",
+      op.first_avatar as avatar,
+      op.first_updated_at as updated_at
     FROM conversations c
     INNER JOIN conversations_profiles cp ON c.id_conversations = cp.conversations_id_conversations
-    LEFT JOIN conversations_profiles cp2 ON c.id_conversations = cp2.conversations_id_conversations AND cp2.profiles_id_profiles != $1
-    LEFT JOIN profiles p ON cp2.profiles_id_profiles = p.id_profiles
+    LEFT JOIN other_participants op ON c.id_conversations = op.conversations_id_conversations
     LEFT JOIN latest_messages lm ON c.id_conversations = lm.conversations_id_conversations
     WHERE cp.profiles_id_profiles = $1
-    ORDER BY COALESCE(lm.created_at, c.created_at) DESC;
+    ORDER BY "lastMessageTimestamp" DESC;
   `;
 
   const { rows } = await pool.query(query, [userId]);
@@ -93,7 +104,7 @@ export const getMessages = async (
       m.id_sender,
       m.conversations_id_conversations,
       m.source,
-      p.display_name as senderName,
+      p.display_name as "senderName",
       p.avatar,
       p.updated_at
     FROM messages m
@@ -163,7 +174,7 @@ export const sendMessage = async (
       m.id_sender,
       m.conversations_id_conversations,
       m.source,
-      p.display_name as senderName,
+      p.display_name as "senderName",
       p.avatar,
       p.updated_at
     FROM messages m
@@ -284,8 +295,60 @@ export const getConversation = async (
 };
 
 /**
- * Get all participants in a conversation
+ * Rename a conversation
  */
+export const renameConversation = async (
+  conversationId: number,
+  title: string
+): Promise<void> => {
+  const query = `UPDATE conversations SET title = $1 WHERE id_conversations = $2;`;
+  await pool.query(query, [title, conversationId]);
+};
+
+/**
+ * Delete a conversation (removes participant row; deletes conversation if last member)
+ */
+export const leaveConversation = async (
+  conversationId: number,
+  profileId: number
+): Promise<void> => {
+  await pool.query(
+    `DELETE FROM conversations_profiles WHERE conversations_id_conversations = $1 AND profiles_id_profiles = $2`,
+    [conversationId, profileId]
+  );
+  // Clean up conversation and messages if no participants remain
+  const { rows } = await pool.query(
+    `SELECT COUNT(*) as cnt FROM conversations_profiles WHERE conversations_id_conversations = $1`,
+    [conversationId]
+  );
+  if (parseInt(rows[0].cnt) === 0) {
+    await pool.query(`DELETE FROM messages WHERE conversations_id_conversations = $1`, [conversationId]);
+    await pool.query(`DELETE FROM conversations WHERE id_conversations = $1`, [conversationId]);
+  }
+};
+
+/**
+ * Add participants to an existing conversation
+ */
+export const addConversationParticipants = async (
+  conversationId: number,
+  profileIds: number[]
+): Promise<void> => {
+  for (const profileId of profileIds) {
+    await pool.query(
+      `INSERT INTO conversations_profiles (conversations_id_conversations, profiles_id_profiles, joined_at)
+       VALUES ($1, $2, NOW()) ON CONFLICT DO NOTHING`,
+      [conversationId, profileId]
+    );
+  }
+  // Mark conversation as group if >2 participants
+  await pool.query(
+    `UPDATE conversations SET is_group = 1 WHERE id_conversations = $1
+     AND (SELECT COUNT(*) FROM conversations_profiles WHERE conversations_id_conversations = $1) > 2`,
+    [conversationId]
+  );
+};
+
 export const getConversationParticipants = async (
   conversationId: number
 ): Promise<any[]> => {

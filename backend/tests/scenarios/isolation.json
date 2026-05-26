@@ -1,0 +1,29 @@
+{
+  "name": "Cross-Profile Isolation Tests",
+  "tests": [
+    {
+      "name": "Profile 1 sees own metrics only",
+      "profileId": 1,
+      "token": "test_user_1_token",
+      "verify": [
+        "metrics.workouts_completed == 2",
+        "metrics.skill_level == 10",
+        "no other profiles' data visible"
+      ]
+    },
+    {
+      "name": "Profile 2 sees own metrics only",
+      "profileId": 2,
+      "token": "test_user_2_token",
+      "verify": [
+        "metrics.workouts_completed == 50",
+        "metrics.skill_level == 40",
+        "metrics != profile_1_metrics"
+      ]
+    },
+    {
+      "name": "All 5 profiles isolated",
+      "verify": "each profile sees unique metrics, no data leakage"
+    }
+  ]
+}

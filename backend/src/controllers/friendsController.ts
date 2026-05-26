@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { pool } from '../config/db';
 import { cloudinaryService } from '../services/cloudinaryService';
+import { recalculateProfileGamification } from '../services/gamificationService';
 
 /**
  * Return all accepted friends (profiles) for the authenticated user.
@@ -113,6 +114,11 @@ export const acceptFriendRequest = async (req: Request, res: Response) => {
     if (updateRows.length === 0) {
       return res.status(404).json({ error: 'Friend request not found' });
     }
+
+    // Recalculate badges for both users
+    recalculateProfileGamification(currentProfileId).catch(() => {});
+    const senderId = Number(friendRequestId);
+    if (senderId) recalculateProfileGamification(senderId).catch(() => {});
 
     return res.json({ success: true, message: 'Friend request accepted' });
   } catch (err: any) {

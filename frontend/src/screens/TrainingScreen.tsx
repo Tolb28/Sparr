@@ -1,16 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { ScrollView, View, ActivityIndicator } from 'react-native';
+import { ScrollView, View, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { Box } from '@/components/ui/box';
-import { VStack } from '@/components/ui/vstack';
-import { HStack } from '@/components/ui/hstack';
 import { Text } from '@/components/ui/text';
-import { Pressable } from '@/components/ui/pressable';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme';
+import { GlassCard } from '@/components/ui/glass-card';
+import { SparrButton } from '@/components/ui/sparr-button';
+import { colors } from '@/src/theme/colors';
+import { getBadgeCatalog, logWorkoutCompletion } from '@/src/api/gamification';
+import { useProgress } from '@/src/context/ProgressContext';
+import { showBadgeNotification, showErrorNotification } from '@/src/services/notificationService';
 
 type TrainingScreenRouteProp = RouteProp<RootStackParamList, 'Training'>;
 type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -50,6 +51,56 @@ export default function TrainingScreen() {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef(Date.now());
+  const hasLoggedCompletion = useRef(false);
+  const earnedBadgeIds = useRef<Set<number>>(new Set());
+
+  const { badges: progressBadges, refresh: refreshProgress } = useProgress();
+
+  // Log completion to backend when training finishes
+  useEffect(() => {
+    earnedBadgeIds.current = new Set(
+      (progressBadges || []).filter((badge) => badge.earned).map((badge) => badge.id_badges)
+    );
+  }, [progressBadges]);
+
+  useEffect(() => {
+    if (!isCompleted || hasLoggedCompletion.current) return;
+    hasLoggedCompletion.current = true;
+    const durationSec = Math.round((Date.now() - startTimeRef.current) / 1000);
+
+    (async () => {
+      let baselineBadges = progressBadges || [];
+      if (!baselineBadges.length) {
+        baselineBadges = await getBadgeCatalog().catch(() => []);
+      }
+      const priorEarned = new Set(
+        baselineBadges.filter((badge: any) => badge.earned).map((badge: any) => badge.id_badges)
+      );
+
+      try {
+        await logWorkoutCompletion(null, durationSec);
+      } catch {
+        showErrorNotification('Unable to log workout completion.');
+        return;
+      }
+
+      const updatedBadges = await getBadgeCatalog().catch(() => []);
+      const newlyEarned = updatedBadges.filter(
+        (badge: any) => badge.earned && !priorEarned.has(badge.id_badges)
+      );
+
+      newlyEarned.forEach((badge: any) => {
+        showBadgeNotification({
+          title: badge.title,
+          icon_name: badge.icon_name || 'ribbon-outline',
+          color: badge.color || colors.primary.main,
+        });
+      });
+
+      refreshProgress(true).catch(() => {});
+    })();
+  }, [isCompleted, progressBadges, refreshProgress]);
 
   const currentComponent = components[currentComponentIndex];
   const componentSets = currentComponent?.sets ? Number(currentComponent.sets) : 1;
@@ -168,6 +219,22 @@ export default function TrainingScreen() {
     }
   };
 
+  const handleGoPrev = () => {
+    if (currentSetIndex > 0) {
+      setCurrentSetIndex(prev => prev - 1);
+      setTimeRemaining(componentTime);
+      setIsRunning(false);
+    } else if (currentComponentIndex > 0) {
+      const prevIndex = currentComponentIndex - 1;
+      const prevComponent = components[prevIndex];
+      const prevSets = prevComponent?.sets ? Number(prevComponent.sets) : 1;
+      setCurrentComponentIndex(prevIndex);
+      setCurrentSetIndex(Math.max(0, prevSets - 1));
+      setTimeRemaining(null);
+      setIsRunning(false);
+    }
+  };
+
   const handleGoNext = () => {
     handleSkip();
   };
@@ -196,308 +263,229 @@ export default function TrainingScreen() {
 
   if (components.length === 0) {
     return (
-      <Box className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background.secondary }}>
-        <VStack className="items-center gap-4 px-6">
-          <Ionicons name="alert-circle-outline" size={48} color={colors.text.secondary} />
-          <Text className="text-lg font-semibold text-center" style={{ color: colors.text.primary }}>
-            No training components available
-          </Text>
-          <Pressable
-            onPress={() => navigation.goBack()}
-            className="px-6 py-3 rounded-lg mt-4"
-            style={{ backgroundColor: colors.primary.dark }}
-          >
-            <Text style={{ color: colors.text.inverse }}>Go Back</Text>
-          </Pressable>
-        </VStack>
-      </Box>
+      <View style={[styles.root, styles.center]}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.text.secondary} />
+        <Text style={styles.emptyMsg}>No training components available</Text>
+        <SparrButton label="Go Back" variant="outline" onPress={() => navigation.goBack()} style={{ marginTop: 16 }} />
+      </View>
     );
   }
 
   const videoUri = currentComponent?.video_url || currentComponent?.source;
 
   return (
-    <Box className="flex-1" style={{ backgroundColor: colors.background.secondary }}>
+    <View style={styles.root}>
       {/* Header */}
-      <HStack className="pt-12 px-4 pb-4 items-center justify-between" style={{ backgroundColor: colors.card.background, borderBottomColor: colors.border.light, borderBottomWidth: 1 }}>
-        <HStack className="items-center gap-3 flex-1">
-          <Pressable onPress={() => navigation.goBack()} className="p-2">
-            <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
-          </Pressable>
-          <Text className="text-lg font-bold" style={{ color: colors.text.primary }}>
-            {trainingName || 'Training'}
-          </Text>
-        </HStack>
-        <Text className="text-sm font-semibold" style={{ color: colors.text.secondary }}>
-          {currentComponentIndex + 1}/{components.length}
-        </Text>
-      </HStack>
+      <View style={styles.header}>
+        <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
+        </Pressable>
+        <Text style={styles.headerTitle} numberOfLines={1}>{trainingName || 'Training'}</Text>
+        <Text style={styles.indexLabel}>{currentComponentIndex + 1}/{components.length}</Text>
+      </View>
 
-      {/* Content - ScrollView with pb for sticky progress bar */}
-      <ScrollView className="flex-1 pb-20">
-        <VStack className="gap-6 pb-8">
-          {/* Video Section */}
-          {videoUri ? (
-            <VideoPlayerComponent videoUri={videoUri} />
-          ) : (
-            <Box className="w-full aspect-video items-center justify-center" style={{ backgroundColor: colors.neutral[200] }}>
-              <Ionicons name="videocam-outline" size={48} color={colors.text.tertiary} />
-            </Box>
-          )}
+      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+        {/* Video / Placeholder */}
+        {videoUri ? (
+          <VideoPlayerComponent videoUri={videoUri} />
+        ) : (
+          <View style={styles.videoPlaceholder}>
+            <Ionicons name="videocam-outline" size={48} color={colors.text.tertiary} />
+          </View>
+        )}
 
-          {/* Title with Sets */}
-          <VStack className="px-4 gap-2">
-            <HStack className="items-center justify-between">
-              <Text className="text-3xl font-bold flex-1 text-center" style={{ color: colors.text.primary }}>
-                {getComponentName()}
-              </Text>
-            </HStack>
+        <View style={styles.body}>
+          {/* Component name + set counter */}
+          <View style={styles.titleBlock}>
+            <Text style={styles.componentName}>{getComponentName()}</Text>
             {hasMultipleSets && (
-              <Text className="text-sm font-semibold text-center" style={{ color: colors.text.secondary }}>
-                Set {currentSetIndex + 1} of {componentSets}
-              </Text>
+              <Text style={styles.setLabel}>Set {currentSetIndex + 1} of {componentSets}</Text>
             )}
-          </VStack>
+          </View>
 
-          {/* Timer Section */}
+          {/* Timer */}
           {hasTime && timeRemaining !== null && (
-            <VStack className="px-4 gap-4">
-              <VStack className="gap-3">
-                {/* Timer display */}
-                <Box className="items-center gap-2">
-                  <Text
-                    className="text-6xl font-bold font-mono"
-                    style={{ color: timeRemaining <= 5 ? '#ef4444' : colors.text.primary }}
-                  >
-                    {formatTime(timeRemaining)}
-                  </Text>
-                </Box>
-
-                {/* Timer controls */}
-                <HStack className="gap-3 items-center justify-center">
-                  <Pressable
-                    onPress={handleToggleTimer}
-                    className="flex-1 rounded-lg py-3 items-center justify-center active:opacity-80"
-                    style={{ backgroundColor: colors.primary.dark }}
-                  >
-                    <HStack className="items-center gap-2">
-                      <Ionicons
-                        name={isRunning ? 'pause' : 'play'}
-                        size={20}
-                        color={colors.text.inverse}
-                      />
-                      <Text style={{ color: colors.text.inverse }} className="font-semibold">
-                        {isRunning ? 'Pause' : 'Start'}
-                      </Text>
-                    </HStack>
-                  </Pressable>
-
-                  <Pressable
-                    onPress={handleSkip}
-                    className="flex-1 rounded-lg py-3 items-center justify-center active:opacity-80 border"
-                    style={{ backgroundColor: colors.neutral[100], borderColor: colors.border.light }}
-                  >
-                    <HStack className="items-center gap-2">
-                      <Ionicons name="play-forward" size={20} color={colors.text.primary} />
-                      <Text style={{ color: colors.text.primary }} className="font-semibold">
-                        Skip
-                      </Text>
-                    </HStack>
-                  </Pressable>
-                </HStack>
-              </VStack>
-            </VStack>
-          )}
-
-          {/* Reps Section */}
-          {hasReps && !hasTime && (
-            <VStack className="px-4 gap-4">
-              <Box className="items-center gap-2">
-                <Text className="text-lg font-semibold" style={{ color: colors.text.secondary }}>
-                  Complete all reps
-                </Text>
-                <Text className="text-4xl font-bold" style={{ color: colors.primary.dark }}>
-                  {currentComponent.reps} Reps
-                </Text>
-              </Box>
-              <Pressable
-                onPress={handleGoNext}
-                className="rounded-lg py-4 items-center justify-center active:opacity-80"
-                style={{ backgroundColor: colors.primary.dark }}
-              >
-                <HStack className="items-center gap-2">
-                  <Text style={{ color: colors.text.inverse }} className="font-semibold text-base">
-                    Go Next
-                  </Text>
-                  <Ionicons name="arrow-forward" size={20} color={colors.text.inverse} />
-                </HStack>
-              </Pressable>
-            </VStack>
-          )}
-
-          {/* No timer/reps message */}
-          {!hasTime && !hasReps && (
-            <VStack className="px-4 gap-4">
-              <Box className="items-center gap-2">
-                <Ionicons name="checkmark-circle" size={40} color={colors.primary.dark} />
-                <Text className="text-lg font-semibold" style={{ color: colors.text.secondary }}>
-                  Complete this exercise
-                </Text>
-              </Box>
-              <Pressable
-                onPress={handleGoNext}
-                className="rounded-lg py-4 items-center justify-center active:opacity-80"
-                style={{ backgroundColor: colors.primary.dark }}
-              >
-                <HStack className="items-center gap-2">
-                  <Text style={{ color: colors.text.inverse }} className="font-semibold text-base">
-                    Go Next
-                  </Text>
-                  <Ionicons name="arrow-forward" size={20} color={colors.text.inverse} />
-                </HStack>
-              </Pressable>
-            </VStack>
-          )}
-
-          {/* Description Section */}
-          {currentComponent?.description && (
-            <VStack className="px-4 gap-2">
-              <Text className="text-sm font-semibold uppercase tracking-wide" style={{ color: colors.text.tertiary }}>
-                Description
+            <GlassCard variant="medium" radius={16} padding={20}>
+              <Text style={[styles.timerDisplay, timeRemaining <= 5 && styles.timerUrgent]}>
+                {formatTime(timeRemaining)}
               </Text>
+              <View style={styles.timerControls}>
+                <SparrButton
+                  label={isRunning ? 'Pause' : 'Start'}
+                  variant="primary"
+                  onPress={handleToggleTimer}
+                  style={{ flex: 1 }}
+                />
+                <SparrButton
+                  label="Skip"
+                  variant="ghost"
+                  onPress={handleSkip}
+                  style={{ flex: 1 }}
+                />
+              </View>
+            </GlassCard>
+          )}
+
+          {/* Reps */}
+          {hasReps && !hasTime && (
+            <GlassCard variant="medium" radius={16} padding={20}>
+              <View style={styles.repsBlock}>
+                <Text style={styles.repsLabel}>Complete all reps</Text>
+                <Text style={styles.repsCount}>{currentComponent.reps} Reps</Text>
+              </View>
+              <View style={styles.navBtns}>
+                {currentComponentIndex > 0 || currentSetIndex > 0 ? (
+                  <Pressable style={styles.navBtn} onPress={handleGoPrev}>
+                    <Ionicons name="chevron-back-circle" size={48} color={colors.text.secondary} />
+                  </Pressable>
+                ) : <View style={styles.navBtnPlaceholder} />}
+                <Pressable style={styles.navBtn} onPress={handleGoNext}>
+                  <Ionicons name="chevron-forward-circle" size={48} color={colors.primary.main} />
+                </Pressable>
+              </View>
+            </GlassCard>
+          )}
+
+          {/* No timer/reps */}
+          {!hasTime && !hasReps && (
+            <GlassCard variant="medium" radius={16} padding={20}>
+              <View style={styles.repsBlock}>
+                <Ionicons name="checkmark-circle" size={36} color={colors.primary.main} />
+                <Text style={styles.repsLabel}>Complete this exercise</Text>
+              </View>
+              <View style={styles.navBtns}>
+                {currentComponentIndex > 0 || currentSetIndex > 0 ? (
+                  <Pressable style={styles.navBtn} onPress={handleGoPrev}>
+                    <Ionicons name="chevron-back-circle" size={48} color={colors.text.secondary} />
+                  </Pressable>
+                ) : <View style={styles.navBtnPlaceholder} />}
+                <Pressable style={styles.navBtn} onPress={handleGoNext}>
+                  <Ionicons name="chevron-forward-circle" size={48} color={colors.primary.main} />
+                </Pressable>
+              </View>
+            </GlassCard>
+          )}
+
+          {/* Description */}
+          {!!currentComponent?.description && (
+            <GlassCard variant="default" radius={14} padding={16}>
+              <Text style={styles.descLabel}>DESCRIPTION</Text>
               <Text
-                className="text-sm leading-6"
-                style={{ color: colors.text.secondary }}
+                style={styles.descText}
                 numberOfLines={descriptionExpanded ? undefined : 3}
               >
                 {currentComponent.description}
               </Text>
               {currentComponent.description.length > 150 && (
-                <Pressable
-                  onPress={() => setDescriptionExpanded(!descriptionExpanded)}
-                  className="active:opacity-70 mt-1"
-                >
-                  <HStack className="gap-1 items-center">
-                    <Text className="text-sm font-semibold" style={{ color: colors.primary.dark }}>
-                      {descriptionExpanded ? 'Show less' : 'Show more'}
-                    </Text>
-                    <Ionicons
-                      name={descriptionExpanded ? 'chevron-up' : 'chevron-down'}
-                      size={16}
-                      color={colors.primary.dark}
-                    />
-                  </HStack>
+                <Pressable onPress={() => setDescriptionExpanded(!descriptionExpanded)} style={styles.expandBtn}>
+                  <Text style={styles.expandText}>{descriptionExpanded ? 'Show less' : 'Show more'}</Text>
+                  <Ionicons name={descriptionExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.primary.main} />
                 </Pressable>
               )}
-            </VStack>
+            </GlassCard>
           )}
-        </VStack>
+        </View>
       </ScrollView>
 
-      {/* Sticky Progress Bar at Bottom */}
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          paddingHorizontal: 16,
-          paddingVertical: 16,
-          backgroundColor: colors.card.background,
-          borderTopColor: colors.border.light,
-          borderTopWidth: 1,
-        }}
-      >
-        <VStack className="gap-2">
-          <Text className="text-xs font-semibold uppercase tracking-wide" style={{ color: colors.text.tertiary }}>
-            Overall Progress
-          </Text>
-          <View
-            style={{
-              width: '100%',
-              height: 8,
-              borderRadius: 999,
-              overflow: 'hidden',
-              backgroundColor: colors.neutral[200],
-            }}
-          >
-            <View
-              style={{
-                width: `${progressPercentage}%`,
-                height: '100%',
-                borderRadius: 999,
-                backgroundColor: colors.primary.dark,
-              }}
-            />
-          </View>
-          <Text className="text-xs text-right" style={{ color: colors.text.secondary }}>
-            {currentUnit + 1} / {totalUnits}
-          </Text>
-        </VStack>
+      {/* Sticky progress bar */}
+      <View style={styles.progressBar}>
+        <View style={styles.progressRow}>
+          <Text style={styles.progressLabel}>PROGRESS</Text>
+          <Text style={styles.progressCounter}>{currentUnit + 1} / {totalUnits}</Text>
+        </View>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
+        </View>
       </View>
-    </Box>
+    </View>
   );
 }
 
 function VideoPlayerComponent({ videoUri }: { videoUri: string }) {
-  const player = useVideoPlayer(videoUri, player => {
-    player.loop = true;
-    player.play();
-  });
-
+  const player = useVideoPlayer(videoUri, (p) => { p.loop = true; p.play(); });
   return (
-    <Box className="w-full aspect-video bg-black items-center justify-center relative">
-      <VideoView
-        style={{ width: '100%', height: '100%' }}
-        player={player}
-        allowsFullscreen
-      />
-    </Box>
+    <View style={styles.videoContainer}>
+      <VideoView style={{ width: '100%', height: '100%' }} player={player} allowsFullscreen />
+    </View>
   );
 }
 
 function CompletionScreen({ trainingName, onClose }: { trainingName: string; onClose: () => void }) {
   return (
-    <Box className="flex-1 items-center justify-center" style={{ backgroundColor: colors.background.secondary }}>
-      <VStack className="items-center gap-6 px-6">
-        {/* Success Icon */}
-        <Box className="w-24 h-24 rounded-full items-center justify-center" style={{ backgroundColor: colors.primary.dark }}>
-          <Ionicons name="checkmark" size={64} color={colors.text.inverse} />
-        </Box>
-
-        {/* Congratulations Text */}
-        <VStack className="items-center gap-2">
-          <Text className="text-3xl font-bold text-center" style={{ color: colors.text.primary }}>
-            Congratulations!
-          </Text>
-          <Text className="text-lg text-center" style={{ color: colors.text.secondary }}>
-            You've completed
-          </Text>
-        </VStack>
-
-        {/* Training Name */}
-        <Box className="px-8 py-3 rounded-lg" style={{ backgroundColor: colors.neutral[100] }}>
-          <Text className="text-xl font-bold text-center" style={{ color: colors.primary.dark }}>
-            {trainingName}
-          </Text>
-        </Box>
-
-        {/* Motivational Message */}
-        <Text className="text-base text-center leading-6" style={{ color: colors.text.secondary }}>
-          Great job! Keep up the excellent work with your training routine and keep improving.
-        </Text>
-
-        {/* Close Button */}
-        <Pressable
-          onPress={onClose}
-          className="w-full rounded-lg py-4 px-2 items-center justify-center active:opacity-80 mt-4"
-          style={{ backgroundColor: colors.primary.dark }}
-        >
-          <Text style={{ color: colors.text.inverse }} className="font-semibold text-base">
-            Back to Calendar
-          </Text>
-        </Pressable>
-      </VStack>
-    </Box>
+    <View style={[styles.root, styles.center]}>
+      <View style={styles.completionIcon}>
+        <Ionicons name="checkmark" size={56} color="#fff" />
+      </View>
+      <Text style={styles.completionHeading}>Congratulations!</Text>
+      <Text style={styles.completionSub}>You've completed</Text>
+      <GlassCard variant="red" radius={14} padding={16} style={{ marginTop: 12, marginHorizontal: 32 }}>
+        <Text style={styles.completionName}>{trainingName}</Text>
+      </GlassCard>
+      <Text style={styles.completionMsg}>
+        Great job! Keep up the excellent work with your training routine and keep improving.
+      </Text>
+      <SparrButton label="Back to Calendar" variant="primary" onPress={onClose} style={{ marginTop: 30, width: '80%' }} />
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background.secondary },
+  center: { alignItems: 'center', justifyContent: 'center', padding: 24 },
+  header: {
+    paddingTop: 48, paddingHorizontal: 16, paddingBottom: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    backgroundColor: colors.background.secondary,
+  },
+  backBtn: { padding: 6 },
+  headerTitle: { flex: 1, color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  indexLabel: { color: colors.text.secondary, fontSize: 13, fontWeight: '600' },
+  videoContainer: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#000' },
+  videoPlaceholder: {
+    width: '100%', aspectRatio: 16 / 9,
+    backgroundColor: colors.glass.surface, alignItems: 'center', justifyContent: 'center',
+  },
+  body: { padding: 16, gap: 14 },
+  titleBlock: { alignItems: 'center', paddingVertical: 8 },
+  componentName: { color: colors.text.primary, fontSize: 26, fontWeight: '800', textAlign: 'center' },
+  setLabel: { color: colors.text.secondary, fontSize: 14, marginTop: 4 },
+  timerDisplay: { color: colors.text.primary, fontSize: 60, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] },
+  timerUrgent: { color: '#ef4444' },
+  timerControls: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  repsBlock: { alignItems: 'center', gap: 6, marginBottom: 16 },
+  repsLabel: { color: colors.text.secondary, fontSize: 14 },
+  repsCount: { color: colors.primary.main, fontSize: 36, fontWeight: '800', lineHeight: 44 },
+  navBtns: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 24 },
+  navBtn: { padding: 4 },
+  navBtnPlaceholder: { width: 56, height: 56 },
+  descLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8 },
+  descText: { color: colors.text.secondary, fontSize: 13, lineHeight: 20 },
+  expandBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
+  expandText: { color: colors.primary.main, fontSize: 13, fontWeight: '600' },
+  progressBar: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 16, paddingVertical: 14,
+    backgroundColor: colors.background.secondary,
+    borderTopWidth: 1, borderTopColor: colors.border.light,
+  },
+  progressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  progressLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
+  progressCounter: { color: colors.text.secondary, fontSize: 11 },
+  progressTrack: {
+    height: 6, borderRadius: 99, backgroundColor: colors.glass.surface,
+    overflow: 'hidden', borderWidth: 1, borderColor: colors.glass.border,
+  },
+  progressFill: { height: '100%', borderRadius: 99, backgroundColor: colors.primary.main },
+  emptyMsg: { color: colors.text.secondary, fontSize: 15, marginTop: 12, textAlign: 'center' },
+  completionIcon: {
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: colors.primary.main, alignItems: 'center', justifyContent: 'center',
+    shadowColor: colors.primary.main, shadowOpacity: 0.5, shadowRadius: 20, elevation: 12,
+    marginBottom: 8,
+  },
+  completionHeading: { color: colors.text.primary, fontSize: 28, fontWeight: '800', marginTop: 12 },
+  completionSub: { color: colors.text.secondary, fontSize: 15, marginTop: 8 },
+  completionName: { color: colors.primary.main, fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  completionMsg: { color: colors.text.secondary, fontSize: 13, textAlign: 'center', lineHeight: 20, marginTop: 20, paddingHorizontal: 24 },
+});

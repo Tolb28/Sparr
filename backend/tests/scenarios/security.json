@@ -1,0 +1,48 @@
+{
+  "name": "Security & Authorization Tests",
+  "tests": [
+    {
+      "name": "Own profile access OK",
+      "method": "GET",
+      "path": "/api/auth/gamification/profiles/1/progress",
+      "token": "test_user_1_token",
+      "expect": { "status": 200 }
+    },
+    {
+      "name": "Other profile forbidden",
+      "path": "/api/auth/gamification/profiles/2/progress",
+      "token": "test_user_1_token",
+      "expect": { "status": 403, "message": "Forbidden" }
+    },
+    {
+      "name": "No token unauthorized",
+      "path": "/api/auth/gamification/profiles/1/progress",
+      "token": null,
+      "expect": { "status": 401 }
+    },
+    {
+      "name": "Invalid token unauthorized",
+      "path": "/api/auth/gamification/profiles/1/progress",
+      "token": "invalid.token.here",
+      "expect": { "status": 401 }
+    },
+    {
+      "name": "Admin can access other profile",
+      "path": "/api/auth/gamification/profiles/2/progress",
+      "token": "admin_token",
+      "expect": { "status": 200 }
+    },
+    {
+      "name": "Invalid profileId returns 400",
+      "path": "/api/auth/gamification/profiles/abc/progress",
+      "token": "test_user_1_token",
+      "expect": { "status": 400, "code": "INVALID_INPUT" }
+    },
+    {
+      "name": "Invalid range returns 400",
+      "path": "/api/auth/gamification/profiles/1/progress?range=invalid",
+      "token": "test_user_1_token",
+      "expect": { "status": 400 }
+    }
+  ]
+}

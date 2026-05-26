@@ -1,0 +1,30 @@
+{
+  "name": "Skill Level Calculation Tests",
+  "tests": [
+    {
+      "name": "New user zero skill",
+      "profileId": "test_user_1",
+      "expect": { "skill_level": 0 }
+    },
+    {
+      "name": "Beginner ~20",
+      "profileId": "test_user_2",
+      "expect": { "skill_level": { "min": 15, "max": 25 } }
+    },
+    {
+      "name": "Intermediate ~50",
+      "profileId": "test_user_3",
+      "expect": { "skill_level": { "min": 45, "max": 55 } }
+    },
+    {
+      "name": "Advanced ~85+",
+      "profileId": "test_user_4",
+      "expect": { "skill_level": { "min": 80 } }
+    },
+    {
+      "name": "Max capped at 100",
+      "profileId": "test_user_4",
+      "expect": { "skill_level": { "max": 100 } }
+    }
+  ]
+}

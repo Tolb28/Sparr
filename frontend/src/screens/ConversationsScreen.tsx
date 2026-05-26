@@ -1,37 +1,38 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   FlatList,
   View,
-  ActivityIndicator,
   RefreshControl,
-  Text,
+  TextInput,
+  StyleSheet,
+  Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { Box } from '@/components/ui/box';
-import { VStack } from '@/components/ui/vstack';
-import { HStack } from '@/components/ui/hstack';
-import { Button, ButtonText } from '@/components/ui/button';
-import { Icon } from '@/components/ui/icon';
-import { MessageCircle } from 'lucide-react-native';
+import { Text } from '@/components/ui/text';
+import { Ionicons } from '@expo/vector-icons';
 import ChatListItem from '../components/ChatListItem';
 import { fetchConversations } from '../api/chatApi';
 import { ConversationPreview } from '../types/chat';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EmptyState } from '@/components/ui/empty-state';
+import { SparrButton } from '@/components/ui/sparr-button';
+import { colors } from '@/src/theme/colors';
 
 export default function ConversationsScreen() {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const [conversations, setConversations] = useState<ConversationPreview[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [query, setQuery] = useState('');
 
   const loadConversations = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('[CONVERSATIONS] Loading conversations...');
       const data = await fetchConversations();
       setConversations(data || []);
-      console.log('[CONVERSATIONS] Loaded', data?.length, 'conversations');
-    } catch (err) {
-      console.error('[CONVERSATIONS] Failed to load conversations', err);
+    } catch {
       setConversations([]);
     } finally {
       setLoading(false);
@@ -43,8 +44,6 @@ export default function ConversationsScreen() {
     try {
       const data = await fetchConversations();
       setConversations(data || []);
-    } catch (err) {
-      console.error('[CONVERSATIONS] Failed to refresh conversations', err);
     } finally {
       setRefreshing(false);
     }
@@ -56,70 +55,96 @@ export default function ConversationsScreen() {
     }, [loadConversations])
   );
 
-  const handleNewConversation = () => {
-    navigation.navigate('NewConversation');
-  };
-
-  const renderEmpty = () => (
-    <VStack space="md" className="flex-1 items-center justify-center px-4">
-      <Icon as={MessageCircle} size="xl" className="text-gray-400" />
-      <Text className="text-gray-600 text-center">
-        No conversations yet. Start chatting with a friend!
-      </Text>
-      <Button
-        action="primary"
-        onPress={handleNewConversation}
-        className="mt-4"
-      >
-        <ButtonText>New Conversation</ButtonText>
-      </Button>
-    </VStack>
-  );
-
-  const renderHeader = () => (
-    <VStack space="md" className="px-4 py-4 bg-white">
-      <HStack space="md" className="items-center justify-between">
-        <Text className="text-2xl font-bold">Messages</Text>
-        <Button
-          action="primary"
-          size="sm"
-          onPress={handleNewConversation}
-          className="px-3"
-        >
-          <ButtonText>New</ButtonText>
-        </Button>
-      </HStack>
-    </VStack>
-  );
+  const filtered = conversations.filter((conversation) => {
+    if (!query.trim()) return true;
+    const q = query.toLowerCase();
+    return (
+      conversation.otherParticipantName?.toLowerCase().includes(q) ||
+      conversation.lastMessage?.toLowerCase().includes(q)
+    );
+  });
 
   if (loading && !refreshing) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={[styles.root, styles.center]}>
+        <ActivityIndicator size="large" color={colors.primary.main} />
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-white pt-10">
-      {renderHeader()}
-      {conversations.length === 0 ? (
-        renderEmpty()
+    <View style={styles.root}>
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8 }]}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Messages</Text>
+          <Pressable
+            style={styles.newBtn}
+            onPress={() => navigation.navigate('NewConversation' as never)}
+          >
+            <Ionicons name="create-outline" size={20} color={colors.primary.main} />
+          </Pressable>
+        </View>
+
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={18} color={colors.text.tertiary} />
+          <TextInput
+            placeholder="Search messages..."
+            placeholderTextColor={colors.text.tertiary}
+            value={query}
+            onChangeText={setQuery}
+            style={styles.searchInput}
+          />
+        </View>
+      </View>
+
+      {filtered.length === 0 ? (
+        <View style={styles.center}>
+          <EmptyState
+            icon="chatbubbles-outline"
+            title={query ? 'No results' : 'No conversations yet'}
+            subtitle={query ? 'Try a different search' : 'Start chatting with a friend'}
+          />
+          {!query && (
+            <SparrButton
+              label="New Conversation"
+              variant="primary"
+              onPress={() => navigation.navigate('NewConversation' as never)}
+              style={styles.newConvoBtn}
+            />
+          )}
+        </View>
       ) : (
         <FlatList
-          data={conversations}
+          data={filtered}
           renderItem={({ item }) => <ChatListItem conversation={item} />}
           keyExtractor={(item) => item.id_conversations.toString()}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor="#3b82f6"
-            />
-          }
-          scrollEnabled={true}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary.main} />}
+          contentContainerStyle={{ paddingBottom: 100 }}
         />
       )}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background.secondary },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  header: {
+    paddingHorizontal: 16, paddingBottom: 10,
+    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  headerTitle: { color: colors.text.primary, fontSize: 22, fontWeight: '800' },
+  newBtn: {
+    width: 38, height: 38, borderRadius: 10,
+    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: colors.background.card, borderRadius: 12,
+    paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border.light,
+  },
+  searchInput: { flex: 1, color: colors.text.primary, paddingVertical: 10, fontSize: 14 },
+  newConvoBtn: { marginTop: 16, minWidth: 200 },
+});

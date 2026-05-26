@@ -36,17 +36,22 @@ import {
   addTrainingComponent,
   updateTrainingComponent,
   deleteTrainingComponent,
+  reorderTrainingComponents,
+  getPersonalizedContentRecommendations,
 } from "../controllers/trainingsController";
 import {
   createCalendar,
   addTrainingToCalendar,
   getCalendar,
+  getCalendarPreview,
   listPublicCalendars,
+  listUserCalendars,
   selectCalendarForProfile,
   getSelectedCalendarForProfile,
   updateCalendar,
   deleteCalendar,
   deleteTrainingFromCalendar,
+  reorderCalendarTrainings,
 } from "../controllers/trainingCalendarsController";
 
 const router = Router();
@@ -79,19 +84,26 @@ router.put("/combinations/:id", authenticate, updateCombination);
 router.delete("/combinations/:id", authenticate, deleteCombination);
 
 // Trainings
+router.get("/recommendations", authenticate, getPersonalizedContentRecommendations);
 router.get("/trainings", getTrainings);
 router.post("/trainings", authenticate, createTraining);
 router.get("/trainings/:id", getTraining);
+router.put("/trainings/:id", authenticate, updateTraining);
+router.delete("/trainings/:id", authenticate, deleteTraining);
 router.post("/trainings/:id/components", authenticate, addTrainingComponent);
+router.put("/trainings/:id/components/reorder", authenticate, reorderTrainingComponents);
 router.put("/trainings/components/:compId", authenticate, updateTrainingComponent);
 router.delete("/trainings/components/:compId", authenticate, deleteTrainingComponent);
 
 // Training calendars
 router.post("/calendars", authenticate, createCalendar);
 router.get("/calendars/public", authenticate, listPublicCalendars);
+router.get("/calendars/mine", authenticate, listUserCalendars);
 router.get("/calendars/selected", authenticate, getSelectedCalendarForProfile);
 router.get("/calendars/:id", getCalendar);
+router.get("/calendars/:id/preview", authenticate, getCalendarPreview);
 router.post("/calendars/:id/trainings", authenticate, addTrainingToCalendar);
+router.put("/calendars/:id/trainings/reorder", authenticate, reorderCalendarTrainings);
 router.delete("/calendars/:calId/trainings/:itemId", authenticate, deleteTrainingFromCalendar);
 router.put("/calendars/:id", authenticate, updateCalendar);
 router.delete("/calendars/:id", authenticate, deleteCalendar);

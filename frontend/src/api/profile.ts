@@ -1,19 +1,37 @@
 import { Platform } from 'react-native';
 import { getToken, ServerIP, deleteToken } from './tokenHandler';
-import { storeProfile, removeProfile } from './profileHandler';
+import { getActiveProfileId, setActiveProfileId, storeProfile, removeProfile } from './profileHandler';
+
+async function getProfileContextHeaders() {
+  const activeProfileId = await getActiveProfileId();
+  const headers: Record<string, string> = {};
+  if (activeProfileId) {
+    headers['X-Profile-Id'] = String(activeProfileId);
+  }
+  return headers;
+}
+
+export async function buildAuthHeaders(base: Record<string, string> = {}) {
+  const token = await getToken();
+  const profileContext = await getProfileContextHeaders();
+  const headers: Record<string, string> = {
+    ...base,
+    ...profileContext,
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 
 export async function getUserProfile() {
-  // read token from keychain
-  const token = await getToken();
-
   const response = await fetch(`${ServerIP}/auth/profile`, {
     method: 'GET',
-    headers: {
+    headers: await buildAuthHeaders({
       'Content-Type': 'application/json',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    }),
   });
 
   if (!response.ok) {
@@ -30,24 +48,22 @@ export async function getUserProfile() {
   const data = await response.json();
   console.log('Fetched profile from server:', data);
   await storeProfile(data?.profile ?? data);
+  if (data?.profile?.id_profiles) {
+    await setActiveProfileId(Number(data.profile.id_profiles));
+  }
 
   return data;
 }
 
 
 export async function updateProfile(updates: any) {
-  const token = await getToken();
-
   console.log('Updating profile with data:', updates);
 
   // If updates is FormData (contains a file), send it as multipart/form-data
   if (updates instanceof FormData) {
     const response = await fetch(`${ServerIP}/auth/profile`, {
       method: 'PUT',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        // Don't set Content-Type header for FormData - the browser will set it with boundary
-      },
+      headers: await buildAuthHeaders(),
       body: updates,
     });
 
@@ -71,10 +87,7 @@ export async function updateProfile(updates: any) {
   // Otherwise, send as JSON
   const response = await fetch(`${ServerIP}/auth/profile`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: await buildAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(updates),
   });
 
@@ -96,14 +109,9 @@ export async function updateProfile(updates: any) {
 }
 
 export async function deleteProfile() {
-  const token = await getToken();
-
   const response = await fetch(`${ServerIP}/auth/profile`, {
     method: 'DELETE',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers: await buildAuthHeaders({ 'Content-Type': 'application/json' }),
   });
 
   if (!response.ok) {
@@ -196,4 +204,28 @@ export async function getForeignProfile(id : number) {
   }
 
   return response.json();
+}
+
+export async function getMyProfiles() {
+  const token = await getToken();
+  const response = await fetch(`${ServerIP}/auth/profiles`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    let errorData;
+    try {
+      errorData = await response.json();
+    } catch (e) {
+      throw new Error(`Server error: ${response.statusText}`);
+    }
+    throw new Error(errorData?.error || errorData?.message || 'Failed to fetch linked profiles');
+  }
+
+  const data = await response.json();
+  return data?.profiles || [];
 }
