@@ -1,10 +1,16 @@
-import { getToken, ServerIP } from './tokenHandler';
+import { buildAuthHeaders } from './profile';
+import { ServerIP } from './tokenHandler';
 
 async function authFetch(path: string, opts: RequestInit = {}) {
-  const token = await getToken();
+  const headers = await buildAuthHeaders({
+    'Content-Type': 'application/json',
+  });
   const response = await fetch(`${ServerIP}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     ...opts,
+    headers: {
+      ...headers,
+      ...(opts.headers as Record<string, string> | undefined),
+    },
   });
 
   if (!response.ok) {

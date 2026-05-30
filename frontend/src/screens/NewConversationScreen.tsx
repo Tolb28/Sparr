@@ -20,6 +20,7 @@ import { createConversation } from '../api/chatApi';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/src/theme/colors';
+import { showErrorNotification } from '@/src/services/notificationService';
 
 interface Friend {
   id_profiles: number;
@@ -93,7 +94,7 @@ export default function NewConversationScreen() {
         otherParticipantAvatar: isGroup ? null : selected[0].avatar_url,
       });
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Failed to create conversation');
+      showErrorNotification(err?.message || 'Failed to create conversation');
     } finally {
       setCreating(false);
     }

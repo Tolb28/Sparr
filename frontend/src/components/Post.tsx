@@ -292,7 +292,13 @@ function FeedPost({ post }: FeedPostProps) {
     </Box>
 
     {/* COMMENTS MODAL */}
-    <Modal visible={showComments} animationType="slide">
+    <Modal
+      visible={showComments}
+      animationType="slide"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+    >
       <CommentSection
         postId={post.id_posts}
         onClose={() => setShowComments(false)}

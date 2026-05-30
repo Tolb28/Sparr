@@ -10,6 +10,7 @@ interface ChallengeProgressCardProps {
   challenge: ChallengeSummary;
   onPress: () => void;
   onStart?: () => void;
+  cardWidth?: number;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -25,7 +26,7 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   elite: colors.error.main,
 };
 
-export default function ChallengeProgressCard({ challenge, onPress, onStart }: ChallengeProgressCardProps) {
+export default function ChallengeProgressCard({ challenge, onPress, onStart, cardWidth }: ChallengeProgressCardProps) {
   const badgeColor = challenge.badge?.color || colors.primary.main;
   const progress = Math.max(0, Math.min(1, Number(challenge.progress || 0)));
   const percent = Math.round(progress * 100);
@@ -40,7 +41,12 @@ export default function ChallengeProgressCard({ challenge, onPress, onStart }: C
       testID={`ChallengeCard_${challenge.id_challenges}`}
       style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
     >
-      <GlassCard variant="medium" radius={16} padding={14} style={styles.card}>
+      <GlassCard
+        variant="medium"
+        radius={16}
+        padding={14}
+        style={[styles.card, ...(cardWidth ? [{ width: cardWidth, maxWidth: cardWidth }] : [])]}
+      >
         <View style={styles.headerRow}>
           <View style={[styles.badgeIconWrap, { backgroundColor: colorUtils.hexToRgba(badgeColor, 0.2) }]}>
             <Ionicons
@@ -124,15 +130,18 @@ export default function ChallengeProgressCard({ challenge, onPress, onStart }: C
 
 const styles = StyleSheet.create({
   pressable: {
-    width: 280,
+    alignSelf: 'flex-start',
+    flexShrink: 0,
   },
   pressed: {
     opacity: 0.92,
     transform: [{ scale: 0.99 }],
   },
   card: {
+    width: '100%',
     gap: 10,
-    minHeight: 170,
+    height: 180,
+    alignSelf: 'flex-start',
   },
   headerRow: {
     flexDirection: 'row',
@@ -250,4 +259,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-

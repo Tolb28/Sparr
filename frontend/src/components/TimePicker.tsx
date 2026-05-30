@@ -99,7 +99,15 @@ export default function TimePicker({ value, onChange, label }: TimePickerProps) 
         </Text>
       </Pressable>
 
-      <Modal visible={showPicker} transparent animationType="fade" onRequestClose={() => setShowPicker(false)}>
+      <Modal
+        visible={showPicker}
+        transparent
+        animationType="fade"
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setShowPicker(false)}
+      >
         <View style={styles.overlay}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowPicker(false)} />
           <View style={styles.sheet}>

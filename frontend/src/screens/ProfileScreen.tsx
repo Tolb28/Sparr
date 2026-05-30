@@ -53,10 +53,10 @@ export default function ProfileScreen() {
     refresh: refreshProgress,
   } = useProgress();
 
-  const loadProfile = async () => {
+  const loadProfile = async (forceRefresh = false) => {
     setLoading(true);
     try {
-      const data = await getUserProfile();
+      const data = await getUserProfile({ forceRefresh });
       const p = data?.profile ?? data;
       setProfile(p);
       if (p?.id_profiles) {
@@ -78,7 +78,7 @@ export default function ProfileScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadProfile();
+    await loadProfile(true);
     setRefreshTrigger((p) => p + 1);
     setRefreshing(false);
   };
@@ -522,4 +522,3 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
 });
-

@@ -489,7 +489,15 @@ export default function CreateCalendarScreen() {
       </ScrollView>
 
       {/* Training Picker Modal */}
-      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
+      <Modal
+        visible={pickerOpen}
+        transparent
+        animationType="slide"
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setPickerOpen(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setPickerOpen(false)}>
           <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHeader}>

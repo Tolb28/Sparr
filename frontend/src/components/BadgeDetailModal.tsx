@@ -63,6 +63,9 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
       visible={visible}
       animationType="slide"
       transparent
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={onClose}
     >
       <Pressable style={styles.backdrop} onPress={onClose}>

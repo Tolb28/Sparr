@@ -150,7 +150,15 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
   };
 
   return (
-    <Modal visible={rendered} transparent animationType="none" onRequestClose={onClose}>
+    <Modal
+      visible={rendered}
+      transparent
+      animationType="none"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
+    >
       <View style={[styles.overlay, isSmallScreen && styles.overlayCompact]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <MotionView

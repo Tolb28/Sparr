@@ -8,6 +8,7 @@ import { getMyProfiles, getUserProfile } from '../api/profile';
 import { getActiveProfileId, setActiveProfileId, storeProfile, removeProfile } from '../api/profileHandler';
 import { GlassCard } from '@/components/ui/glass-card';
 import { colors } from '@/src/theme/colors';
+import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -42,9 +43,9 @@ export default function SettingsScreen() {
       setActiveProfileIdState(Number(profile.id_profiles));
       await storeProfile(profile);
       await getUserProfile();
-      Alert.alert('Profile switched', `Now using ${profile.display_name || profile.username || 'selected profile'}`);
+      showSuccessNotification(`Now using ${profile.display_name || profile.username || 'selected profile'}`);
     } catch (error: any) {
-      Alert.alert('Switch failed', error?.message || 'Unable to switch profile');
+      showErrorNotification(error?.message || 'Unable to switch profile');
     } finally {
       setSaving(false);
     }

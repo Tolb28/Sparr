@@ -332,7 +332,15 @@ export default function EditTrainingScreen() {
       </ScrollView>
 
       {/* Picker Modal — same as CreateTrainingScreen */}
-      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
+      <Modal
+        visible={pickerOpen}
+        transparent
+        animationType="slide"
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setPickerOpen(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setPickerOpen(false)}>
           <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHeader}>

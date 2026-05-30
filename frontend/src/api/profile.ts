@@ -1,6 +1,13 @@
 import { Platform } from 'react-native';
 import { getToken, ServerIP, deleteToken } from './tokenHandler';
 import { getActiveProfileId, setActiveProfileId, storeProfile, removeProfile } from './profileHandler';
+import {
+  getCachedProfileResponse,
+  getInFlightProfileRequest,
+  getProfileCacheGeneration,
+  setCachedProfileResponse,
+  setInFlightProfileRequest,
+} from './profileCache';
 
 async function getProfileContextHeaders() {
   const activeProfileId = await getActiveProfileId();
@@ -25,39 +32,65 @@ export async function buildAuthHeaders(base: Record<string, string> = {}) {
 }
 
 
-export async function getUserProfile() {
-  const response = await fetch(`${ServerIP}/auth/profile`, {
-    method: 'GET',
-    headers: await buildAuthHeaders({
-      'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-    }),
-  });
+export async function getUserProfile(options: { forceRefresh?: boolean } = {}) {
+  const forceRefresh = options.forceRefresh ?? false;
+  if (!forceRefresh) {
+    const cached = getCachedProfileResponse();
+    if (cached) return cached;
 
-  if (!response.ok) {
-    let errorData;
-    try {
-      errorData = await response.json();
-    } catch (e) {
-      throw new Error(`Server error: ${response.statusText}`);
+    const inFlight = getInFlightProfileRequest();
+    if (inFlight) return inFlight;
+  }
+
+  const cacheGeneration = getProfileCacheGeneration();
+  const request = (async () => {
+    const response = await fetch(`${ServerIP}/auth/profile`, {
+      method: 'GET',
+      headers: await buildAuthHeaders({
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+      }),
+    });
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        throw new Error(`Server error: ${response.statusText}`);
+      }
+      const errorMessage = errorData?.error || errorData?.message;
+      throw new Error(errorMessage || 'Failed to fetch profile');
     }
-    const errorMessage = errorData?.error || errorData?.message;
-    throw new Error(errorMessage || 'Failed to fetch profile');
-  }
 
-  const data = await response.json();
-  console.log('Fetched profile from server:', data);
-  await storeProfile(data?.profile ?? data);
-  if (data?.profile?.id_profiles) {
-    await setActiveProfileId(Number(data.profile.id_profiles));
-  }
+    const data = await response.json();
+    console.log('Fetched profile from server:', data);
+    await storeProfile(data?.profile ?? data);
+    if (data?.profile?.id_profiles) {
+      await setActiveProfileId(Number(data.profile.id_profiles));
+    }
+    if (cacheGeneration === getProfileCacheGeneration()) {
+      setCachedProfileResponse(data);
+    }
 
-  return data;
+    return data;
+  })();
+
+  setInFlightProfileRequest(request);
+
+  try {
+    return await request;
+  } finally {
+    if (getInFlightProfileRequest() === request) {
+      setInFlightProfileRequest(null);
+    }
+  }
 }
 
 
 export async function updateProfile(updates: any) {
   console.log('Updating profile with data:', updates);
+  const cacheGeneration = getProfileCacheGeneration();
 
   // If updates is FormData (contains a file), send it as multipart/form-data
   if (updates instanceof FormData) {
@@ -81,6 +114,9 @@ export async function updateProfile(updates: any) {
     const data = await response.json();
     // Store the updated profile
     await storeProfile(data?.profile ?? data);
+    if (cacheGeneration === getProfileCacheGeneration()) {
+      setCachedProfileResponse(data);
+    }
     return data;
   }
 
@@ -105,6 +141,9 @@ export async function updateProfile(updates: any) {
   const data = await response.json();
   // Store the updated profile
   await storeProfile(data?.profile ?? data);
+  if (cacheGeneration === getProfileCacheGeneration()) {
+    setCachedProfileResponse(data);
+  }
   return data;
 }
 

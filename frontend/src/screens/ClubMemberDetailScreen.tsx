@@ -17,6 +17,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { removeMember, updateMemberRole } from '../api/clubs';
 import { colors } from '@/src/theme/colors';
+import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
 
 type RouteType = RouteProp<RootStackParamList, 'ClubMemberDetail'>;
 
@@ -55,9 +56,9 @@ export default function ClubMemberDetailScreen() {
       await updateMemberRole(clubId, member.id_profiles, newRole);
       setCurrentRole(newRole);
       setCurrentRoleLabel(label);
-      Alert.alert('Role updated', `${memberName} is now ${label}.`);
+      showSuccessNotification(`${memberName} is now ${label}.`);
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Unable to change role');
+      showErrorNotification(e?.message ?? 'Unable to change role');
     } finally {
       setSaving(false);
     }
@@ -76,10 +77,10 @@ export default function ClubMemberDetailScreen() {
               try {
                 setSaving(true);
                 await removeMember(clubId, member.id_profiles);
-                Alert.alert('Member removed', `${memberName} has been removed from this club.`);
+                showSuccessNotification(`${memberName} has been removed from this club.`);
                 navigation.goBack();
               } catch (e: any) {
-                Alert.alert('Error', e?.message ?? 'Unable to remove member');
+                showErrorNotification(e?.message ?? 'Unable to remove member');
               } finally {
                 setSaving(false);
               }

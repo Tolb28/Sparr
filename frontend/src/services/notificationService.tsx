@@ -149,7 +149,7 @@ export const NotificationHost: React.FC = () => {
   return (
     <View
       pointerEvents="none"
-      style={[styles.root, { paddingBottom: insets.bottom + 20 }]}
+      style={[styles.root, { paddingTop: insets.top + 12 }]}
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
       accessibilityLabel={`${active.title}${active.subtitle ? `, ${active.subtitle}` : ''}${active.message ? `, ${active.message}` : ''}`}
@@ -163,7 +163,7 @@ export const NotificationHost: React.FC = () => {
             backgroundColor: colorUtils.hexToRgba(accentColor, 0.12),
           },
         ]}
-        animate={{ opacity: visible ? 1 : 0, translateY: visible ? 0 : 20 }}
+        animate={{ opacity: visible ? 1 : 0, translateY: visible ? 0 : -20 }}
         transition={{ type: 'timing', duration: visible ? 200 : 200 }}
       >
         <View style={styles.iconWrap}>
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: 0,
+    top: 0,
     zIndex: 999,
     alignItems: 'center',
   },

@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { getUserProfile, updateProfile, deleteProfile } from '../api/profile';
 import { getProfileReferences } from '../api/references';
+import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
 
 import { Text } from '@/components/ui/text';
 import {
@@ -152,7 +153,7 @@ export default function EditProfileScreen({ navigation }: Props) {
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission required', 'We need access to your photos to update your avatar.');
+      showErrorNotification('We need access to your photos to update your avatar.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -194,7 +195,7 @@ export default function EditProfileScreen({ navigation }: Props) {
       } else {
         await updateProfile(form);
       }
-      Alert.alert('Success', 'Profile updated successfully');
+      showSuccessNotification('Profile updated successfully');
       navigation.goBack();
     } catch (err: any) {
       setError(err?.message ?? 'Failed to update profile');
@@ -214,7 +215,7 @@ export default function EditProfileScreen({ navigation }: Props) {
           setError(null);
           try {
             await deleteProfile();
-            Alert.alert('Success', 'Profile deleted');
+            showSuccessNotification('Profile deleted');
             navigation.replace('Login');
           } catch (err: any) {
             setError(err?.message ?? 'Failed to delete profile');
@@ -340,7 +341,15 @@ export default function EditProfileScreen({ navigation }: Props) {
           </GlassCard>
 
           {/* Modals */}
-          <Modal visible={weightDropdownOpen} transparent animationType="slide" onRequestClose={() => setWeightDropdownOpen(false)}>
+          <Modal
+            visible={weightDropdownOpen}
+            transparent
+            animationType="slide"
+            presentationStyle="overFullScreen"
+            statusBarTranslucent
+            navigationBarTranslucent
+            onRequestClose={() => setWeightDropdownOpen(false)}
+          >
             <Pressable style={styles.modalOverlay} onPress={() => setWeightDropdownOpen(false)}>
               <View style={styles.modalSheet}>
                 <View style={styles.modalHeader}>
@@ -364,7 +373,15 @@ export default function EditProfileScreen({ navigation }: Props) {
             </Pressable>
           </Modal>
 
-          <Modal visible={styleDropdownOpen} transparent animationType="slide" onRequestClose={() => setStyleDropdownOpen(false)}>
+          <Modal
+            visible={styleDropdownOpen}
+            transparent
+            animationType="slide"
+            presentationStyle="overFullScreen"
+            statusBarTranslucent
+            navigationBarTranslucent
+            onRequestClose={() => setStyleDropdownOpen(false)}
+          >
             <Pressable style={styles.modalOverlay} onPress={() => setStyleDropdownOpen(false)}>
               <View style={styles.modalSheet}>
                 <View style={styles.modalHeader}>
@@ -388,7 +405,15 @@ export default function EditProfileScreen({ navigation }: Props) {
             </Pressable>
           </Modal>
 
-          <Modal visible={experienceDropdownOpen} transparent animationType="slide" onRequestClose={() => setExperienceDropdownOpen(false)}>
+          <Modal
+            visible={experienceDropdownOpen}
+            transparent
+            animationType="slide"
+            presentationStyle="overFullScreen"
+            statusBarTranslucent
+            navigationBarTranslucent
+            onRequestClose={() => setExperienceDropdownOpen(false)}
+          >
             <Pressable style={styles.modalOverlay} onPress={() => setExperienceDropdownOpen(false)}>
               <View style={styles.modalSheet}>
                 <View style={styles.modalHeader}>

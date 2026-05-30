@@ -553,6 +553,9 @@ export default function TechniqueScreen() {
         visible={sidebarOpen}
         transparent={true}
         animationType="none"
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={closeSidebar}
       >
         <View style={{ flex: 1, flexDirection: 'row' }}>

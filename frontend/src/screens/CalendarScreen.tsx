@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, View, Modal, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
+import { ScrollView, View, Modal, Pressable, StyleSheet, useWindowDimensions, LayoutChangeEvent } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import ProgressRing from '../components/ProgressRing';
@@ -108,6 +108,27 @@ export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 375;
+  const bodyHorizontalPadding = isSmallScreen ? 12 : 16;
+  const [challengeSectionWidth, setChallengeSectionWidth] = useState(0);
+  const challengeCardWidth = useMemo(
+    () => {
+      const availableWidth =
+        challengeSectionWidth > 0
+          ? challengeSectionWidth
+          : width - bodyHorizontalPadding * 2;
+      // Keep challenge cards comfortably inside the section while preserving readability.
+      return Math.max(220, Math.min(300, Math.floor(availableWidth * 0.84)));
+    },
+    [bodyHorizontalPadding, challengeSectionWidth, width]
+  );
+  const challengeSkeletonBaseWidth = useMemo(
+    () => Math.max(120, challengeCardWidth - 28),
+    [challengeCardWidth]
+  );
+  const handleChallengeSectionLayout = useCallback((event: LayoutChangeEvent) => {
+    const measuredWidth = event.nativeEvent.layout.width;
+    setChallengeSectionWidth((previous) => (Math.abs(previous - measuredWidth) > 1 ? measuredWidth : previous));
+  }, []);
   const [profile, setProfile] = useState<any | null>(null);
 
   const [weekPercent, setWeekPercent] = useState<number>(0);
@@ -528,7 +549,15 @@ export default function CalendarScreen() {
         </View>
 
         {/* Context menu */}
-        <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <Modal
+          visible={menuOpen}
+          transparent
+          animationType="fade"
+          presentationStyle="overFullScreen"
+          statusBarTranslucent
+          navigationBarTranslucent
+          onRequestClose={() => setMenuOpen(false)}
+        >
           <Pressable style={styles.modalOverlay} onPress={() => setMenuOpen(false)}>
             <View style={[styles.menuCard, { top: (insets.top || 0) + 44 }]}>
               {calendar && (
@@ -625,16 +654,26 @@ export default function CalendarScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="View all badges"
                   testID="CalendarScreen_ViewAllBadges"
+                  style={({ pressed }) => [styles.viewAllPressable, pressed && styles.viewAllPressed]}
                 >
                   <GlassCard variant="medium" radius={14} padding={12} style={styles.viewAllCard}>
-                    <Ionicons name="trophy-outline" size={22} color={colors.text.primary} />
-                    <Text style={styles.viewAllText}>View All</Text>
+                    <View style={styles.viewAllHeader}>
+                      <View style={styles.viewAllIconWrap}>
+                        <Ionicons name="trophy-outline" size={16} color={colors.primary.main} />
+                      </View>
+                      <Text style={styles.viewAllText} numberOfLines={1}>
+                        View All
+                      </Text>
+                    </View>
+                    <Text style={styles.viewAllSubtext} numberOfLines={2}>
+                      See every badge on your profile.
+                    </Text>
                   </GlassCard>
                 </Pressable>
               </ScrollView>
             )}
           </View>
-          <View style={styles.challengeSection}>
+          <View style={styles.challengeSection} onLayout={handleChallengeSectionLayout}>
             <View style={styles.challengeSectionHeader}>
               <Text style={styles.challengeSectionTitle}>CHALLENGES</Text>
               <Pressable
@@ -658,11 +697,17 @@ export default function CalendarScreen() {
                 contentContainerStyle={styles.challengeScroll}
               >
                 {[0, 1].map((idx) => (
-                  <GlassCard key={`challenge-skel-${idx}`} variant="medium" radius={16} padding={14} style={styles.challengeSkeleton}>
-                    <SkeletonLoader width={130} height={12} borderRadius={6} />
-                    <SkeletonLoader width={200} height={10} borderRadius={6} />
-                    <SkeletonLoader width={220} height={10} borderRadius={6} />
-                    <SkeletonLoader width={250} height={8} borderRadius={6} />
+                  <GlassCard
+                    key={`challenge-skel-${idx}`}
+                    variant="medium"
+                    radius={16}
+                    padding={14}
+                    style={[styles.challengeSkeleton, { width: challengeCardWidth }]}
+                  >
+                    <SkeletonLoader width={Math.round(challengeSkeletonBaseWidth * 0.5)} height={12} borderRadius={6} />
+                    <SkeletonLoader width={Math.round(challengeSkeletonBaseWidth * 0.76)} height={10} borderRadius={6} />
+                    <SkeletonLoader width={Math.round(challengeSkeletonBaseWidth * 0.84)} height={10} borderRadius={6} />
+                    <SkeletonLoader width={challengeSkeletonBaseWidth} height={8} borderRadius={6} />
                   </GlassCard>
                 ))}
               </ScrollView>
@@ -681,6 +726,7 @@ export default function CalendarScreen() {
                   <ChallengeProgressCard
                     key={String(challenge.id_challenges)}
                     challenge={challenge}
+                    cardWidth={challengeCardWidth}
                     onPress={() => handleOpenChallenge(challenge)}
                     onStart={() => handleStartChallenge(challenge.id_challenges)}
                   />
@@ -940,8 +986,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   challengeSkeleton: {
-    width: 280,
-    minHeight: 170,
+    height: 180,
     gap: 10,
   },
   challengeEmptyText: {
@@ -949,16 +994,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   viewAllCard: {
-    width: 140,
-    minHeight: 96,
+    width: 170,
+    minHeight: 120,
+    gap: 6,
+  },
+  viewAllPressable: {
+    width: 170,
+    minHeight: 120,
+  },
+  viewAllPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  viewAllHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  viewAllIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    backgroundColor: colors.glass.surface,
+    borderWidth: 1,
+    borderColor: colors.glass.border,
   },
   viewAllText: {
     color: colors.text.primary,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
+    flex: 1,
+  },
+  viewAllSubtext: {
+    color: colors.text.secondary,
+    fontSize: 12,
+    lineHeight: 16,
   },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   calendarTitle: { color: colors.text.primary, fontSize: 17, fontWeight: '800' },

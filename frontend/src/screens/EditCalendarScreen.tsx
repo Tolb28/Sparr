@@ -24,6 +24,7 @@ import CalendarTypeSelector from '../components/CalendarTypeSelector';
 import WeekDayGrid, { DaySlot } from '../components/WeekDayGrid';
 import OrderSlotGroup, { OrderSlotData, OrderSlotTraining } from '../components/OrderSlotGroup';
 import DatePickerField from '../components/DatePickerField';
+import { showSuccessNotification } from '@/src/services/notificationService';
 
 let _keyCounter = 0;
 const nextKey = () => `ek_${++_keyCounter}`;
@@ -355,7 +356,7 @@ export default function EditCalendarScreen() {
       });
 
       if (resp?.forked) {
-        Alert.alert('Saved as Your Copy', 'A personal version of this program has been created and set as your active calendar.');
+        showSuccessNotification('A personal version of this program has been created and set as your active calendar.');
       }
 
       // Always re-submit all current slots (backend cleared them via replace_trainings)
@@ -617,7 +618,15 @@ export default function EditCalendarScreen() {
       </ScrollView>
 
       {/* Training picker modal */}
-      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
+      <Modal
+        visible={pickerOpen}
+        transparent
+        animationType="slide"
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setPickerOpen(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setPickerOpen(false)}>
           <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
             <View style={styles.modalHeader}>
