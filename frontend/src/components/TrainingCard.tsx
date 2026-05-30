@@ -54,17 +54,17 @@ export default function TrainingCard({
   const [descExpanded, setDescExpanded] = useState(false);
   const [contentExpanded, setContentExpanded] = useState(false);
 
-  // Rest day styling
+  // Rest day styling - uses brand red with reduced opacity for visual consistency
   if (isRestDay) {
     return (
-      <Box className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'rgba(59, 130, 246, 0.08)', borderColor: 'rgba(59, 130, 246, 0.25)' }}>
+      <Box className="rounded-2xl border overflow-hidden" style={{ backgroundColor: 'rgba(242, 13, 13, 0.08)', borderColor: 'rgba(242, 13, 13, 0.25)' }}>
         <VStack className="px-5 py-6 items-center gap-4">
-          <Box className="w-16 h-16 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)' }}>
-            <Ionicons name="moon-outline" size={32} color="rgba(147, 197, 253, 1)" />
+          <Box className="w-16 h-16 rounded-full items-center justify-center" style={{ backgroundColor: 'rgba(242, 13, 13, 0.15)' }}>
+            <Ionicons name="hand-right-outline" size={32} color="rgba(242, 13, 13, 1)" />
           </Box>
           <VStack className="items-center gap-2">
-            <Text className="text-xl font-bold" style={{ color: 'rgba(147, 197, 253, 1)' }}>Rest Day</Text>
-            <Text className="text-sm text-center" style={{ color: 'rgba(147, 197, 253, 0.7)' }}>
+            <Text className="text-xl font-bold" style={{ color: 'rgba(242, 13, 13, 1)' }}>Rest Day</Text>
+            <Text className="text-sm text-center" style={{ color: 'rgba(242, 13, 13, 0.7)' }}>
               Recovery time — take it easy!
             </Text>
           </VStack>

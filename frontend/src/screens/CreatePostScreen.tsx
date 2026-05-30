@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
 import { colors } from '@/src/theme/colors';
+import { showErrorNotification } from '@/src/services/notificationService';
 
 export default function CreatePostScreen() {
   const insets = useSafeAreaInsets();
@@ -50,14 +51,14 @@ export default function CreatePostScreen() {
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to pick media');
+      showErrorNotification('Failed to pick media');
     }
   };
 
   const handleSubmit = async () => {
     // Validate: description OR media required
     if (!description.trim() && !imageUri && !videoUri) {
-      Alert.alert('Required', 'Please add a description or select an image/video');
+      showErrorNotification('Please add a description or select an image/video');
       return;
     }
 
@@ -86,7 +87,7 @@ export default function CreatePostScreen() {
       // Navigate back and trigger refresh
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to create post');
+      showErrorNotification(error instanceof Error ? error.message : 'Failed to create post');
     } finally {
       setLoading(false);
     }

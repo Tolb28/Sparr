@@ -306,16 +306,6 @@ export default function DiscoveryScreen() {
               <Text style={styles.headerSubtitle}>Find your next spar, gym, or training idea</Text>
             </View>
           </View>
-          <View style={styles.headerRight}>
-            <Pressable
-              style={styles.iconBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Notifications"
-              hitSlop={8}
-            >
-              <Ionicons name="notifications-outline" size={18} color={colors.text.primary} />
-            </Pressable>
-          </View>
         </View>
 
         {/* Search */}
@@ -341,44 +331,6 @@ export default function DiscoveryScreen() {
             </Pressable>
           )}
         </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.quickActionsScroll}
-          contentContainerStyle={styles.quickActionsRow}
-        >
-          <Pressable
-            style={styles.quickActionPill}
-            onPress={() => handleTabChange('clubs')}
-            accessibilityRole="button"
-            accessibilityLabel="Nearby clubs"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="location-outline" size={14} color={colors.text.secondary} />
-            <Text style={styles.quickActionText}>Nearby clubs</Text>
-          </Pressable>
-          <Pressable
-            style={styles.quickActionPill}
-            onPress={() => handleTabChange('boxers')}
-            accessibilityRole="button"
-            accessibilityLabel="Find boxers"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="people-outline" size={14} color={colors.text.secondary} />
-            <Text style={styles.quickActionText}>Find boxers</Text>
-          </Pressable>
-          <Pressable
-            style={styles.quickActionPill}
-            onPress={() => handleTabChange('posts')}
-            accessibilityRole="button"
-            accessibilityLabel="Latest posts"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="newspaper-outline" size={14} color={colors.text.secondary} />
-            <Text style={styles.quickActionText}>Latest posts</Text>
-          </Pressable>
-        </ScrollView>
 
         {/* Tabs */}
         <TabBar
@@ -771,12 +723,6 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   headerTitle: { color: colors.text.primary, fontSize: 20, fontWeight: '800' },
   headerSubtitle: { color: colors.text.tertiary, fontSize: 12, marginTop: 1 },
-  headerRight: { flexDirection: 'row', gap: 8 },
-  iconBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
   searchBar: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: colors.background.card, borderRadius: 12,
@@ -784,20 +730,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border.light,
   },
   searchInput: { flex: 1, color: colors.text.primary, paddingVertical: 10, fontSize: 14 },
-  quickActionsScroll: { marginBottom: 10 },
-  quickActionsRow: { flexDirection: 'row', gap: 8, paddingRight: 8 },
-  quickActionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: colors.glass.border,
-    backgroundColor: colors.glass.surface,
-  },
-  quickActionText: { color: colors.text.secondary, fontSize: 11, fontWeight: '600' },
   tabs: { marginBottom: 8 },
   filterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   filterHint: { color: colors.text.tertiary, fontSize: 11 },

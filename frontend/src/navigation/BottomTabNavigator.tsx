@@ -62,7 +62,7 @@ function CustomTabBar({ state, descriptors, navigation, profile }: any) {
                     : (tabConfig?.icon as any)
                 }
                 size={26}
-                color={isFocused ? colors.primary.main : colors.text.tertiary}
+                color={isFocused ? colors.primary.main : colors.neutral[500]}
               />
             )}
           </Pressable>

@@ -64,7 +64,15 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   }, [filters, onApply, onClose]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={onClose}
+    >
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>

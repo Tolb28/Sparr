@@ -18,6 +18,7 @@ import { SparrButton } from '@/components/ui/sparr-button';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { createClubTrainingPlan } from '../api/clubs';
 import { colors } from '@/src/theme/colors';
+import { showErrorNotification } from '@/src/services/notificationService';
 
 type RouteType = RouteProp<RootStackParamList, 'CreateClubPlan'>;
 
@@ -33,7 +34,7 @@ export default function CreateClubPlanScreen() {
 
   const handleCreate = async () => {
     if (!title.trim()) {
-      Alert.alert('Required', 'Please enter a plan name.');
+      showErrorNotification('Please enter a plan name.');
       return;
     }
     try {
@@ -44,7 +45,7 @@ export default function CreateClubPlanScreen() {
       });
       navigation.goBack();
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Unable to create plan');
+      showErrorNotification(e?.message ?? 'Unable to create plan');
     } finally {
       setLoading(false);
     }

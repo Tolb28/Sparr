@@ -11,6 +11,7 @@ import { SparrButton } from '@/components/ui/sparr-button';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { createClub, uploadClubAvatar, uploadClubCover } from '../api/clubs';
 import { colors } from '@/src/theme/colors';
+import { showErrorNotification } from '@/src/services/notificationService';
 
 type RouteType = RouteProp<RootStackParamList, 'CreateClubStepTwo'>;
 
@@ -26,7 +27,7 @@ export default function CreateClubProfileStepTwoScreen() {
   const pickAvatar = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission required', 'Please allow photo library access.');
+      showErrorNotification('Please allow photo library access.');
       return;
     }
 
@@ -49,7 +50,7 @@ export default function CreateClubProfileStepTwoScreen() {
   const pickCover = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission required', 'Please allow photo library access.');
+      showErrorNotification('Please allow photo library access.');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -94,7 +95,7 @@ export default function CreateClubProfileStepTwoScreen() {
 
       navigation.replace('ClubProfile', { clubId });
     } catch (error: any) {
-      Alert.alert('Create failed', error?.message || 'Unable to create club');
+      showErrorNotification(error?.message || 'Unable to create club');
     } finally {
       setSaving(false);
     }

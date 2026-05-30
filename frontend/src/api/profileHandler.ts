@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { deleteToken } from "./tokenHandler";
+import { clearCachedProfileResponse } from "./profileCache";
 
 type ProfileData = {
   id_profiles: number;
@@ -32,6 +33,7 @@ export async function getProfile() {
 
 export async function removeProfile() {
   await deleteToken();
+  clearCachedProfileResponse();
   if (Platform.OS === "web") {
     localStorage.removeItem("profile");
     localStorage.removeItem(ACTIVE_PROFILE_KEY);

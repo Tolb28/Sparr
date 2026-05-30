@@ -82,23 +82,30 @@ export const colors = {
     dark: '#8f6d6d',
   },
 
-  // Overlay/Shadow
+  // Overlay/Shadow (tinted shadows for premium feel)
   overlay: {
     light: 'rgba(0, 0, 0, 0.1)',
     medium: 'rgba(0, 0, 0, 0.4)',
     dark: 'rgba(0, 0, 0, 0.7)',
   },
 
-  // Glassmorphism Surfaces (dark-mode glass, no backdrop blur needed)
+  // Red-tinted shadows (brand-aligned elevation)
+  redShadow: {
+    light: 'rgba(242, 13, 13, 0.08)',
+    medium: 'rgba(242, 13, 13, 0.12)',
+    dark: 'rgba(242, 13, 13, 0.20)',
+  },
+
+  // Glassmorphism Surfaces (dark-mode glass, enhanced for better visibility)
   glass: {
     surface: 'rgba(255, 255, 255, 0.04)',
     surfaceMedium: 'rgba(255, 255, 255, 0.07)',
     surfaceStrong: 'rgba(255, 255, 255, 0.10)',
     medium: 'rgba(255, 255, 255, 0.06)',
-    border: 'rgba(255, 255, 255, 0.09)',
-    borderStrong: 'rgba(255, 255, 255, 0.14)',
+    border: 'rgba(255, 255, 255, 0.14)',        // Increased from 0.09 for better visibility
+    borderStrong: 'rgba(255, 255, 255, 0.20)', // Increased from 0.14 for better separation
     redSurface: 'rgba(242, 13, 13, 0.08)',
-    redBorder: 'rgba(242, 13, 13, 0.25)',
+    redBorder: 'rgba(242, 13, 13, 0.25)',       // Increased opacity for better brand visibility
   },
 
   // Gradient Stop Pairs

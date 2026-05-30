@@ -28,7 +28,8 @@ export const getBadgeCatalogController = async (req: Request, res: Response) => 
     if (!userId) {
       throw createError(401, 'Unauthorized', 'UNAUTHORIZED');
     }
-    const profileId = await getProfileIdForUser(userId);
+    const activeProfileId = (req as any).profileId;
+    const profileId = activeProfileId ?? (await getProfileIdForUser(userId));
     if (!profileId) {
       throw createError(400, 'Profile required', 'INVALID_INPUT');
     }

@@ -24,6 +24,7 @@ import {
 } from '../api/chatApi';
 import { getFriends } from '../api/friends';
 import { colors } from '@/src/theme/colors';
+import { showErrorNotification } from '@/src/services/notificationService';
 
 export default function ConversationSettingsScreen() {
   const navigation = useNavigation<any>();
@@ -70,7 +71,7 @@ export default function ConversationSettingsScreen() {
       // Propagate updated title back to ChatDetail screen
       navigation.navigate('ChatDetail', { conversationId, otherParticipantName: title.trim() });
     } catch {
-      Alert.alert('Error', 'Failed to rename conversation');
+      showErrorNotification('Failed to rename conversation');
     } finally {
       setSavingTitle(false);
     }
@@ -87,7 +88,7 @@ export default function ConversationSettingsScreen() {
             await leaveConversation(conversationId);
             navigation.navigate('Conversations');
           } catch {
-            Alert.alert('Error', 'Failed to leave conversation');
+            showErrorNotification('Failed to leave conversation');
           }
         },
       },
@@ -131,7 +132,7 @@ export default function ConversationSettingsScreen() {
       setFriends([]);  // Reset so it reloads next time
       await loadParticipants();
     } catch {
-      Alert.alert('Error', 'Failed to add members');
+      showErrorNotification('Failed to add members');
     } finally {
       setAddingMembers(false);
     }
@@ -238,7 +239,15 @@ export default function ConversationSettingsScreen() {
       </ScrollView>
 
       {/* Add Members Modal */}
-      <Modal visible={addMembersVisible} animationType="slide" transparent onRequestClose={() => setAddMembersVisible(false)}>
+      <Modal
+        visible={addMembersVisible}
+        animationType="slide"
+        transparent
+        presentationStyle="overFullScreen"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={() => setAddMembersVisible(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalSheet, { paddingBottom: insets.bottom + 8 }]}>
             {/* Modal header */}
@@ -448,4 +457,3 @@ const styles = StyleSheet.create({
   addConfirmBtnDisabled: { backgroundColor: colors.primary.main + '44' },
   addConfirmText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
-

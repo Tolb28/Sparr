@@ -118,6 +118,24 @@ async function runRegressionSweep() {
       { name: 'GET /gamification/profiles/1/progress', method: 'GET', path: `/api/auth/gamification/profiles/${profile1.id_profiles}/progress`, token: token1 },
     ];
 
+    endpoints.push({
+      name: 'POST /gamification/recalculate/own-profile',
+      method: 'POST',
+      path: `/api/auth/gamification/recalculate/${profile1.id_profiles}`,
+      token: token1,
+      expectedStatus: 200,
+    });
+
+    if (profile2.id_profiles !== profile1.id_profiles) {
+      endpoints.push({
+        name: 'POST /gamification/recalculate/foreign-profile',
+        method: 'POST',
+        path: `/api/auth/gamification/recalculate/${profile2.id_profiles}`,
+        token: token1,
+        expectedStatus: 403,
+      });
+    }
+
     console.log(`\n🧪 Running regression sweep on ${endpoints.length} endpoints...\n`);
 
     for (const endpoint of endpoints) {
@@ -134,7 +152,11 @@ async function runRegressionSweep() {
         error: response.error,
       };
 
-      if (response.ok && response.status >= 200 && response.status < 300) {
+      const expectedStatus = endpoint.expectedStatus;
+      const matchedExpected =
+        expectedStatus !== undefined ? response.status === expectedStatus : (response.ok && response.status >= 200 && response.status < 300);
+
+      if (matchedExpected) {
         results.summary.passed++;
         console.log(`✅ ${endpoint.name} (${response.status}, ${response.duration}ms)`);
       } else {

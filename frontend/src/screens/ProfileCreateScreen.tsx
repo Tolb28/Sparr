@@ -27,6 +27,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '@/src/theme/colors';
+import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
 
 interface ProfileForm {
   display_name?: string;
@@ -99,8 +100,7 @@ export default function ProfileCreateScreen({ navigation }: Props) {
       await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      Alert.alert(
-        'Permission required',
+      showErrorNotification(
         'We need access to your photos to set an avatar.'
       );
       return;
@@ -160,7 +160,7 @@ export default function ProfileCreateScreen({ navigation }: Props) {
 
       await createProfile(fd);
 
-      Alert.alert('Success', 'Profile created successfully');
+      showSuccessNotification('Profile created successfully');
       navigation.replace('Main');
     } catch (e: any) {
       console.error(e);
@@ -285,7 +285,15 @@ export default function ProfileCreateScreen({ navigation }: Props) {
           </GlassCard>
 
           {/* Modals */}
-          <Modal visible={weightDropdownOpen} transparent animationType="slide" onRequestClose={() => setWeightDropdownOpen(false)}>
+          <Modal
+            visible={weightDropdownOpen}
+            transparent
+            animationType="slide"
+            presentationStyle="overFullScreen"
+            statusBarTranslucent
+            navigationBarTranslucent
+            onRequestClose={() => setWeightDropdownOpen(false)}
+          >
             <Pressable style={styles.modalOverlay} onPress={() => setWeightDropdownOpen(false)}>
               <View style={styles.modalSheet}>
                 <View style={styles.modalHeader}>
@@ -308,7 +316,15 @@ export default function ProfileCreateScreen({ navigation }: Props) {
             </Pressable>
           </Modal>
 
-          <Modal visible={styleDropdownOpen} transparent animationType="slide" onRequestClose={() => setStyleDropdownOpen(false)}>
+          <Modal
+            visible={styleDropdownOpen}
+            transparent
+            animationType="slide"
+            presentationStyle="overFullScreen"
+            statusBarTranslucent
+            navigationBarTranslucent
+            onRequestClose={() => setStyleDropdownOpen(false)}
+          >
             <Pressable style={styles.modalOverlay} onPress={() => setStyleDropdownOpen(false)}>
               <View style={styles.modalSheet}>
                 <View style={styles.modalHeader}>
@@ -331,7 +347,15 @@ export default function ProfileCreateScreen({ navigation }: Props) {
             </Pressable>
           </Modal>
 
-          <Modal visible={experienceDropdownOpen} transparent animationType="slide" onRequestClose={() => setExperienceDropdownOpen(false)}>
+          <Modal
+            visible={experienceDropdownOpen}
+            transparent
+            animationType="slide"
+            presentationStyle="overFullScreen"
+            statusBarTranslucent
+            navigationBarTranslucent
+            onRequestClose={() => setExperienceDropdownOpen(false)}
+          >
             <Pressable style={styles.modalOverlay} onPress={() => setExperienceDropdownOpen(false)}>
               <View style={styles.modalSheet}>
                 <View style={styles.modalHeader}>

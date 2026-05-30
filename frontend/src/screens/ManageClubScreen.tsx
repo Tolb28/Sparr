@@ -36,6 +36,7 @@ import {
 } from '../api/clubs';
 import { getTraining } from '../api/trainingCalendars';
 import { colors } from '@/src/theme/colors';
+import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
 
 type RouteType = RouteProp<RootStackParamList, 'ManageClub'>;
 const TABS = ['Overview', 'Members', 'Schedule', 'Settings'] as const;
@@ -289,7 +290,7 @@ export default function ManageClubScreen() {
 
   const pickAndUpload = async (type: 'avatar' | 'cover') => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) { Alert.alert('Permission required', 'Allow photo library access.'); return; }
+    if (!perm.granted) { showErrorNotification('Allow photo library access.'); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -304,10 +305,10 @@ export default function ManageClubScreen() {
       fd.append(type, { uri: asset.uri, name: `club-${type}.jpg`, type: asset.mimeType ?? 'image/jpeg' } as any);
       if (type === 'avatar') await uploadClubAvatar(clubId, fd);
       else await uploadClubCover(clubId, fd);
-      Alert.alert('Updated', `Club ${type} updated.`);
+      showSuccessNotification(`Club ${type} updated.`);
       await load();
     } catch (e: any) {
-      Alert.alert('Upload failed', e?.message ?? 'Unable to upload');
+      showErrorNotification(e?.message ?? 'Unable to upload');
     } finally {
       setSaving(false);
     }
@@ -324,10 +325,10 @@ export default function ManageClubScreen() {
         instagram_url: instagram.trim() || null,
         website_url: website.trim() || null,
       });
-      Alert.alert('Saved', 'Club updated.');
+      showSuccessNotification('Club updated.');
       await load();
     } catch (e: any) {
-      Alert.alert('Save failed', e?.message ?? 'Unable to save');
+      showErrorNotification(e?.message ?? 'Unable to save');
     } finally {
       setSaving(false);
     }
@@ -339,7 +340,7 @@ export default function ManageClubScreen() {
       await reviewJoinRequest(clubId, requestId, status);
       await load();
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Unable to process request');
+      showErrorNotification(e?.message ?? 'Unable to process request');
     } finally {
       setSaving(false);
     }

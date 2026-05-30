@@ -38,6 +38,7 @@ import WeeklyCalendar from '../components/WeeklyCalendar';
 import TrainingCard from '../components/TrainingCard';
 import DayTimelineView, { TimelineTraining } from '../components/DayTimelineView';
 import { colors } from '@/src/theme/colors';
+import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
 import ClubHeader from '../components/ClubHeader';
 import ClubUpcomingEvents from '../components/ClubUpcomingEvents';
 import ClubReviewsLocation from '../components/ClubReviewsLocation';
@@ -114,7 +115,7 @@ export default function ClubProfileScreen() {
       setClub(clubData);
     } catch (error: any) {
       if (!silent) {
-        Alert.alert('Unable to load club', getErrorMessage(error, 'Please try again.'));
+        showErrorNotification(getErrorMessage(error, 'Please try again.'));
       }
       throw error;
     } finally {
@@ -174,7 +175,7 @@ export default function ClubProfileScreen() {
       if (activeTab !== 'About') tasks.push(loadTabContent(activeTab, true));
       await Promise.all(tasks);
     } catch (error: any) {
-      Alert.alert('Refresh failed', getErrorMessage(error, 'Please try again.'));
+      showErrorNotification(getErrorMessage(error, 'Please try again.'));
     } finally {
       setRefreshing(false);
     }
@@ -187,15 +188,15 @@ export default function ClubProfileScreen() {
       if ((club.join_policy || 'open') === 'open') {
         await joinClub(clubId);
         setClub((prev: any) => ({ ...prev, join_status: 'member' }));
-        Alert.alert('Success', `You are now a member of ${club.title ?? 'this club'}.`);
+        showSuccessNotification(`You are now a member of ${club.title ?? 'this club'}.`);
       } else {
         await requestJoinClub(clubId);
         setClub((prev: any) => ({ ...prev, join_status: 'requested' }));
-        Alert.alert('Request sent', 'Your join request is waiting for approval.');
+        showSuccessNotification('Your join request is waiting for approval.');
       }
       await Promise.all([load(true), loadTabContent('Members', true)]);
     } catch (e: any) {
-      Alert.alert('Action failed', getErrorMessage(e, 'Unable to update your membership.'));
+      showErrorNotification(getErrorMessage(e, 'Unable to update your membership.'));
     } finally {
       setJoining(false);
     }
@@ -212,9 +213,9 @@ export default function ClubProfileScreen() {
             await leaveClub(clubId);
             setClub((prev: any) => ({ ...prev, join_status: 'none' }));
             await Promise.all([load(true), loadTabContent('Members', true)]);
-            Alert.alert('Success', `You left ${club?.title ?? 'the club'}.`);
+            showSuccessNotification(`You left ${club?.title ?? 'the club'}.`);
           } catch (e: any) {
-            Alert.alert('Action failed', getErrorMessage(e, 'Unable to leave this club.'));
+            showErrorNotification(getErrorMessage(e, 'Unable to leave this club.'));
           } finally {
             setLeaving(false);
           }
@@ -227,9 +228,9 @@ export default function ClubProfileScreen() {
     setCopyingPlan(planId);
     try {
       await copyClubTrainingPlan(clubId, planId);
-      Alert.alert('Success', 'Training plan added to your calendars.');
+      showSuccessNotification('Training plan added to your calendars.');
     } catch (e: any) {
-      Alert.alert('Action failed', getErrorMessage(e, 'Unable to copy this training plan.'));
+      showErrorNotification(getErrorMessage(e, 'Unable to copy this training plan.'));
     } finally {
       setCopyingPlan(null);
     }
@@ -246,7 +247,7 @@ export default function ClubProfileScreen() {
         title: `${title} on Sparr`,
       });
     } catch (e: any) {
-      Alert.alert('Share failed', getErrorMessage(e, 'Unable to share this club.'));
+      showErrorNotification(getErrorMessage(e, 'Unable to share this club.'));
     } finally {
       setSharing(false);
     }

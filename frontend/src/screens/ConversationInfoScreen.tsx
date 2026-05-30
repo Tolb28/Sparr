@@ -22,6 +22,7 @@ import {
   leaveConversation,
   renameConversation,
 } from '../api/chatApi';
+import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
 
 interface Participant {
   id_profiles: number;
@@ -61,15 +62,15 @@ export default function ConversationInfoScreen() {
   const handleRenameGroup = async () => {
     if (!isGroup || !conversationId) return;
     if (!newTitle.trim()) {
-      Alert.alert('Error', 'Group name cannot be empty');
+      showErrorNotification('Group name cannot be empty');
       return;
     }
     try {
       await renameConversation(conversationId, newTitle.trim());
       setEditing(false);
-      Alert.alert('Success', 'Group renamed');
+      showSuccessNotification('Group renamed');
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Failed to rename group');
+      showErrorNotification(err?.message || 'Failed to rename group');
     }
   };
 
@@ -87,7 +88,7 @@ export default function ConversationInfoScreen() {
               await leaveConversation(conversationId);
               navigation.goBack();
             } catch (err: any) {
-              Alert.alert('Error', err?.message || 'Failed to leave conversation');
+              showErrorNotification(err?.message || 'Failed to leave conversation');
             }
           },
           style: 'destructive',
