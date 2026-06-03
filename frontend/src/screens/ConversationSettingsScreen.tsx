@@ -98,8 +98,7 @@ export default function ConversationSettingsScreen() {
     try {
       await renameConversation(conversationId, title.trim());
       setEditingTitle(false);
-      // Propagate updated title back to ChatDetail screen
-      navigation.navigate('ChatDetail', { conversationId, otherParticipantName: title.trim() });
+      navigation.goBack();
     } catch {
       showErrorNotification('Failed to rename conversation');
     } finally {

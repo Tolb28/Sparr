@@ -3,6 +3,7 @@ import {
   ConversationPreview,
   Message,
   Conversation,
+  ConversationParticipant,
 } from '../types/chat';
 
 const API_BASE_URL = `${ServerIP}/auth/chat`;
@@ -138,7 +139,7 @@ export async function createConversation(
 /**
  * Get participants of a conversation
  */
-export async function getConversationParticipants(conversationId: number): Promise<any[]> {
+export async function getConversationParticipants(conversationId: number): Promise<ConversationParticipant[]> {
   const token = await getToken();
   if (!token) throw new Error('No authentication token found');
   const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}/participants`, {
