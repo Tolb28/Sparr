@@ -390,6 +390,39 @@ export const getConversationParticipants = async (
 };
 
 /**
+ * Edit an existing message's content (only the original sender may edit)
+ */
+export const editMessage = async (
+  messageId: number,
+  senderId: number,
+  newContent: string
+): Promise<Message | null> => {
+  const result = await pool.query(
+    `UPDATE messages SET content = $1, edited_at = NOW()
+     WHERE id_messages = $2 AND id_sender = $3
+     RETURNING id_messages`,
+    [newContent, messageId, senderId]
+  );
+  if (result.rows.length === 0) return null;
+  const { rows } = await pool.query(
+    `SELECT
+      m.id_messages, m.content, m.attachments_path, m.created_at, m.edited_at,
+      m.id_sender, m.conversations_id_conversations, m.source,
+      p.display_name as "senderName", p.avatar, p.updated_at
+     FROM messages m
+     INNER JOIN profiles p ON m.id_sender = p.id_profiles
+     WHERE m.id_messages = $1`,
+    [messageId]
+  );
+  if (rows.length === 0) return null;
+  const msg = rows[0];
+  return {
+    ...msg,
+    senderAvatar: msg.avatar ? cloudinaryService.generateAvatarUrl(msg.avatar, msg.updated_at) : null,
+  };
+};
+
+/**
  * Remove a specific participant from a conversation; deletes conversation if empty or only 1
  * member remains, or downgrades to DM if exactly 2 members remain after removal.
  * Wrapped in a transaction to prevent partial state.
