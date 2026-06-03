@@ -143,6 +143,7 @@ export default function ChatDetailScreen() {
   };
 
   const handleLongPress = (msg: Message) => {
+    if (sending) return; // don't allow a new edit while one is in flight
     const senderId = typeof msg.id_sender === 'number' ? msg.id_sender : parseInt(msg.id_sender as any, 10);
     if (currentUserId === null || senderId !== currentUserId) return;
     Alert.alert('Message Options', undefined, [
@@ -213,7 +214,7 @@ export default function ChatDetailScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 92 : 0}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? (editingMessage ? 122 : 92) : 0}
       style={[styles.root, { backgroundColor: colors.background.secondary }]}
     >
       {/* Header */}
