@@ -188,7 +188,7 @@ export default function ChatDetailScreen() {
           <Text style={styles.headerStatus}>Active now</Text>
         </View>
         <TouchableOpacity onPress={handleManage} style={styles.backBtn} disabled={conversationDetail === null}>
-          <Ionicons name="ellipsis-horizontal" size={22} color="#ffffff" />
+          <Ionicons name="information-circle-outline" size={22} color="#ffffff" />
         </TouchableOpacity>
       </View>
 
