@@ -8,11 +8,12 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { Text } from '@/components/ui/text';
 import MessageBubble from '../components/MessageBubble';
-import { fetchMessages, sendMessage, updateLastRead, getConversation } from '../api/chatApi';
+import { fetchMessages, sendMessage, updateLastRead, getConversation, editMessage } from '../api/chatApi';
 import { Message, Conversation } from '../types/chat';
 import { getProfile } from '../api/profileHandler';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,6 +61,7 @@ export default function ChatDetailScreen() {
   const [messageText, setMessageText] = useState('');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [displayName, setDisplayName] = useState(otherParticipantName || 'Chat');
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [conversationDetail, setConversationDetail] = useState<Conversation | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -140,9 +142,45 @@ export default function ChatDetailScreen() {
     });
   };
 
+  const handleLongPress = (msg: Message) => {
+    const senderId = typeof msg.id_sender === 'number' ? msg.id_sender : parseInt(msg.id_sender as any, 10);
+    if (currentUserId === null || senderId !== currentUserId) return;
+    Alert.alert('Message Options', undefined, [
+      {
+        text: 'Edit',
+        onPress: () => {
+          setEditingMessage(msg);
+          setMessageText(msg.content);
+        },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
   const handleSendMessage = async () => {
     if (!messageText.trim() || !conversationId) return;
-    const content = messageText;
+    const content = messageText.trim();
+
+    if (editingMessage) {
+      const prevContent = editingMessage.content;
+      const editId = editingMessage.id_messages;
+      setMessages((prev) => prev.map((m) => m.id_messages === editId ? { ...m, content } : m));
+      setMessageText('');
+      setEditingMessage(null);
+      setSending(true);
+      try {
+        const updated = await editMessage(editId, content);
+        setMessages((prev) => prev.map((m) => m.id_messages === updated.id_messages ? updated : m));
+      } catch {
+        setMessages((prev) => prev.map((m) => m.id_messages === editId ? { ...m, content: prevContent } : m));
+        setMessageText(content);
+        setEditingMessage(editingMessage);
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
     setMessageText('');
     setSending(true);
     try {
@@ -209,12 +247,18 @@ export default function ChatDetailScreen() {
           const senderId = typeof msg.id_sender === 'number' ? msg.id_sender : parseInt(msg.id_sender as any, 10);
           const isMe = currentUserId !== null && senderId === currentUserId;
           return (
-            <MessageBubble
-              message={msg}
-              isMe={isMe}
-              currentUserId={currentUserId || 0}
-              onSenderPress={!isMe ? () => navigation.navigate('ForeignProfile' as never, { foreign_profile_id: senderId } as never) : undefined}
-            />
+            <TouchableOpacity
+              onLongPress={() => handleLongPress(msg)}
+              activeOpacity={1}
+              delayLongPress={400}
+            >
+              <MessageBubble
+                message={msg}
+                isMe={isMe}
+                currentUserId={currentUserId || 0}
+                onSenderPress={!isMe ? () => navigation.navigate('ForeignProfile' as never, { foreign_profile_id: senderId } as never) : undefined}
+              />
+            </TouchableOpacity>
           );
         }}
         keyExtractor={(item) => 'type' in item ? (item as any).key : (item as Message).id_messages.toString()}
@@ -223,6 +267,19 @@ export default function ChatDetailScreen() {
           <EmptyState icon="chatbubble-outline" title="No messages yet" subtitle="Start the conversation!" style={styles.emptyState} />
         }
       />
+
+      {editingMessage && (
+        <View style={styles.editingBar}>
+          <Ionicons name="pencil" size={14} color={colors.primary.main} />
+          <Text style={styles.editingLabel}>Editing message</Text>
+          <TouchableOpacity
+            onPress={() => { setEditingMessage(null); setMessageText(''); }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close" size={16} color={colors.text.tertiary} />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Input bar */}
       <View style={[styles.inputBar, { paddingBottom: Math.max(16, insets.bottom + 8) }]}>
@@ -288,5 +345,21 @@ const styles = StyleSheet.create({
   sendBtn: {
     width: 42, height: 42, borderRadius: 21,
     alignItems: 'center', justifyContent: 'center', marginBottom: 2,
+  },
+  editingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+    backgroundColor: colors.background.card,
+  },
+  editingLabel: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text.secondary,
   },
 });

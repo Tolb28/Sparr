@@ -250,3 +250,18 @@ export async function removeConversationMember(
   );
   if (!response.ok) throw new Error(`Failed to remove member: ${response.status}`);
 }
+
+export async function editMessage(messageId: number, content: string): Promise<Message> {
+  const token = await getToken();
+  if (!token) throw new Error('No authentication token found');
+  const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ content }),
+  });
+  if (!response.ok) throw new Error(`Failed to edit message: ${response.status}`);
+  return response.json();
+}
