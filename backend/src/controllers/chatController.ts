@@ -10,6 +10,7 @@ import {
   renameConversation,
   leaveConversation,
   addConversationParticipants,
+  removeConversationParticipant,
 } from "../services/chatService";
 import { pool } from "../config/db";
 
@@ -317,6 +318,38 @@ export const getConversationHandler = async (req: Request, res: Response) => {
     res.status(200).json(conversation);
   } catch (error) {
     res.status(500).json({ error: 'Failed to get conversation' });
+  }
+};
+
+/**
+ * Remove a specific member from a conversation (any participant can remove others; cannot self-remove)
+ */
+export const removeMemberHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { conversationId, profileId: targetProfileIdStr } = req.params;
+    if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+    if (!conversationId || typeof conversationId !== 'string' || !targetProfileIdStr || typeof targetProfileIdStr !== 'string') {
+      res.status(400).json({ error: 'conversationId and profileId are required' }); return;
+    }
+    const profileId = await getProfileIdFromUserId(userId);
+    if (!profileId) { res.status(404).json({ error: 'Profile not found' }); return; }
+    const targetProfileId = parseInt(targetProfileIdStr);
+    if (isNaN(targetProfileId)) { res.status(400).json({ error: 'Invalid profileId' }); return; }
+    if (profileId === targetProfileId) {
+      res.status(400).json({ error: 'Use the leave endpoint to remove yourself' }); return;
+    }
+    const participants = await getConversationParticipants(parseInt(conversationId));
+    if (!participants.some((p) => p.id_profiles === profileId)) {
+      res.status(403).json({ error: 'Not a participant' }); return;
+    }
+    if (!participants.some((p) => p.id_profiles === targetProfileId)) {
+      res.status(404).json({ error: 'Target user is not in this conversation' }); return;
+    }
+    await removeConversationParticipant(parseInt(conversationId), targetProfileId);
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove member' });
   }
 };
 
