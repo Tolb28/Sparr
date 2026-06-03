@@ -42,7 +42,7 @@ export interface ConversationPreview {
 
 export interface ConversationParticipant {
   id_profiles: number;
-  name: string;
+  display_name: string;
   avatar_url: string | null;
   joined_at: string;
   id_last_read: number | null;
