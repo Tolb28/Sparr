@@ -48,9 +48,11 @@ export default function ConversationSettingsScreen() {
   const [friendsLoading, setFriendsLoading] = useState(false);
   const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
   const [addingMembers, setAddingMembers] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
   const [friendSearch, setFriendSearch] = useState('');
   const [currentUserProfileId, setCurrentUserProfileId] = useState<number | null>(null);
   const [isGroup, setIsGroup] = useState(false);
+  const [infoLoaded, setInfoLoaded] = useState(false);
 
   const loadParticipants = useCallback(async () => {
     try {
@@ -84,6 +86,8 @@ export default function ConversationSettingsScreen() {
         setIsGroup(Boolean(detail.is_group));
       } catch {
         // Non-fatal
+      } finally {
+        setInfoLoaded(true);
       }
     })();
   }, [conversationId]);
@@ -174,11 +178,14 @@ export default function ConversationSettingsScreen() {
           text: 'Remove',
           style: 'destructive',
           onPress: async () => {
+            setIsRemoving(true);
             try {
               await removeConversationMember(conversationId, participant.id_profiles);
               await loadParticipants();
             } catch {
               showErrorNotification('Failed to remove member');
+            } finally {
+              setIsRemoving(false);
             }
           },
         },
@@ -259,9 +266,9 @@ export default function ConversationSettingsScreen() {
             </View>
           ) : (
             participants.map((p: any, i: number) => (
-              <View key={String(p.id_profiles)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View key={String(p.id_profiles)} style={[{ flexDirection: 'row', alignItems: 'center' }, i < participants.length - 1 && styles.memberBorder]}>
                 <Pressable
-                  style={[styles.memberRow, i < participants.length - 1 && styles.memberBorder, { flex: 1 }]}
+                  style={[styles.memberRow, { flex: 1 }]}
                   onPress={() => navigation.navigate('ForeignProfile', { foreign_profile_id: p.id_profiles })}
                 >
                   <Avatar size="sm">
@@ -273,10 +280,11 @@ export default function ConversationSettingsScreen() {
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
                 </Pressable>
-                {isGroup && currentUserProfileId !== p.id_profiles && (
+                {infoLoaded && isGroup && currentUserProfileId !== p.id_profiles && (
                   <Pressable
                     onPress={() => handleRemoveMember(p)}
-                    style={{ paddingHorizontal: 12, paddingVertical: 12 }}
+                    disabled={isRemoving}
+                    style={[{ paddingHorizontal: 12, paddingVertical: 12 }, isRemoving && { opacity: 0.4 }]}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
                     <Ionicons name="person-remove-outline" size={18} color={colors.primary.main} />
