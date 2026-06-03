@@ -297,12 +297,15 @@ export const addMembersHandler = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get a single conversation by ID (must be a participant)
+ */
 export const getConversationHandler = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { conversationId } = req.params;
     if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
-    if (!conversationId) { res.status(400).json({ error: 'Conversation ID required' }); return; }
+    if (!conversationId || typeof conversationId !== 'string') { res.status(400).json({ error: 'Conversation ID required' }); return; }
     const profileId = await getProfileIdFromUserId(userId);
     if (!profileId) { res.status(404).json({ error: 'Profile not found' }); return; }
     const conversation = await getConversation(parseInt(conversationId));
