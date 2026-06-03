@@ -371,9 +371,11 @@ export const editMessageHandler = async (req: Request, res: Response) => {
     if (!content || typeof content !== 'string' || !content.trim()) {
       res.status(400).json({ error: 'content is required' }); return;
     }
+    const parsedMessageId = parseInt(messageId, 10);
+    if (isNaN(parsedMessageId)) { res.status(400).json({ error: 'messageId must be a number' }); return; }
     const profileId = await getProfileIdFromUserId(userId);
     if (!profileId) { res.status(404).json({ error: 'Profile not found' }); return; }
-    const updated = await editMessage(parseInt(messageId), profileId, content.trim());
+    const updated = await editMessage(parsedMessageId, profileId, content.trim());
     if (!updated) {
       res.status(403).json({ error: 'Message not found or you are not the sender' }); return;
     }

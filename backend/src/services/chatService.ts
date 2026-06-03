@@ -397,6 +397,7 @@ export const editMessage = async (
   senderId: number,
   newContent: string
 ): Promise<Message | null> => {
+  if (!newContent || !newContent.trim()) return null;
   const result = await pool.query(
     `UPDATE messages SET content = $1, edited_at = NOW()
      WHERE id_messages = $2 AND id_sender = $3
