@@ -11,6 +11,7 @@ import {
   getParticipantsHandler,
   getConversationHandler,
   removeMemberHandler,
+  editMessageHandler,
 } from "../controllers/chatController";
 import { authenticate } from "../middleware/authMiddleware";
 
@@ -51,5 +52,8 @@ chatRouter.post("/conversations/:conversationId/members", addMembersHandler);
 
 // Remove a member from a conversation
 chatRouter.delete("/conversations/:conversationId/members/:profileId", removeMemberHandler);
+
+// Edit a message (sender only)
+chatRouter.put("/messages/:messageId", editMessageHandler);
 
 export default chatRouter;

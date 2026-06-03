@@ -11,6 +11,7 @@ import {
   leaveConversation,
   addConversationParticipants,
   removeConversationParticipant,
+  editMessage,
 } from "../services/chatService";
 import { pool } from "../config/db";
 
@@ -354,6 +355,31 @@ export const removeMemberHandler = async (req: Request, res: Response) => {
     res.status(200).json({ success: true });
   } catch (error) {
     res.status(500).json({ error: 'Failed to remove member' });
+  }
+};
+
+/**
+ * Edit a message's content (only the original sender may edit)
+ */
+export const editMessageHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { messageId } = req.params;
+    const { content } = req.body;
+    if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+    if (!messageId || typeof messageId !== 'string') { res.status(400).json({ error: 'messageId is required' }); return; }
+    if (!content || typeof content !== 'string' || !content.trim()) {
+      res.status(400).json({ error: 'content is required' }); return;
+    }
+    const profileId = await getProfileIdFromUserId(userId);
+    if (!profileId) { res.status(404).json({ error: 'Profile not found' }); return; }
+    const updated = await editMessage(parseInt(messageId), profileId, content.trim());
+    if (!updated) {
+      res.status(403).json({ error: 'Message not found or you are not the sender' }); return;
+    }
+    res.status(200).json(updated);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to edit message' });
   }
 };
 
