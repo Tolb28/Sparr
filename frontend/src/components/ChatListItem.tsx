@@ -62,7 +62,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
   };
 
   // Check if conversation has unread messages (placeholder implementation)
-  const hasUnread = false; // TODO: Add unread status when backend provides it
+  const hasUnread = (conversation.unreadCount ?? 0) > 0;
 
   return (
     <View style={styles.root}>
