@@ -10,6 +10,7 @@ export interface ConversationPreview {
   otherParticipantId: number;
   otherParticipantName: string;
   otherParticipantAvatar: string | null;
+  unreadCount: number;
 }
 
 export interface Message {
@@ -58,6 +59,17 @@ export const getUserConversations = async (
       INNER JOIN profiles p ON cp2.profiles_id_profiles = p.id_profiles
       WHERE cp2.profiles_id_profiles != $1
       GROUP BY cp2.conversations_id_conversations
+    ),
+    unread_counts AS (
+      SELECT
+        m.conversations_id_conversations,
+        COUNT(*)::int as unread_count
+      FROM messages m
+      INNER JOIN conversations_profiles cp3
+        ON m.conversations_id_conversations = cp3.conversations_id_conversations
+        AND cp3.profiles_id_profiles = $1
+      WHERE cp3.id_last_read IS NULL OR m.id_messages > cp3.id_last_read
+      GROUP BY m.conversations_id_conversations
     )
     SELECT
       c.id_conversations,
@@ -68,11 +80,13 @@ export const getUserConversations = async (
       op.first_participant_id as "otherParticipantId",
       op.participant_names as "otherParticipantName",
       op.first_avatar as avatar,
-      op.first_updated_at as updated_at
+      op.first_updated_at as updated_at,
+      COALESCE(uc.unread_count, 0) as "unreadCount"
     FROM conversations c
     INNER JOIN conversations_profiles cp ON c.id_conversations = cp.conversations_id_conversations
     LEFT JOIN other_participants op ON c.id_conversations = op.conversations_id_conversations
     LEFT JOIN latest_messages lm ON c.id_conversations = lm.conversations_id_conversations
+    LEFT JOIN unread_counts uc ON c.id_conversations = uc.conversations_id_conversations
     WHERE cp.profiles_id_profiles = $1
     ORDER BY "lastMessageTimestamp" DESC;
   `;
