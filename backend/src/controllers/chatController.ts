@@ -297,6 +297,26 @@ export const addMembersHandler = async (req: Request, res: Response) => {
   }
 };
 
+export const getConversationHandler = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    const { conversationId } = req.params;
+    if (!userId) { res.status(401).json({ error: 'Unauthorized' }); return; }
+    if (!conversationId) { res.status(400).json({ error: 'Conversation ID required' }); return; }
+    const profileId = await getProfileIdFromUserId(userId);
+    if (!profileId) { res.status(404).json({ error: 'Profile not found' }); return; }
+    const conversation = await getConversation(parseInt(conversationId));
+    if (!conversation) { res.status(404).json({ error: 'Conversation not found' }); return; }
+    const participants = await getConversationParticipants(parseInt(conversationId));
+    if (!participants.some((p) => p.id_profiles === profileId)) {
+      res.status(403).json({ error: 'Not a participant' }); return;
+    }
+    res.status(200).json(conversation);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get conversation' });
+  }
+};
+
 export const updateLastReadHandler = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
