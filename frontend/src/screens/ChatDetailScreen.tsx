@@ -12,8 +12,8 @@ import {
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { Text } from '@/components/ui/text';
 import MessageBubble from '../components/MessageBubble';
-import { fetchMessages, sendMessage, updateLastRead } from '../api/chatApi';
-import { Message } from '../types/chat';
+import { fetchMessages, sendMessage, updateLastRead, getConversation } from '../api/chatApi';
+import { Message, Conversation } from '../types/chat';
 import { getProfile } from '../api/profileHandler';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,6 +60,7 @@ export default function ChatDetailScreen() {
   const [messageText, setMessageText] = useState('');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [displayName, setDisplayName] = useState(otherParticipantName || 'Chat');
+  const [conversationDetail, setConversationDetail] = useState<Conversation | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   // Sync display name when parent screen pushes updated params
@@ -85,6 +86,19 @@ export default function ChatDetailScreen() {
     }
   }, []);
 
+  const loadConversationDetail = useCallback(async () => {
+    if (!conversationId) return;
+    try {
+      const detail = await getConversation(conversationId);
+      setConversationDetail(detail);
+      if (detail.is_group && detail.title) {
+        setDisplayName(detail.title);
+      }
+    } catch {
+      // Non-fatal: falls back to param values
+    }
+  }, [conversationId]);
+
   const loadMessages = useCallback(async () => {
     if (!conversationId) return;
     setLoading(true);
@@ -106,6 +120,10 @@ export default function ChatDetailScreen() {
   }, [loadCurrentUser]);
 
   useEffect(() => {
+    if (conversationId) loadConversationDetail();
+  }, [conversationId, loadConversationDetail]);
+
+  useEffect(() => {
     if (currentUserId && conversationId) {
       loadMessages();
     }
@@ -115,7 +133,7 @@ export default function ChatDetailScreen() {
     navigation.navigate('ConversationInfo', {
       conversationId,
       conversationTitle: displayName || 'Chat',
-      isGroup: false, // TODO: Determine if conversation is a group from backend
+      isGroup: conversationDetail ? Boolean(conversationDetail.is_group) : false,
     });
   };
 
