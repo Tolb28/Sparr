@@ -343,6 +343,10 @@ export const removeMemberHandler = async (req: Request, res: Response) => {
     if (!participants.some((p) => p.id_profiles === profileId)) {
       res.status(403).json({ error: 'Not a participant' }); return;
     }
+    const conversation = await getConversation(parseInt(conversationId));
+    if (!conversation || !conversation.is_group) {
+      res.status(400).json({ error: 'Cannot remove members from a direct message' }); return;
+    }
     if (!participants.some((p) => p.id_profiles === targetProfileId)) {
       res.status(404).json({ error: 'Target user is not in this conversation' }); return;
     }

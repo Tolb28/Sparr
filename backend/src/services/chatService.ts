@@ -390,31 +390,42 @@ export const getConversationParticipants = async (
 };
 
 /**
- * Remove a specific participant from a conversation; deletes conversation if empty,
- * or downgrades to DM if only 2 members remain after removal
+ * Remove a specific participant from a conversation; deletes conversation if empty or only 1
+ * member remains, or downgrades to DM if exactly 2 members remain after removal.
+ * Wrapped in a transaction to prevent partial state.
  */
 export const removeConversationParticipant = async (
   conversationId: number,
   profileIdToRemove: number
 ): Promise<void> => {
-  await pool.query(
-    `DELETE FROM conversations_profiles
-     WHERE conversations_id_conversations = $1 AND profiles_id_profiles = $2`,
-    [conversationId, profileIdToRemove]
-  );
-  const { rows } = await pool.query(
-    `SELECT COUNT(*)::int as cnt FROM conversations_profiles
-     WHERE conversations_id_conversations = $1`,
-    [conversationId]
-  );
-  const remaining = rows[0].cnt;
-  if (remaining === 0) {
-    await pool.query(`DELETE FROM messages WHERE conversations_id_conversations = $1`, [conversationId]);
-    await pool.query(`DELETE FROM conversations WHERE id_conversations = $1`, [conversationId]);
-  } else if (remaining <= 2) {
-    await pool.query(
-      `UPDATE conversations SET is_group = 0 WHERE id_conversations = $1`,
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `DELETE FROM conversations_profiles
+       WHERE conversations_id_conversations = $1 AND profiles_id_profiles = $2`,
+      [conversationId, profileIdToRemove]
+    );
+    const { rows } = await client.query(
+      `SELECT COUNT(*)::int as cnt FROM conversations_profiles
+       WHERE conversations_id_conversations = $1`,
       [conversationId]
     );
+    const remaining = rows[0].cnt;
+    if (remaining === 0 || remaining === 1) {
+      await client.query(`DELETE FROM messages WHERE conversations_id_conversations = $1`, [conversationId]);
+      await client.query(`DELETE FROM conversations WHERE id_conversations = $1`, [conversationId]);
+    } else if (remaining === 2) {
+      await client.query(
+        `UPDATE conversations SET is_group = 0 WHERE id_conversations = $1`,
+        [conversationId]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
   }
 };
