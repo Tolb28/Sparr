@@ -10,6 +10,7 @@ import {
   addMembersHandler,
   getParticipantsHandler,
   getConversationHandler,
+  removeMemberHandler,
 } from "../controllers/chatController";
 import { authenticate } from "../middleware/authMiddleware";
 
@@ -47,5 +48,8 @@ chatRouter.delete("/conversations/:conversationId", leaveConversationHandler);
 
 // Add members to a conversation
 chatRouter.post("/conversations/:conversationId/members", addMembersHandler);
+
+// Remove a member from a conversation
+chatRouter.delete("/conversations/:conversationId/members/:profileId", removeMemberHandler);
 
 export default chatRouter;
