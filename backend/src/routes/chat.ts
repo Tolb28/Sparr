@@ -9,6 +9,7 @@ import {
   leaveConversationHandler,
   addMembersHandler,
   getParticipantsHandler,
+  getConversationHandler,
 } from "../controllers/chatController";
 import { authenticate } from "../middleware/authMiddleware";
 
@@ -34,6 +35,9 @@ chatRouter.put("/conversations/:conversationId/last-read", updateLastReadHandler
 
 // Get conversation participants
 chatRouter.get("/conversations/:conversationId/participants", getParticipantsHandler);
+
+// Get a single conversation's details
+chatRouter.get("/conversations/:conversationId", getConversationHandler);
 
 // Rename a conversation
 chatRouter.patch("/conversations/:conversationId/rename", renameConversationHandler);
