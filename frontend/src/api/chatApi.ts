@@ -220,3 +220,17 @@ export async function updateLastRead(
     throw new Error(`Failed to update last read: ${response.status}`);
   }
 }
+
+/**
+ * Get a single conversation by ID
+ */
+export async function getConversation(conversationId: number): Promise<Conversation> {
+  const token = await getToken();
+  if (!token) throw new Error('No authentication token found');
+  const response = await fetch(`${API_BASE_URL}/conversations/${conversationId}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) throw new Error(`Failed to get conversation: ${response.status}`);
+  return response.json();
+}
