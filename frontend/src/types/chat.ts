@@ -37,6 +37,7 @@ export interface ConversationPreview {
   otherParticipantId: number;
   otherParticipantName: string;
   otherParticipantAvatar: string | null; // avatar URL (generated on backend)
+  unreadCount: number;
 }
 
 export interface ConversationParticipant {
