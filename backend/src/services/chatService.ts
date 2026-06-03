@@ -68,7 +68,8 @@ export const getUserConversations = async (
       INNER JOIN conversations_profiles cp3
         ON m.conversations_id_conversations = cp3.conversations_id_conversations
         AND cp3.profiles_id_profiles = $1
-      WHERE cp3.id_last_read IS NULL OR m.id_messages > cp3.id_last_read
+      WHERE (cp3.id_last_read IS NULL OR m.id_messages > cp3.id_last_read)
+        AND m.id_sender != $1
       GROUP BY m.conversations_id_conversations
     )
     SELECT
