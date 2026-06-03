@@ -234,3 +234,19 @@ export async function getConversation(conversationId: number): Promise<Conversat
   if (!response.ok) throw new Error(`Failed to get conversation: ${response.status}`);
   return response.json();
 }
+
+export async function removeConversationMember(
+  conversationId: number,
+  profileId: number
+): Promise<void> {
+  const token = await getToken();
+  if (!token) throw new Error('No authentication token found');
+  const response = await fetch(
+    `${API_BASE_URL}/conversations/${conversationId}/members/${profileId}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    }
+  );
+  if (!response.ok) throw new Error(`Failed to remove member: ${response.status}`);
+}

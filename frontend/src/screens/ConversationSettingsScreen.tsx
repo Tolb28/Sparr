@@ -21,8 +21,11 @@ import {
   renameConversation,
   leaveConversation,
   addConversationMembers,
+  removeConversationMember,
+  getConversation,
 } from '../api/chatApi';
 import { getFriends } from '../api/friends';
+import { getProfile } from '../api/profileHandler';
 import { colors } from '@/src/theme/colors';
 import { showErrorNotification } from '@/src/services/notificationService';
 
@@ -46,6 +49,8 @@ export default function ConversationSettingsScreen() {
   const [selectedFriends, setSelectedFriends] = useState<any[]>([]);
   const [addingMembers, setAddingMembers] = useState(false);
   const [friendSearch, setFriendSearch] = useState('');
+  const [currentUserProfileId, setCurrentUserProfileId] = useState<number | null>(null);
+  const [isGroup, setIsGroup] = useState(false);
 
   const loadParticipants = useCallback(async () => {
     try {
@@ -61,6 +66,27 @@ export default function ConversationSettingsScreen() {
   useEffect(() => {
     loadParticipants();
   }, [loadParticipants]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const profileData = await getProfile();
+        if (!profileData) return;
+        const profile = typeof profileData === 'string' ? JSON.parse(profileData) : profileData;
+        if (profile?.id_profiles) {
+          setCurrentUserProfileId(
+            typeof profile.id_profiles === 'number'
+              ? profile.id_profiles
+              : parseInt(profile.id_profiles, 10)
+          );
+        }
+        const detail = await getConversation(conversationId);
+        setIsGroup(Boolean(detail.is_group));
+      } catch {
+        // Non-fatal
+      }
+    })();
+  }, [conversationId]);
 
   const handleSaveTitle = async () => {
     if (!title.trim()) return;
@@ -138,6 +164,28 @@ export default function ConversationSettingsScreen() {
     }
   };
 
+  const handleRemoveMember = (participant: any) => {
+    Alert.alert(
+      'Remove Member',
+      `Remove ${participant.display_name || 'this member'} from the group?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeConversationMember(conversationId, participant.id_profiles);
+              await loadParticipants();
+            } catch {
+              showErrorNotification('Failed to remove member');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const filteredFriends = friends.filter((f) =>
     (f.display_name || '').toLowerCase().includes(friendSearch.toLowerCase())
   );
@@ -211,20 +259,30 @@ export default function ConversationSettingsScreen() {
             </View>
           ) : (
             participants.map((p: any, i: number) => (
-              <Pressable
-                key={String(p.id_profiles)}
-                onPress={() => navigation.navigate('ForeignProfile', { foreign_profile_id: p.id_profiles })}
-                style={[styles.memberRow, i < participants.length - 1 && styles.memberBorder]}
-              >
-                <Avatar size="sm">
-                  <AvatarFallbackText style={styles.avatarFallback}>{p.name || '?'}</AvatarFallbackText>
-                  <AvatarImage source={{ uri: p.avatar || p.avatar_url || undefined }} />
-                </Avatar>
-                <View style={styles.memberInfo}>
-                  <Text style={styles.memberName}>{p.name || 'Unknown'}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
-              </Pressable>
+              <View key={String(p.id_profiles)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Pressable
+                  style={[styles.memberRow, i < participants.length - 1 && styles.memberBorder, { flex: 1 }]}
+                  onPress={() => navigation.navigate('ForeignProfile', { foreign_profile_id: p.id_profiles })}
+                >
+                  <Avatar size="sm">
+                    <AvatarFallbackText style={styles.avatarFallback}>{p.display_name?.[0] || '?'}</AvatarFallbackText>
+                    <AvatarImage source={{ uri: p.avatar || p.avatar_url || undefined }} />
+                  </Avatar>
+                  <View style={styles.memberInfo}>
+                    <Text style={styles.memberName}>{p.display_name || 'Unknown'}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
+                </Pressable>
+                {isGroup && currentUserProfileId !== p.id_profiles && (
+                  <Pressable
+                    onPress={() => handleRemoveMember(p)}
+                    style={{ paddingHorizontal: 12, paddingVertical: 12 }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons name="person-remove-outline" size={18} color={colors.primary.main} />
+                  </Pressable>
+                )}
+              </View>
             ))
           )}
         </GlassCard>
