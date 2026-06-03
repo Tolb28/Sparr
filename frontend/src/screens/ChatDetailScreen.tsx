@@ -66,9 +66,12 @@ export default function ChatDetailScreen() {
   // Sync display name when parent screen pushes updated params
   useEffect(() => {
     if (route.params?.otherParticipantName) {
-      setDisplayName(route.params.otherParticipantName);
+      // Don't overwrite group title fetched from API
+      if (!conversationDetail?.is_group || !conversationDetail?.title) {
+        setDisplayName(route.params.otherParticipantName);
+      }
     }
-  }, [route.params?.otherParticipantName]);
+  }, [route.params?.otherParticipantName, conversationDetail]);
 
   const loadCurrentUser = useCallback(async () => {
     try {
@@ -184,7 +187,7 @@ export default function ChatDetailScreen() {
           <Text style={styles.headerName}>{displayName || 'Chat'}</Text>
           <Text style={styles.headerStatus}>Active now</Text>
         </View>
-        <TouchableOpacity onPress={handleManage} style={styles.backBtn}>
+        <TouchableOpacity onPress={handleManage} style={styles.backBtn} disabled={conversationDetail === null}>
           <Ionicons name="ellipsis-horizontal" size={22} color="#ffffff" />
         </TouchableOpacity>
       </View>
