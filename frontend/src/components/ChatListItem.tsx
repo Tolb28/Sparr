@@ -105,7 +105,13 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
             <Text style={[styles.timestamp, hasUnread && styles.unreadTimestamp, { color: colors.text.tertiary }]}>
               {formatTimestamp}
             </Text>
-            {hasUnread && <View style={[styles.unreadBadge, { backgroundColor: colors.primary.main }]} />}
+            {hasUnread && (
+              <View style={[styles.unreadBadge, { backgroundColor: colors.primary.main, minWidth: (conversation.unreadCount ?? 0) > 9 ? 18 : 16 }]}>
+                <Text style={styles.unreadCount}>
+                  {(conversation.unreadCount ?? 0) > 99 ? '99+' : conversation.unreadCount}
+                </Text>
+              </View>
+            )}
           </VStack>
         </HStack>
       </TouchableOpacity>
@@ -164,9 +170,17 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   unreadBadge: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unreadCount: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffffff',
+    lineHeight: 14,
   },
   unreadText: {
     fontWeight: '700',
