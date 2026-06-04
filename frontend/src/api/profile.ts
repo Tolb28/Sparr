@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { getToken, ServerIP, deleteToken } from './tokenHandler';
 import { getActiveProfileId, setActiveProfileId, storeProfile, removeProfile } from './profileHandler';
 import {
+  clearCachedProfileResponse,
   getCachedProfileResponse,
   getInFlightProfileRequest,
   getProfileCacheGeneration,
@@ -112,11 +113,8 @@ export async function updateProfile(updates: any) {
     }
 
     const data = await response.json();
-    // Store the updated profile
     await storeProfile(data?.profile ?? data);
-    if (cacheGeneration === getProfileCacheGeneration()) {
-      setCachedProfileResponse(data);
-    }
+    clearCachedProfileResponse();
     return data;
   }
 
@@ -139,11 +137,8 @@ export async function updateProfile(updates: any) {
   }
 
   const data = await response.json();
-  // Store the updated profile
   await storeProfile(data?.profile ?? data);
-  if (cacheGeneration === getProfileCacheGeneration()) {
-    setCachedProfileResponse(data);
-  }
+  clearCachedProfileResponse();
   return data;
 }
 

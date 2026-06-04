@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box } from '@/components/ui/box';
 import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
@@ -8,7 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { ImageBackground, View } from 'react-native';
+import { ImageBackground, View, Animated } from 'react-native';
+import { colors } from '@/src/theme/colors';
+import { createPressFeedback } from '@/src/utils/motion';
 
 type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -53,6 +55,10 @@ export default function TrainingCard({
   const navigation = useNavigation<RootNavigationProp>();
   const [descExpanded, setDescExpanded] = useState(false);
   const [contentExpanded, setContentExpanded] = useState(false);
+
+  // Button press animations
+  const startBtnFeedback = createPressFeedback();
+  const editBtnFeedback = createPressFeedback();
 
   // Rest day styling - uses brand red with reduced opacity for visual consistency
   if (isRestDay) {
@@ -208,32 +214,37 @@ export default function TrainingCard({
 
       {/* Action Buttons */}
       <HStack className="px-5 py-4 gap-3 border-t border-[#2e1919]" style={{ backgroundColor: '#1a0c0c' }}>
-        <Pressable
-          className={`flex-1 rounded-lg px-5 py-3.5 items-center justify-center ${
-            isButtonsDisabled 
-              ? 'bg-gray-600' 
-              : 'bg-primary-500 active:bg-primary-600'
-          }`}
-          onPress={handleStartPress}
-          disabled={isButtonsDisabled}
-        >
-          <Text className={`font-semibold ${isButtonsDisabled ? 'text-gray-500' : 'text-white'}`}>
-            Start Training
-          </Text>
-        </Pressable>
-        <Pressable
-          className={`rounded-lg px-5 py-3.5 items-center justify-center ${
-            isButtonsDisabled 
-              ? 'bg-[#2a1515] border border-[#472323]' 
-              : 'bg-[#2a1515] border border-[#6d2e2e] active:bg-[#341818]'
-          }`}
-          onPress={onEditPress}
-          disabled={isButtonsDisabled}
-        >
-          <Text className={`font-semibold ${isButtonsDisabled ? 'text-gray-400' : 'text-white'}`}>
-            Edit
-          </Text>
-        </Pressable>
+        <Animated.View style={{ flex: 1, transform: [{ scale: startBtnFeedback.scale }] }}>
+          <Pressable
+            className="rounded-lg px-5 py-3.5 items-center justify-center"
+            style={{ backgroundColor: isButtonsDisabled ? '#374151' : colors.primary.main }}
+            onPress={handleStartPress}
+            onPressIn={startBtnFeedback.onPressIn}
+            onPressOut={startBtnFeedback.onPressOut}
+            disabled={isButtonsDisabled}
+          >
+            <Text style={{ fontWeight: '600', color: isButtonsDisabled ? '#6b7280' : '#ffffff' }}>
+              Start Training
+            </Text>
+          </Pressable>
+        </Animated.View>
+        <Animated.View style={{ transform: [{ scale: editBtnFeedback.scale }] }}>
+          <Pressable
+            className={`rounded-lg px-5 py-3.5 items-center justify-center ${
+              isButtonsDisabled 
+                ? 'bg-[#2a1515] border border-[#472323]' 
+                : 'bg-[#2a1515] border border-[#6d2e2e] active:bg-[#341818]'
+            }`}
+            onPress={onEditPress}
+            onPressIn={editBtnFeedback.onPressIn}
+            onPressOut={editBtnFeedback.onPressOut}
+            disabled={isButtonsDisabled}
+          >
+            <Text className={`font-semibold ${isButtonsDisabled ? 'text-gray-400' : 'text-white'}`}>
+              Edit
+            </Text>
+          </Pressable>
+        </Animated.View>
       </HStack>
     </Box>
   );
