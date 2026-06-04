@@ -1,9 +1,24 @@
 // App.tsx
 import React from 'react';
 import { View } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import AppNavigator from './src/navigation/AppNavigator';
+import { StatusBar } from 'expo-status-bar';
+import AppNavigator, { linking } from './src/navigation/AppNavigator';
+
+const AppNavTheme = {
+  ...DefaultTheme,
+  dark: true,
+  colors: {
+    ...DefaultTheme.colors,
+    background: '#120808',
+    card: '#221010',
+    text: '#ffffff',
+    border: '#2e1919',
+    primary: '#f20d0d',
+    notification: '#f20d0d',
+  },
+};
 import { GluestackUIProvider } from '@/components/ui/gluestack-ui-provider';
 import { ProgressProvider } from '@/src/context/ProgressContext';
 import { NotificationHost } from '@/src/services/notificationService';
@@ -35,14 +50,15 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <GluestackUIProvider>
+      <GluestackUIProvider mode="system">
+        <StatusBar style="auto" />
         <ProgressProvider>
-          <NavigationContainer>
+          <NavigationContainer linking={linking} theme={AppNavTheme}>
             <AppNavigator />
           </NavigationContainer>
-          <NotificationHost />
         </ProgressProvider>
       </GluestackUIProvider>
+      <NotificationHost />
     </SafeAreaProvider>
   );
 }
