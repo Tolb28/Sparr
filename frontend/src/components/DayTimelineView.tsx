@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { GlassCard } from '@/components/ui/glass-card';
 
 export interface TimelineTraining {
@@ -38,6 +38,8 @@ export default function DayTimelineView({
   onStartPress,
   onEditPress,
 }: DayTimelineViewProps) {
+  const c = useThemeColors();
+
   if (trainings.length === 0) return null;
 
   // Separate timed vs untimed
@@ -52,13 +54,17 @@ export default function DayTimelineView({
           {/* Timeline line + dot */}
           <View style={styles.timelineCol}>
             {training.start_time ? (
-              <Text style={styles.timeText}>{formatTime(training.start_time)}</Text>
+              <Text style={[styles.timeText, { color: c.primary.main }]}>{formatTime(training.start_time)}</Text>
             ) : (
               <View style={styles.timePlaceholder} />
             )}
             <View style={styles.dotWrap}>
-              <View style={[styles.dot, idx === 0 && styles.dotActive]} />
-              {idx < ordered.length - 1 && <View style={styles.line} />}
+              <View style={[
+                styles.dot,
+                { backgroundColor: c.glass.surfaceStrong, borderColor: c.border.light },
+                idx === 0 && { backgroundColor: c.primary.main, borderColor: c.primary.main },
+              ]} />
+              {idx < ordered.length - 1 && <View style={[styles.line, { backgroundColor: c.border.light }]} />}
             </View>
           </View>
 
@@ -68,35 +74,35 @@ export default function DayTimelineView({
             onPress={() => onTrainingPress?.(training)}
           >
             <GlassCard variant="medium" radius={12} padding={12}>
-              <Text style={styles.title} numberOfLines={1}>{training.title}</Text>
+              <Text style={[styles.title, { color: c.text.primary }]} numberOfLines={1}>{training.title}</Text>
               {training.duration && (
                 <View style={styles.metaRow}>
-                  <Ionicons name="time-outline" size={12} color={colors.text.tertiary} />
-                  <Text style={styles.metaText}>{training.duration}</Text>
+                  <Ionicons name="time-outline" size={12} color={c.text.tertiary} />
+                  <Text style={[styles.metaText, { color: c.text.tertiary }]}>{training.duration}</Text>
                 </View>
               )}
               {training.components && training.components.length > 0 && (
                 <View style={styles.componentList}>
-                  {training.components.slice(0, 2).map((c, i) => (
-                    <Text key={i} style={styles.componentText} numberOfLines={1}>• {c}</Text>
+                  {training.components.slice(0, 2).map((comp, i) => (
+                    <Text key={i} style={[styles.componentText, { color: c.text.secondary }]} numberOfLines={1}>• {comp}</Text>
                   ))}
                   {training.components.length > 2 && (
-                    <Text style={styles.moreText}>+{training.components.length - 2} more</Text>
+                    <Text style={[styles.moreText, { color: c.text.tertiary }]}>+{training.components.length - 2} more</Text>
                   )}
                 </View>
               )}
               <View style={styles.btnRow}>
                 <Pressable
-                  style={styles.startBtn}
+                  style={[styles.startBtn, { backgroundColor: c.primary.main }]}
                   onPress={() => onStartPress?.(training)}
                 >
                   <Text style={styles.startBtnText}>Start</Text>
                 </Pressable>
                 <Pressable
-                  style={styles.editBtn}
+                  style={[styles.editBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}
                   onPress={() => onEditPress?.(training)}
                 >
-                  <Text style={styles.editBtnText}>Edit</Text>
+                  <Text style={[styles.editBtnText, { color: c.text.secondary }]}>Edit</Text>
                 </Pressable>
               </View>
             </GlassCard>
@@ -116,7 +122,6 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   timeText: {
-    color: colors.primary.main,
     fontSize: 10,
     fontWeight: '700',
     marginBottom: 4,
@@ -127,42 +132,32 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: colors.glass.surfaceStrong,
     borderWidth: 2,
-    borderColor: colors.border.light,
-  },
-  dotActive: {
-    backgroundColor: colors.primary.main,
-    borderColor: colors.primary.main,
   },
   line: {
     width: 2,
     flex: 1,
-    backgroundColor: colors.border.light,
     marginVertical: 2,
   },
   card: { flex: 1, paddingBottom: 8 },
-  title: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },
+  title: { fontSize: 14, fontWeight: '700' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  metaText: { color: colors.text.tertiary, fontSize: 11 },
+  metaText: { fontSize: 11 },
   componentList: { marginTop: 6, gap: 2 },
-  componentText: { color: colors.text.secondary, fontSize: 11 },
-  moreText: { color: colors.text.tertiary, fontSize: 11, fontStyle: 'italic' },
+  componentText: { fontSize: 11 },
+  moreText: { fontSize: 11, fontStyle: 'italic' },
   btnRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   startBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: colors.primary.main,
   },
   startBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   editBtn: {
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: colors.glass.surface,
     borderWidth: 1,
-    borderColor: colors.glass.border,
   },
-  editBtnText: { color: colors.text.secondary, fontSize: 12, fontWeight: '600' },
+  editBtnText: { fontSize: 12, fontWeight: '600' },
 });

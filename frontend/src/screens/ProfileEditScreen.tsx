@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, ActivityIndicator, Alert, View, Pressable, Modal, FlatList, TextInput, StyleSheet } from 'react-native';
+import { ScrollView, ActivityIndicator, View, Pressable, Modal, FlatList, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -7,6 +7,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { getUserProfile, updateProfile, deleteProfile } from '../api/profile';
 import { getProfileReferences } from '../api/references';
 import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 
 import { Text } from '@/components/ui/text';
 import {
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/avatar';
 import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
@@ -52,12 +53,14 @@ type Profile = {
 
 export default function EditProfileScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [form, setForm] = useState<ProfileForm>({});
   const [loading, setLoading] = useState(true);
   const [loadingRefs, setLoadingRefs] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const [selectedBoxingStyle, setSelectedBoxingStyle] = useState<number | null>(null);
   const [selectedWeightClass, setSelectedWeightClass] = useState<number | null>(null);
@@ -98,8 +101,6 @@ export default function EditProfileScreen({ navigation }: Props) {
       try {
         const data = await getUserProfile();
         const p = data?.profile ?? data;
-
-        console.log('Loaded profile for editing:', p);
 
         if (mounted) {
           setProfile(p);
@@ -204,42 +205,37 @@ export default function EditProfileScreen({ navigation }: Props) {
     }
   };
 
-  const handleDelete = () => {
-    Alert.alert('Delete Profile', 'Are you sure? This action cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setSaving(true);
-          setError(null);
-          try {
-            await deleteProfile();
-            showSuccessNotification('Profile deleted');
-            navigation.replace('Login');
-          } catch (err: any) {
-            setError(err?.message ?? 'Failed to delete profile');
-            setSaving(false);
-          }
-        },
-      },
-    ]);
+  const handleDelete = () => setConfirmDelete(true);
+
+  const doDelete = async () => {
+    setConfirmDelete(false);
+    setSaving(true);
+    setError(null);
+    try {
+      await deleteProfile();
+      showSuccessNotification('Profile deleted');
+      navigation.replace('Login');
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to delete profile');
+      setSaving(false);
+    }
   };
 
   if (loading) {
     return (
-      <View style={[styles.root, styles.center]}>
-        <ActivityIndicator size="large" color={colors.primary.main} />
+      <View style={[styles.root, styles.center, { backgroundColor: c.background.secondary }]}>
+        <ActivityIndicator size="large" color={c.primary.main} />
       </View>
     );
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100, paddingTop: (insets.top || 0) + 8 }}>
         <View style={styles.body}>
-          <Text style={styles.pageTitle}>Edit Profile</Text>
-          <Text style={styles.pageSub}>Update your athlete details</Text>
+          <Text style={[styles.pageTitle, { color: c.text.primary }]}>Edit Profile</Text>
+          <Text style={[styles.pageSub, { color: c.text.secondary }]}>Update your athlete details</Text>
 
           {/* Avatar */}
           <View style={styles.avatarCenter}>
@@ -248,11 +244,11 @@ export default function EditProfileScreen({ navigation }: Props) {
                 <AvatarFallbackText>{profile?.display_name ?? '?'}</AvatarFallbackText>
                 <AvatarImage source={{ uri: avatarPreview || undefined }} />
               </Avatar>
-              <View style={styles.cameraOverlay}>
+              <View style={[styles.cameraOverlay, { backgroundColor: c.primary.main }]}>
                 <Text style={styles.cameraIcon}>📷</Text>
               </View>
             </Pressable>
-            <Text style={styles.avatarHint}>Tap to change photo</Text>
+            <Text style={[styles.avatarHint, { color: c.text.tertiary }]}>Tap to change photo</Text>
           </View>
 
           {!!error && (
@@ -263,72 +259,72 @@ export default function EditProfileScreen({ navigation }: Props) {
 
           {/* Basic info */}
           <GlassCard variant="medium" radius={14} padding={16}>
-            <Text style={styles.label}>Display Name</Text>
+            <Text style={[styles.label, { color: c.text.secondary }]}>Display Name</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
               placeholder="Display name"
               value={form.display_name ?? ''}
               onChangeText={(text) => setForm({ ...form, display_name: text })}
-              placeholderTextColor={colors.text.tertiary}
+              placeholderTextColor={c.text.tertiary}
             />
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Username</Text>
+            <Text style={[styles.label, { marginTop: 14, color: c.text.secondary }]}>Username</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
               placeholder="Username"
               value={form.username ?? ''}
               onChangeText={(text) => setForm({ ...form, username: text })}
-              placeholderTextColor={colors.text.tertiary}
+              placeholderTextColor={c.text.tertiary}
               autoCapitalize="none"
             />
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Location</Text>
+            <Text style={[styles.label, { marginTop: 14, color: c.text.secondary }]}>Location</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
               placeholder="Location"
               value={form.location ?? ''}
               onChangeText={(text) => setForm({ ...form, location: text })}
-              placeholderTextColor={colors.text.tertiary}
+              placeholderTextColor={c.text.tertiary}
             />
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Bio</Text>
+            <Text style={[styles.label, { marginTop: 14, color: c.text.secondary }]}>Bio</Text>
             <TextInput
-              style={[styles.input, styles.inputMultiline]}
+              style={[styles.input, styles.inputMultiline, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
               placeholder="Bio"
               value={form.bio ?? ''}
               onChangeText={(text) => setForm({ ...form, bio: text })}
               multiline
               numberOfLines={4}
-              placeholderTextColor={colors.text.tertiary}
+              placeholderTextColor={c.text.tertiary}
             />
           </GlassCard>
 
           {/* Weight class */}
           <GlassCard variant="medium" radius={14} padding={16}>
-            <Text style={styles.label}>Weight Class</Text>
-            <Pressable style={styles.select} onPress={() => setWeightDropdownOpen(true)}>
-              <Text style={{ color: selectedWeightClassTitle ? colors.text.primary : colors.text.tertiary, fontSize: 14 }}>
+            <Text style={[styles.label, { color: c.text.secondary }]}>Weight Class</Text>
+            <Pressable style={[styles.select, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]} onPress={() => setWeightDropdownOpen(true)}>
+              <Text style={{ color: selectedWeightClassTitle ? c.text.primary : c.text.tertiary, fontSize: 14 }}>
                 {selectedWeightClassTitle || '— select weight class —'}
               </Text>
             </Pressable>
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Boxing Style</Text>
-            <Pressable style={styles.select} onPress={() => setStyleDropdownOpen(true)}>
-              <Text style={{ color: selectedBoxingStyleTitle ? colors.text.primary : colors.text.tertiary, fontSize: 14 }}>
+            <Text style={[styles.label, { marginTop: 14, color: c.text.secondary }]}>Boxing Style</Text>
+            <Pressable style={[styles.select, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]} onPress={() => setStyleDropdownOpen(true)}>
+              <Text style={{ color: selectedBoxingStyleTitle ? c.text.primary : c.text.tertiary, fontSize: 14 }}>
                 {selectedBoxingStyleTitle || '— select boxing style —'}
               </Text>
             </Pressable>
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Experience Level</Text>
-            <Pressable style={styles.select} onPress={() => setExperienceDropdownOpen(true)}>
-              <Text style={{ color: selectedExperienceTitle ? colors.text.primary : colors.text.tertiary, fontSize: 14 }}>
+            <Text style={[styles.label, { marginTop: 14, color: c.text.secondary }]}>Experience Level</Text>
+            <Pressable style={[styles.select, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]} onPress={() => setExperienceDropdownOpen(true)}>
+              <Text style={{ color: selectedExperienceTitle ? c.text.primary : c.text.tertiary, fontSize: 14 }}>
                 {selectedExperienceTitle || '— select experience level —'}
               </Text>
             </Pressable>
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Height (cm)</Text>
+            <Text style={[styles.label, { marginTop: 14, color: c.text.secondary }]}>Height (cm)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
               keyboardType="number-pad"
               placeholder="e.g. 178"
               value={form.height_cm != null ? String(form.height_cm) : ''}
@@ -336,7 +332,7 @@ export default function EditProfileScreen({ navigation }: Props) {
                 const onlyDigits = text.replace(/[^0-9]/g, '');
                 setForm({ ...form, height_cm: onlyDigits ? Number(onlyDigits) : null });
               }}
-              placeholderTextColor={colors.text.tertiary}
+              placeholderTextColor={c.text.tertiary}
             />
           </GlassCard>
 
@@ -351,21 +347,21 @@ export default function EditProfileScreen({ navigation }: Props) {
             onRequestClose={() => setWeightDropdownOpen(false)}
           >
             <Pressable style={styles.modalOverlay} onPress={() => setWeightDropdownOpen(false)}>
-              <View style={styles.modalSheet}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Weight Class</Text>
+              <View style={[styles.modalSheet, { backgroundColor: c.background.secondary, borderColor: c.glass.border }]}>
+                <View style={[styles.modalHeader, { borderBottomColor: c.border.light }]}>
+                  <Text style={[styles.modalTitle, { color: c.text.primary }]}>Select Weight Class</Text>
                 </View>
                 <FlatList
                   data={[{ id_weight_class: null, title_weight: 'None' }, ...weightClasses]}
                   keyExtractor={(item) => String(item.id_weight_class)}
                   renderItem={({ item }) => (
-                    <Pressable style={styles.modalItem} onPress={() => {
+                    <Pressable style={[styles.modalItem, { borderBottomColor: c.border.light }]} onPress={() => {
                       setSelectedWeightClassTitle(item.title_weight);
                       setSelectedWeightClass(item.id_weight_class);
                       setForm({ ...form, weight_class_id: item.id_weight_class });
                       setWeightDropdownOpen(false);
                     }}>
-                      <Text style={styles.modalItemText}>{item.title_weight}</Text>
+                      <Text style={[styles.modalItemText, { color: c.text.primary }]}>{item.title_weight}</Text>
                     </Pressable>
                   )}
                 />
@@ -383,21 +379,21 @@ export default function EditProfileScreen({ navigation }: Props) {
             onRequestClose={() => setStyleDropdownOpen(false)}
           >
             <Pressable style={styles.modalOverlay} onPress={() => setStyleDropdownOpen(false)}>
-              <View style={styles.modalSheet}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Boxing Style</Text>
+              <View style={[styles.modalSheet, { backgroundColor: c.background.secondary, borderColor: c.glass.border }]}>
+                <View style={[styles.modalHeader, { borderBottomColor: c.border.light }]}>
+                  <Text style={[styles.modalTitle, { color: c.text.primary }]}>Select Boxing Style</Text>
                 </View>
                 <FlatList
                   data={[{ id_boxing_style: null, title_style: 'None' }, ...boxingStyles]}
                   keyExtractor={(item) => String(item.id_boxing_style)}
                   renderItem={({ item }) => (
-                    <Pressable style={styles.modalItem} onPress={() => {
+                    <Pressable style={[styles.modalItem, { borderBottomColor: c.border.light }]} onPress={() => {
                       setSelectedBoxingStyleTitle(item.title_style);
                       setSelectedBoxingStyle(item.id_boxing_style);
                       setForm({ ...form, boxing_style_id: item.id_boxing_style });
                       setStyleDropdownOpen(false);
                     }}>
-                      <Text style={styles.modalItemText}>{item.title_style}</Text>
+                      <Text style={[styles.modalItemText, { color: c.text.primary }]}>{item.title_style}</Text>
                     </Pressable>
                   )}
                 />
@@ -415,20 +411,20 @@ export default function EditProfileScreen({ navigation }: Props) {
             onRequestClose={() => setExperienceDropdownOpen(false)}
           >
             <Pressable style={styles.modalOverlay} onPress={() => setExperienceDropdownOpen(false)}>
-              <View style={styles.modalSheet}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Experience Level</Text>
+              <View style={[styles.modalSheet, { backgroundColor: c.background.secondary, borderColor: c.glass.border }]}>
+                <View style={[styles.modalHeader, { borderBottomColor: c.border.light }]}>
+                  <Text style={[styles.modalTitle, { color: c.text.primary }]}>Select Experience Level</Text>
                 </View>
                 <FlatList
                   data={EXPERIENCE_LEVELS}
                   keyExtractor={(item) => String(item.value ?? 'none')}
                   renderItem={({ item }) => (
-                    <Pressable style={styles.modalItem} onPress={() => {
+                    <Pressable style={[styles.modalItem, { borderBottomColor: c.border.light }]} onPress={() => {
                       setSelectedExperienceTitle(item.label);
                       setForm({ ...form, experience_level: item.value });
                       setExperienceDropdownOpen(false);
                     }}>
-                      <Text style={styles.modalItemText}>{item.label}</Text>
+                      <Text style={[styles.modalItemText, { color: c.text.primary }]}>{item.label}</Text>
                     </Pressable>
                   )}
                 />
@@ -441,46 +437,55 @@ export default function EditProfileScreen({ navigation }: Props) {
           <SparrButton label="Delete Profile" variant="danger" onPress={handleDelete} disabled={saving} fullWidth />
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
+      <ConfirmationModal
+        visible={confirmDelete}
+        title="Delete Profile"
+        message="Are you sure? This action cannot be undone."
+        confirmText="Delete"
+        destructive
+        onConfirm={doDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
   body: { padding: 16, gap: 14 },
-  pageTitle: { color: colors.text.primary, fontSize: 22, fontWeight: '800', textAlign: 'center' },
-  pageSub: { color: colors.text.secondary, fontSize: 13, textAlign: 'center', marginTop: -6 },
+  pageTitle: { fontSize: 22, fontWeight: '800', textAlign: 'center' },
+  pageSub: { fontSize: 13, textAlign: 'center', marginTop: -6 },
   avatarCenter: { alignItems: 'center', gap: 6, marginVertical: 8 },
   avatarWrap: { position: 'relative' },
   cameraOverlay: {
     position: 'absolute', bottom: 4, right: 4,
     width: 24, height: 24, borderRadius: 12,
-    backgroundColor: colors.primary.main, alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   cameraIcon: { fontSize: 12 },
-  avatarHint: { color: colors.text.tertiary, fontSize: 12 },
+  avatarHint: { fontSize: 12 },
   errorText: { color: '#ffb3b3', fontSize: 13 },
-  label: { color: colors.text.secondary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' },
+  label: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6, textTransform: 'uppercase' },
   input: {
-    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border, color: colors.text.primary,
+    borderRadius: 10, borderWidth: 1,
     paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
   },
   inputMultiline: { height: 88, textAlignVertical: 'top', paddingTop: 10 },
   select: {
-    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border, paddingHorizontal: 12, paddingVertical: 12,
+    borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 12, paddingVertical: 12,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: colors.background.secondary, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
     maxHeight: 400, overflow: 'hidden',
-    borderTopWidth: 1, borderColor: colors.glass.border,
+    borderTopWidth: 1,
   },
-  modalHeader: { padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border.light },
-  modalTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
-  modalItem: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border.light },
-  modalItemText: { color: colors.text.primary, fontSize: 14 },
+  modalHeader: { padding: 16, borderBottomWidth: 1 },
+  modalTitle: { fontSize: 16, fontWeight: '700' },
+  modalItem: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
+  modalItemText: { fontSize: 14 },
 });

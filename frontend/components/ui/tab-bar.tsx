@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Text } from '@/components/ui/text';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 type TabItem = string | { key: string; label: string };
 
@@ -29,6 +29,7 @@ export function TabBar({
   appearance = 'underline',
   style,
 }: TabBarProps) {
+  const c = useThemeColors();
   const [containerWidth, setContainerWidth] = useState(0);
 
   const tabCount = tabs.length;
@@ -57,11 +58,11 @@ export function TabBar({
                   style={[
                     styles.tab,
                     styles.tabFixed,
-                    appearance === 'segmented' && styles.segmentedTab,
-                    key === activeTab && appearance === 'segmented' && styles.segmentedTabActive,
+                    appearance === 'segmented' && { marginHorizontal: 4, marginTop: 4, borderRadius: 12, borderWidth: 1, borderColor: c.glass.border, backgroundColor: c.glass.surface, paddingVertical: 9 },
+                    key === activeTab && appearance === 'segmented' && { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder },
                   ]}
                 >
-                  <Text style={[styles.tabText, key === activeTab ? styles.tabActive : styles.tabInactive]}>
+                  <Text style={[styles.tabText, key === activeTab ? { color: c.text.primary, fontWeight: '700' } : { color: c.text.tertiary, fontWeight: '500' }]}>
                     {getLabel(tab)}
                   </Text>
                 </Pressable>
@@ -85,22 +86,22 @@ export function TabBar({
                 style={[
                   styles.tab,
                   styles.tabFlex,
-                  appearance === 'segmented' && styles.segmentedTab,
-                  key === activeTab && appearance === 'segmented' && styles.segmentedTabActive,
+                  appearance === 'segmented' && { marginHorizontal: 4, marginTop: 4, borderRadius: 12, borderWidth: 1, borderColor: c.glass.border, backgroundColor: c.glass.surface, paddingVertical: 9 },
+                  key === activeTab && appearance === 'segmented' && { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder },
                 ]}
               >
-                <Text style={[styles.tabText, key === activeTab ? styles.tabActive : styles.tabInactive]}>
+                <Text style={[styles.tabText, key === activeTab ? { color: c.text.primary, fontWeight: '700' } : { color: c.text.tertiary, fontWeight: '500' }]}>
                   {getLabel(tab)}
                 </Text>
               </Pressable>
             );
           })}
           {appearance === 'underline' && (
-            <View pointerEvents="none" style={[styles.indicator, { left: indicatorLeft, width: tabWidth }]} />
+            <View pointerEvents="none" style={[styles.indicator, { left: indicatorLeft, width: tabWidth, backgroundColor: c.primary.main }]} />
           )}
         </View>
       )}
-      {appearance === 'underline' ? <View style={styles.bottomBorder} /> : null}
+      {appearance === 'underline' ? <View style={[styles.bottomBorder, { backgroundColor: c.border.light }]} /> : null}
     </View>
   );
 }
@@ -112,23 +113,8 @@ const styles = StyleSheet.create({
   tabFlex: { flex: 1 },
   tabFixed: { width: 110, paddingHorizontal: 16 },
   tabText: { fontSize: 14, letterSpacing: 0.2 },
-  tabActive: { color: colors.text.primary, fontWeight: '700' },
-  tabInactive: { color: colors.text.tertiary, fontWeight: '500' },
-  indicator: { position: 'absolute', left: 0, bottom: 1, height: 2, backgroundColor: colors.primary.main, borderRadius: 2 },
-  bottomBorder: { height: 1, backgroundColor: colors.border.light },
-  segmentedTab: {
-    marginHorizontal: 4,
-    marginTop: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.glass.border,
-    backgroundColor: colors.glass.surface,
-    paddingVertical: 9,
-  },
-  segmentedTabActive: {
-    backgroundColor: colors.glass.redSurface,
-    borderColor: colors.glass.redBorder,
-  },
+  indicator: { position: 'absolute', left: 0, bottom: 1, height: 2, borderRadius: 2 },
+  bottomBorder: { height: 1 },
 });
 
 export default TabBar;

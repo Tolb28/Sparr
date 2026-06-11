@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Text } from '@/components/ui/text';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { useProgress } from '@/src/context/ProgressContext';
 import { TimeframeToggle } from './TimeframeToggle';
 
@@ -34,6 +34,7 @@ const formatHours = (value: number) => {
 
 const ProgressHeaderCardBase: React.FC<ProgressHeaderCardProps> = ({ onRefresh }) => {
   const { timeframe, metrics, loading, error, setTimeframe, refresh } = useProgress();
+  const c = useThemeColors();
   const handleRefresh = onRefresh ?? refresh;
   const triggerRefresh = () => {
     void handleRefresh();
@@ -67,9 +68,13 @@ const ProgressHeaderCardBase: React.FC<ProgressHeaderCardProps> = ({ onRefresh }
         style={styles.card}
       >
       <View style={styles.headerRow}>
-        <Text style={[styles.title, isSmallScreen && styles.titleSmall]}>PROGRESS DASHBOARD</Text>
+        <Text style={[styles.title, { color: c.text.primary }, isSmallScreen && styles.titleSmall]}>PROGRESS DASHBOARD</Text>
         <Pressable
-          style={({ pressed }) => [styles.refreshButton, pressed && styles.refreshPressed]}
+          style={({ pressed }) => [
+            styles.refreshButton,
+            { backgroundColor: c.glass.surface, borderColor: c.glass.border },
+            pressed && styles.refreshPressed,
+          ]}
           onPress={triggerRefresh}
           disabled={loading}
           accessibilityRole="button"
@@ -78,7 +83,7 @@ const ProgressHeaderCardBase: React.FC<ProgressHeaderCardProps> = ({ onRefresh }
           accessibilityHint="Reload progress metrics"
           testID="ProgressHeaderCard_RefreshButton"
         >
-          <Ionicons name="refresh-outline" size={16} color={colors.text.primary} />
+          <Ionicons name="refresh-outline" size={16} color={c.text.primary} />
         </Pressable>
       </View>
 
@@ -91,34 +96,38 @@ const ProgressHeaderCardBase: React.FC<ProgressHeaderCardProps> = ({ onRefresh }
       {error ? (
         <View style={styles.errorContainer}>
           <View style={styles.errorRow}>
-            <Ionicons name="alert-circle-outline" size={16} color={colors.error.main} />
-            <Text style={styles.errorText}>{error}</Text>
+            <Ionicons name="alert-circle-outline" size={16} color={c.error.main} />
+            <Text style={[styles.errorText, { color: c.text.secondary }]}>{error}</Text>
           </View>
           <Pressable
-            style={({ pressed }) => [styles.retryButton, pressed && styles.retryPressed]}
+            style={({ pressed }) => [
+              styles.retryButton,
+              { borderColor: c.glass.redBorder, backgroundColor: c.glass.redSurface },
+              pressed && styles.retryPressed,
+            ]}
             onPress={triggerRefresh}
             accessibilityRole="button"
             accessibilityLabel="Retry loading progress"
           >
-            <Ionicons name="reload" size={14} color={colors.primary.main} />
-            <Text style={styles.retryText}>Retry</Text>
+            <Ionicons name="reload" size={14} color={c.primary.main} />
+            <Text style={[styles.retryText, { color: c.primary.main }]}>Retry</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.metricsContainer}>
-          <Text style={[styles.metricsLabel, isSmallScreen && styles.metricsLabelSmall]}>{label}</Text>
+          <Text style={[styles.metricsLabel, { color: c.text.tertiary }, isSmallScreen && styles.metricsLabelSmall]}>{label}</Text>
           {loading ? (
             <View style={styles.metricsLoading}>
               <SkeletonLoader width="40%" height={12} borderRadius={6} />
               <SkeletonLoader width="100%" height={14} borderRadius={6} style={styles.metricsSkeletonGap} />
             </View>
           ) : (
-            <Text style={[styles.metricsLine, isSmallScreen && styles.metricsLineSmall]}>
-              <Text style={styles.metricsKey}>Streak:</Text> {streakValue} days
-              <Text style={styles.metricsSeparator}> | </Text>
-              <Text style={styles.metricsKey}>Workouts:</Text> {workoutValue}
-              <Text style={styles.metricsSeparator}> | </Text>
-              <Text style={styles.metricsKey}>Hours:</Text> {formatHours(hoursValue)}
+            <Text style={[styles.metricsLine, { color: c.text.secondary }, isSmallScreen && styles.metricsLineSmall]}>
+              <Text style={[styles.metricsKey, { color: c.text.primary }]}>Streak:</Text> {streakValue} days
+              <Text style={[styles.metricsSeparator, { color: c.text.tertiary }]}> | </Text>
+              <Text style={[styles.metricsKey, { color: c.text.primary }]}>Workouts:</Text> {workoutValue}
+              <Text style={[styles.metricsSeparator, { color: c.text.tertiary }]}> | </Text>
+              <Text style={[styles.metricsKey, { color: c.text.primary }]}>Hours:</Text> {formatHours(hoursValue)}
             </Text>
           )}
         </View>
@@ -138,7 +147,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   title: {
-    color: colors.text.primary,
     fontSize: 18,
     fontWeight: '800',
     letterSpacing: 0.6,
@@ -152,9 +160,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.glass.surface,
     borderWidth: 1,
-    borderColor: colors.glass.border,
   },
   refreshPressed: {
     opacity: 0.8,
@@ -164,7 +170,6 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metricsLabel: {
-    color: colors.text.tertiary,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.8,
@@ -173,7 +178,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   metricsLine: {
-    color: colors.text.secondary,
     fontSize: 13,
     lineHeight: 18,
   },
@@ -181,12 +185,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   metricsKey: {
-    color: colors.text.primary,
     fontWeight: '700',
   },
-  metricsSeparator: {
-    color: colors.text.tertiary,
-  },
+  metricsSeparator: {},
   metricsLoading: {
     gap: 8,
   },
@@ -202,7 +203,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   errorText: {
-    color: colors.text.secondary,
     fontSize: 12,
     flex: 1,
   },
@@ -216,14 +216,11 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.glass.redBorder,
-    backgroundColor: colors.glass.redSurface,
   },
   retryPressed: {
     opacity: 0.8,
   },
   retryText: {
-    color: colors.primary.main,
     fontSize: 12,
     fontWeight: '700',
   },

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Text } from '@/components/ui/text';
 import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { getTrainings } from '../api/trainingCalendars';
 import { createClubCalendarFull } from '../api/clubs';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -34,6 +34,7 @@ const START_DATE_OPTIONS = [
 export default function CreateClubCalendarScreen() {
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
   const route = useRoute<RouteType>();
   const { clubId } = route.params;
 
@@ -334,15 +335,15 @@ export default function CreateClubCalendarScreen() {
 
   /* -------------------------------- Render --------------------------------- */
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8 }]}>
-        <Pressable onPress={() => nav.goBack()} style={styles.iconBtn}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8, borderBottomColor: c.border.light }]}>
+        <Pressable onPress={() => nav.goBack()} style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+          <Ionicons name="chevron-back" size={20} color={c.text.primary} />
         </Pressable>
         <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>New Club Calendar</Text>
-          <Text style={styles.headerSub}>Build a training plan for your club</Text>
+          <Text style={[styles.headerTitle, { color: c.text.primary }]}>New Club Calendar</Text>
+          <Text style={[styles.headerSub, { color: c.text.tertiary }]}>Build a training plan for your club</Text>
         </View>
         <View style={{ width: 38 }} />
       </View>
@@ -350,14 +351,14 @@ export default function CreateClubCalendarScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Calendar Name */}
         <GlassCard variant="medium" radius={14} padding={16}>
-          <Text style={styles.label}>Calendar Name</Text>
-          <Text style={styles.hint}>Give your club calendar a meaningful name</Text>
+          <Text style={[styles.label, { color: c.text.primary }]}>Calendar Name</Text>
+          <Text style={[styles.hint, { color: c.text.tertiary }]}>Give your club calendar a meaningful name</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
             value={title}
             onChangeText={setTitle}
             placeholder="e.g., Beginner Boxing 8-Week, Summer Camp"
-            placeholderTextColor={colors.text.tertiary}
+            placeholderTextColor={c.text.tertiary}
           />
         </GlassCard>
 
@@ -369,16 +370,24 @@ export default function CreateClubCalendarScreen() {
           <>
             {/* Start Date */}
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.label}>Start Date</Text>
-              <Text style={styles.hint}>When does the cycle begin counting?</Text>
+              <Text style={[styles.label, { color: c.text.primary }]}>Start Date</Text>
+              <Text style={[styles.hint, { color: c.text.tertiary }]}>When does the cycle begin counting?</Text>
               <View style={styles.startDateRow}>
                 {START_DATE_OPTIONS.map((opt) => (
                   <Pressable
                     key={opt.key}
-                    style={[styles.startDateBtn, startDateOption === opt.key && styles.startDateBtnActive]}
+                    style={[
+                      styles.startDateBtn,
+                      { borderColor: c.glass.border, backgroundColor: c.glass.surface },
+                      startDateOption === opt.key && { borderColor: c.primary.main, backgroundColor: c.glass.redSurface },
+                    ]}
                     onPress={() => setStartDateOption(opt.key)}
                   >
-                    <Text style={[styles.startDateText, startDateOption === opt.key && styles.startDateTextActive]}>
+                    <Text style={[
+                      styles.startDateText,
+                      { color: c.text.secondary },
+                      startDateOption === opt.key && { color: c.primary.main },
+                    ]}>
                       {opt.label}
                     </Text>
                   </Pressable>
@@ -399,31 +408,31 @@ export default function CreateClubCalendarScreen() {
             <GlassCard variant="medium" radius={14} padding={16}>
               <View style={styles.sectionHeader}>
                 <View>
-                  <Text style={styles.label}>Your Schedule ({orderSlots.length} days)</Text>
-                  <Text style={styles.hint}>Add trainings, rest days, or special events</Text>
+                  <Text style={[styles.label, { color: c.text.primary }]}>Your Schedule ({orderSlots.length} days)</Text>
+                  <Text style={[styles.hint, { color: c.text.tertiary }]}>Add trainings, rest days, or special events</Text>
                 </View>
               </View>
 
               <View style={styles.actionRow}>
-                <Pressable style={styles.addBtn} onPress={() => openPickerForOrder()}>
+                <Pressable style={[styles.addBtn, { backgroundColor: c.primary.main }]} onPress={() => openPickerForOrder()}>
                   <Ionicons name="add" size={16} color="#fff" />
                   <Text style={styles.addBtnText}>Add Training</Text>
                 </Pressable>
-                <Pressable style={styles.restBtn} onPress={addRestDay}>
-                  <Ionicons name="bed-outline" size={16} color={colors.text.secondary} />
-                  <Text style={styles.restBtnText}>Rest Day</Text>
+                <Pressable style={[styles.restBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]} onPress={addRestDay}>
+                  <Ionicons name="bed-outline" size={16} color={c.text.secondary} />
+                  <Text style={[styles.restBtnText, { color: c.text.secondary }]}>Rest Day</Text>
                 </Pressable>
-                <Pressable style={styles.eventBtn} onPress={openSpecialEventModal}>
-                  <Ionicons name="star-outline" size={16} color={colors.primary.main} />
-                  <Text style={styles.eventBtnText}>Special Event</Text>
+                <Pressable style={[styles.eventBtn, { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]} onPress={openSpecialEventModal}>
+                  <Ionicons name="star-outline" size={16} color={c.primary.main} />
+                  <Text style={[styles.eventBtnText, { color: c.primary.main }]}>Special Event</Text>
                 </Pressable>
               </View>
 
               {orderSlots.length === 0 ? (
                 <View style={styles.emptySchedule}>
-                  <Ionicons name="calendar-outline" size={32} color={colors.text.tertiary} />
-                  <Text style={styles.emptyScheduleTitle}>No days yet</Text>
-                  <Text style={styles.emptyScheduleSub}>Add trainings to build your program</Text>
+                  <Ionicons name="calendar-outline" size={32} color={c.text.tertiary} />
+                  <Text style={[styles.emptyScheduleTitle, { color: c.text.secondary }]}>No days yet</Text>
+                  <Text style={[styles.emptyScheduleSub, { color: c.text.tertiary }]}>Add trainings to build your program</Text>
                 </View>
               ) : (
                 orderSlots.map((slot, i) => {
@@ -436,27 +445,27 @@ export default function CreateClubCalendarScreen() {
                             <Ionicons name="star" size={14} color="#fff" />
                           </View>
                           <View style={styles.flex1}>
-                            <Text style={styles.eventSlotTitle}>⭐ {se.event_title}</Text>
-                            {se.event_description ? <Text style={styles.eventSlotSub}>{se.event_description}</Text> : null}
-                            {se.event_starts_at ? <Text style={styles.eventSlotTime}>{se.event_starts_at}</Text> : null}
+                            <Text style={[styles.eventSlotTitle, { color: c.text.primary }]}>⭐ {se.event_title}</Text>
+                            {se.event_description ? <Text style={[styles.eventSlotSub, { color: c.text.secondary }]}>{se.event_description}</Text> : null}
+                            {se.event_starts_at ? <Text style={[styles.eventSlotTime, { color: c.text.tertiary }]}>{se.event_starts_at}</Text> : null}
                           </View>
                           <View style={styles.scheduleActions}>
                             <Pressable
-                              style={[styles.moveBtn, i === 0 && styles.moveBtnDisabled]}
+                              style={[styles.moveBtn, { backgroundColor: c.glass.medium }, i === 0 && styles.moveBtnDisabled]}
                               onPress={() => moveOrderSlot(i, 'up')}
                               disabled={i === 0}
                             >
-                              <Ionicons name="chevron-up" size={12} color={colors.text.secondary} />
+                              <Ionicons name="chevron-up" size={12} color={c.text.secondary} />
                             </Pressable>
                             <Pressable
-                              style={[styles.moveBtn, i === orderSlots.length - 1 && styles.moveBtnDisabled]}
+                              style={[styles.moveBtn, { backgroundColor: c.glass.medium }, i === orderSlots.length - 1 && styles.moveBtnDisabled]}
                               onPress={() => moveOrderSlot(i, 'down')}
                               disabled={i === orderSlots.length - 1}
                             >
-                              <Ionicons name="chevron-down" size={12} color={colors.text.secondary} />
+                              <Ionicons name="chevron-down" size={12} color={c.text.secondary} />
                             </Pressable>
-                            <Pressable style={styles.removeBtn} onPress={() => removeOrderSlot(i)}>
-                              <Ionicons name="close" size={12} color={colors.primary.main} />
+                            <Pressable style={[styles.removeBtn, { backgroundColor: c.glass.redSurface }]} onPress={() => removeOrderSlot(i)}>
+                              <Ionicons name="close" size={12} color={c.primary.main} />
                             </Pressable>
                           </View>
                         </View>
@@ -488,23 +497,23 @@ export default function CreateClubCalendarScreen() {
           <>
             {/* Number of weeks */}
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.label}>Rotation Length</Text>
-              <Text style={styles.hint}>How many weeks before the schedule repeats?</Text>
+              <Text style={[styles.label, { color: c.text.primary }]}>Rotation Length</Text>
+              <Text style={[styles.hint, { color: c.text.tertiary }]}>How many weeks before the schedule repeats?</Text>
               <View style={styles.stepperRow}>
                 <Pressable
-                  style={[styles.stepperBtn, numWeeks <= 1 && styles.stepperBtnDisabled]}
+                  style={[styles.stepperBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }, numWeeks <= 1 && styles.stepperBtnDisabled]}
                   onPress={() => { if (numWeeks > 1) setNumWeeks(numWeeks - 1); }}
                   disabled={numWeeks <= 1}
                 >
-                  <Text style={styles.stepperBtnText}>−</Text>
+                  <Text style={[styles.stepperBtnText, { color: c.text.primary }]}>−</Text>
                 </Pressable>
-                <Text style={styles.stepperValue}>{numWeeks} week{numWeeks > 1 ? 's' : ''}</Text>
+                <Text style={[styles.stepperValue, { color: c.text.primary }]}>{numWeeks} week{numWeeks > 1 ? 's' : ''}</Text>
                 <Pressable
-                  style={[styles.stepperBtn, numWeeks >= 8 && styles.stepperBtnDisabled]}
+                  style={[styles.stepperBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }, numWeeks >= 8 && styles.stepperBtnDisabled]}
                   onPress={() => { if (numWeeks < 8) setNumWeeks(numWeeks + 1); }}
                   disabled={numWeeks >= 8}
                 >
-                  <Text style={styles.stepperBtnText}>+</Text>
+                  <Text style={[styles.stepperBtnText, { color: c.text.primary }]}>+</Text>
                 </Pressable>
               </View>
             </GlassCard>
@@ -557,28 +566,28 @@ export default function CreateClubCalendarScreen() {
         onRequestClose={() => setPickerOpen(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setPickerOpen(false)}>
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalHeaderTitle}>Select Training</Text>
+          <View style={[styles.modalSheet, { backgroundColor: c.background.secondary, borderTopColor: c.border.light }]} onStartShouldSetResponder={() => true}>
+            <View style={[styles.modalHeader, { borderBottomColor: c.border.light }]}>
+              <Text style={[styles.modalHeaderTitle, { color: c.text.primary }]}>Select Training</Text>
               <Pressable onPress={() => setPickerOpen(false)}>
-                <Ionicons name="close" size={22} color={colors.text.secondary} />
+                <Ionicons name="close" size={22} color={c.text.secondary} />
               </Pressable>
             </View>
 
             {/* Search */}
-            <View style={styles.searchWrap}>
-              <Ionicons name="search" size={16} color={colors.text.tertiary} />
+            <View style={[styles.searchWrap, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+              <Ionicons name="search" size={16} color={c.text.tertiary} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: c.text.primary }]}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Search trainings…"
-                placeholderTextColor={colors.text.tertiary}
+                placeholderTextColor={c.text.tertiary}
               />
             </View>
 
             {loadingData ? (
-              <ActivityIndicator style={{ marginVertical: 24 }} color={colors.primary.main} />
+              <ActivityIndicator style={{ marginVertical: 24 }} color={c.primary.main} />
             ) : (
               <FlatList
                 data={filteredTrainings}
@@ -596,8 +605,8 @@ export default function CreateClubCalendarScreen() {
                 )}
                 ListEmptyComponent={
                   <View style={styles.emptySchedule}>
-                    <Text style={styles.emptyScheduleTitle}>No trainings found</Text>
-                    <Text style={styles.emptyScheduleSub}>Create a training first</Text>
+                    <Text style={[styles.emptyScheduleTitle, { color: c.text.secondary }]}>No trainings found</Text>
+                    <Text style={[styles.emptyScheduleSub, { color: c.text.tertiary }]}>Create a training first</Text>
                   </View>
                 }
                 style={{ maxHeight: 400 }}
@@ -619,44 +628,44 @@ export default function CreateClubCalendarScreen() {
         onRequestClose={() => setEventModalOpen(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setEventModalOpen(false)}>
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalHeaderTitle}>Add Special Event</Text>
+          <View style={[styles.modalSheet, { backgroundColor: c.background.secondary, borderTopColor: c.border.light }]} onStartShouldSetResponder={() => true}>
+            <View style={[styles.modalHeader, { borderBottomColor: c.border.light }]}>
+              <Text style={[styles.modalHeaderTitle, { color: c.text.primary }]}>Add Special Event</Text>
               <Pressable onPress={() => setEventModalOpen(false)}>
-                <Ionicons name="close" size={22} color={colors.text.secondary} />
+                <Ionicons name="close" size={22} color={c.text.secondary} />
               </Pressable>
             </View>
 
             <View style={styles.eventModalBody}>
-              <Text style={styles.label}>Event Title *</Text>
+              <Text style={[styles.label, { color: c.text.primary }]}>Event Title *</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
                 value={eventTitle}
                 onChangeText={setEventTitle}
                 placeholder="e.g., Cross Club Sparring Day"
-                placeholderTextColor={colors.text.tertiary}
+                placeholderTextColor={c.text.tertiary}
                 autoFocus
               />
 
-              <Text style={[styles.label, { marginTop: 12 }]}>Description (optional)</Text>
+              <Text style={[styles.label, { color: c.text.primary, marginTop: 12 }]}>Description (optional)</Text>
               <TextInput
-                style={[styles.input, { height: 70, textAlignVertical: 'top', paddingTop: 10 }]}
+                style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary, height: 70, textAlignVertical: 'top', paddingTop: 10 }]}
                 value={eventDescription}
                 onChangeText={setEventDescription}
                 placeholder="What is this event about?"
-                placeholderTextColor={colors.text.tertiary}
+                placeholderTextColor={c.text.tertiary}
                 multiline
                 numberOfLines={3}
               />
 
-              <Text style={[styles.label, { marginTop: 12 }]}>Start Date/Time (optional)</Text>
+              <Text style={[styles.label, { color: c.text.primary, marginTop: 12 }]}>Start Date/Time (optional)</Text>
               <DatePickerField
                 value={eventStartsAt}
                 onChange={setEventStartsAt}
                 placeholder="Tap to select start date"
               />
 
-              <Text style={[styles.label, { marginTop: 12 }]}>End Date/Time (optional)</Text>
+              <Text style={[styles.label, { color: c.text.primary, marginTop: 12 }]}>End Date/Time (optional)</Text>
               <DatePickerField
                 value={eventEndsAt}
                 onChange={setEventEndsAt}
@@ -679,26 +688,25 @@ export default function CreateClubCalendarScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    borderBottomWidth: 1,
   },
   headerText: { flex: 1, alignItems: 'center' },
-  headerTitle: { color: colors.text.primary, fontSize: 18, fontWeight: '800' },
-  headerSub: { color: colors.text.tertiary, fontSize: 12, marginTop: 2 },
+  headerTitle: { fontSize: 18, fontWeight: '800' },
+  headerSub: { fontSize: 12, marginTop: 2 },
   iconBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   scroll: { padding: 16, gap: 12 },
-  label: { color: colors.text.primary, fontSize: 13, fontWeight: '700', marginBottom: 4 },
-  hint: { color: colors.text.tertiary, fontSize: 12, marginBottom: 10 },
+  label: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  hint: { fontSize: 12, marginBottom: 10 },
   input: {
-    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border, color: colors.text.primary,
+    borderRadius: 10, borderWidth: 1,
     paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, marginTop: 4,
   },
   sectionHeader: { marginBottom: 8 },
@@ -706,51 +714,48 @@ const styles = StyleSheet.create({
   addBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: colors.primary.main,
   },
   addBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   restBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
   },
-  restBtnText: { color: colors.text.secondary, fontSize: 12, fontWeight: '600' },
+  restBtnText: { fontSize: 12, fontWeight: '600' },
   eventBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: colors.glass.redSurface, borderWidth: 1, borderColor: colors.glass.redBorder,
+    borderWidth: 1,
   },
-  eventBtnText: { color: colors.primary.main, fontSize: 12, fontWeight: '700' },
+  eventBtnText: { fontSize: 12, fontWeight: '700' },
   startDateRow: { flexDirection: 'row', gap: 8 },
   startDateBtn: {
     flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.glass.border, backgroundColor: colors.glass.surface,
+    borderWidth: 1,
   },
-  startDateBtnActive: { borderColor: colors.primary.main, backgroundColor: colors.glass.redSurface },
-  startDateText: { color: colors.text.secondary, fontSize: 12, fontWeight: '600' },
-  startDateTextActive: { color: colors.primary.main },
+  startDateBtnActive: {},
+  startDateText: { fontSize: 12, fontWeight: '600' },
+  startDateTextActive: {},
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 14, justifyContent: 'center' },
   stepperBtn: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
   },
   stepperBtnDisabled: { opacity: 0.3 },
-  stepperBtnText: { color: colors.text.primary, fontSize: 18, fontWeight: '700' },
-  stepperValue: { color: colors.text.primary, fontSize: 15, fontWeight: '700', minWidth: 80, textAlign: 'center' },
+  stepperBtnText: { fontSize: 18, fontWeight: '700' },
+  stepperValue: { fontSize: 15, fontWeight: '700', minWidth: 80, textAlign: 'center' },
   emptySchedule: { alignItems: 'center', paddingVertical: 24 },
-  emptyScheduleTitle: { color: colors.text.secondary, fontWeight: '600', fontSize: 14 },
-  emptyScheduleSub: { color: colors.text.tertiary, fontSize: 12, marginTop: 4 },
+  emptyScheduleTitle: { fontWeight: '600', fontSize: 14 },
+  emptyScheduleSub: { fontSize: 12, marginTop: 4 },
   flex1: { flex: 1 },
   scheduleActions: { gap: 3 },
   moveBtn: {
     width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.glass.medium,
   },
   moveBtnDisabled: { opacity: 0.35 },
   removeBtn: {
     width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.glass.redSurface,
   },
   // Special event slot
   eventSlotRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -758,29 +763,29 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14, backgroundColor: '#f59e0b',
     alignItems: 'center', justifyContent: 'center',
   },
-  eventSlotTitle: { color: colors.text.primary, fontWeight: '700', fontSize: 14 },
-  eventSlotSub: { color: colors.text.secondary, fontSize: 12, marginTop: 2 },
-  eventSlotTime: { color: colors.text.tertiary, fontSize: 11, marginTop: 2 },
+  eventSlotTitle: { fontWeight: '700', fontSize: 14 },
+  eventSlotSub: { fontSize: 12, marginTop: 2 },
+  eventSlotTime: { fontSize: 11, marginTop: 2 },
   // Event modal
   eventModalBody: { padding: 16, gap: 4 },
   errorText: { color: '#fecaca', fontWeight: '600', fontSize: 13 },
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: colors.background.secondary, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '70%', borderTopWidth: 1, borderTopColor: colors.border.light,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '70%', borderTopWidth: 1,
   },
   modalHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    padding: 16, borderBottomWidth: 1,
   },
-  modalHeaderTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  modalHeaderTitle: { fontSize: 16, fontWeight: '700' },
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginHorizontal: 16, marginTop: 10, marginBottom: 6,
-    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border, paddingHorizontal: 10, paddingVertical: 8,
+    borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 10, paddingVertical: 8,
   },
-  searchInput: { flex: 1, color: colors.text.primary, fontSize: 13 },
+  searchInput: { flex: 1, fontSize: 13 },
   pickerItem: { marginBottom: 2 },
 });

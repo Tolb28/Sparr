@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
-import { colors } from '@/src/theme/colors';
+import { View, StyleSheet, ViewStyle, Animated } from 'react-native';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -8,26 +8,9 @@ interface GlassCardProps {
   variant?: 'default' | 'medium' | 'strong' | 'red';
   radius?: number;
   padding?: number;
+  animated?: boolean;
+  animatedValue?: Animated.Value;
 }
-
-const VARIANTS: Record<string, ViewStyle> = {
-  default: {
-    backgroundColor: colors.glass.surface,
-    borderColor: colors.glass.border,
-  },
-  medium: {
-    backgroundColor: colors.glass.surfaceMedium,
-    borderColor: colors.glass.border,
-  },
-  strong: {
-    backgroundColor: colors.glass.surfaceStrong,
-    borderColor: colors.glass.borderStrong,
-  },
-  red: {
-    backgroundColor: colors.glass.redSurface,
-    borderColor: colors.glass.redBorder,
-  },
-};
 
 export function GlassCard({
   children,
@@ -35,18 +18,29 @@ export function GlassCard({
   variant = 'default',
   radius = 16,
   padding = 16,
+  animated = false,
+  animatedValue,
 }: GlassCardProps) {
+  const c = useThemeColors();
+
+  const variantStyle: ViewStyle = variant === 'red'
+    ? { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }
+    : variant === 'strong'
+    ? { backgroundColor: c.glass.surfaceStrong, borderColor: c.glass.borderStrong }
+    : variant === 'medium'
+    ? { backgroundColor: c.glass.surfaceMedium, borderColor: c.glass.border }
+    : { backgroundColor: c.glass.surface, borderColor: c.glass.border };
+
+  const cardStyle = animated && animatedValue
+    ? [styles.card, variantStyle, { borderRadius: radius, padding }, { transform: [{ scale: animatedValue }] }, style]
+    : [styles.card, variantStyle, { borderRadius: radius, padding }, style];
+
+  const Component = animated ? Animated.View : View;
+
   return (
-    <View
-      style={[
-        styles.card,
-        VARIANTS[variant],
-        { borderRadius: radius, padding },
-        style,
-      ]}
-    >
+    <Component style={cardStyle}>
       {children}
-    </View>
+    </Component>
   );
 }
 

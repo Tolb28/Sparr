@@ -1,0 +1,55 @@
+appId: host.exp.exponent
+name: "09 - Friends Screen"
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+- tapOn: "Friends"
+- waitForAnimationToEnd
+
+# Verify three sub-tabs exist
+- assertVisible: "Friends"
+- assertVisible: "Messages"
+
+# Friends tab — list or empty state
+- tapOn: "Friends"
+- waitForAnimationToEnd
+
+# Search on friends tab
+- tapOn: "Search friends..."
+- inputText: "maestro"
+- waitForAnimationToEnd:
+    timeout: 3000
+- eraseText: 7
+- hideKeyboard
+
+# Requests tab
+- tapOn:
+    text: "Requests"
+    optional: true
+- waitForAnimationToEnd
+
+# Messages tab
+- tapOn: "Messages"
+- waitForAnimationToEnd
+- assertVisible: "Messages"
+
+# Search messages
+- tapOn: "Search messages..."
+- inputText: "maestro"
+- waitForAnimationToEnd:
+    timeout: 3000
+- eraseText: 7
+- hideKeyboard

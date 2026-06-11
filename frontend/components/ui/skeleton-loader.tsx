@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, View, StyleSheet, ViewStyle } from 'react-native';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface SkeletonProps {
   width?: number | string;
@@ -10,6 +10,7 @@ interface SkeletonProps {
 }
 
 export function SkeletonLoader({ width = '100%', height = 16, borderRadius = 8, style }: SkeletonProps) {
+  const c = useThemeColors();
   const opacity = useRef(new Animated.Value(0.3)).current;
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export function SkeletonLoader({ width = '100%', height = 16, borderRadius = 8, 
   return (
     <Animated.View
       style={[
-        { width: width as any, height, borderRadius, backgroundColor: colors.secondary.light, opacity },
+        { width: width as any, height, borderRadius, backgroundColor: c.border.light, opacity },
         style,
       ]}
     />
@@ -34,8 +35,9 @@ export function SkeletonLoader({ width = '100%', height = 16, borderRadius = 8, 
 }
 
 export function SkeletonCard({ style }: { style?: ViewStyle }) {
+  const c = useThemeColors();
   return (
-    <View style={[styles.card, style]}>
+    <View style={[styles.card, { backgroundColor: c.glass.surface, borderColor: c.glass.border }, style]}>
       <View style={styles.row}>
         <SkeletonLoader width={44} height={44} borderRadius={22} />
         <View style={styles.textBlock}>
@@ -52,10 +54,8 @@ export function SkeletonCard({ style }: { style?: ViewStyle }) {
 const styles = StyleSheet.create({
   card: {
     padding: 16,
-    backgroundColor: colors.glass.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.glass.border,
     marginBottom: 12,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },

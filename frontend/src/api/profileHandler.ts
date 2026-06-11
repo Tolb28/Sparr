@@ -20,7 +20,6 @@ export async function storeProfile(profile: ProfileData) {
   } else {
     await SecureStore.setItemAsync("profile", JSON.stringify(profile));
   }
-  console.log("Profile stored:", profile);
 }
 
 export async function getProfile() {
@@ -60,6 +59,3 @@ export async function getActiveProfileId() {
   return parsed || null;
 }
 
-export const ServerIP =
-  process.env.EXPO_PUBLIC_API_URL ??
-  (Platform.OS === "web" ? "http://localhost:4000/api" : "http://10.20.4.17:4000/api");

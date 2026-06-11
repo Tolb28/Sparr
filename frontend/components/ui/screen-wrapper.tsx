@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface ScreenWrapperProps {
   children: React.ReactNode;
@@ -20,6 +20,7 @@ export function ScreenWrapper({
   contentStyle,
   keyboardAware = false,
 }: ScreenWrapperProps) {
+  const c = useThemeColors();
   const scrollContent = (
     <ScrollView
       style={styles.scroll}
@@ -49,7 +50,7 @@ export function ScreenWrapper({
   ) : inner;
 
   return (
-    <SafeAreaView style={[styles.root, style]} edges={scrollable ? ['top'] : ['top', 'bottom']}>
+    <SafeAreaView style={[styles.root, { backgroundColor: c.background.secondary }, style]} edges={scrollable ? ['top'] : ['top', 'bottom']}>
       {wrapped}
     </SafeAreaView>
   );
@@ -58,7 +59,6 @@ export function ScreenWrapper({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
   },
   flex: { flex: 1 },
   padded: { paddingHorizontal: 16 },

@@ -1,0 +1,71 @@
+appId: host.exp.exponent
+name: "07 - Calendar & Training"
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+- tapOn: "Calendar"
+- waitForAnimationToEnd
+
+# Verify header elements are present
+- assertVisible: "Calendar"
+
+# Check for day-selection pills or "Today" button
+- runFlow:
+    when:
+      visible: "Today"
+    commands:
+      - tapOn: "Today"
+      - waitForAnimationToEnd
+
+# Scroll down to see weekly stats / metric cards
+- scroll
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+
+# Open Browse Programs
+- runFlow:
+    when:
+      visible: "Browse"
+    commands:
+      - tapOn: "Browse"
+      - waitForAnimationToEnd
+      - assertVisible: "Browse Programs"
+      - scroll
+      - back
+      - waitForAnimationToEnd
+
+# Alternatively use the menu if Browse button not visible
+- runFlow:
+    when:
+      notVisible: "Browse Programs"
+    commands:
+      - runFlow:
+          when:
+            visible: "Select Calendar"
+          commands:
+            - tapOn: "Select Calendar"
+            - waitForAnimationToEnd
+            - assertVisible: "Browse Programs"
+            - back
+            - waitForAnimationToEnd
+
+# Scroll to challenges / gamification section
+- scrollUntilVisible:
+    element: "CHALLENGES"
+    direction: DOWN
+    timeout: 8000
+    optional: true

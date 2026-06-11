@@ -1,0 +1,39 @@
+appId: host.exp.exponent
+name: "04 - Navigation Smoke (All 5 Tabs)"
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+# Tap each tab and verify it loads without crashing
+
+- tapOn: "Calendar"
+- waitForAnimationToEnd
+- assertVisible: "Calendar"
+
+- tapOn: "Techniques"
+- waitForAnimationToEnd
+- assertVisible: "Techniques"
+
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- assertVisible: "Profile"
+
+- tapOn: "Discovery"
+- waitForAnimationToEnd
+- assertVisible: "Discovery"
+
+- tapOn: "Friends"
+- waitForAnimationToEnd
+- assertVisible: "Friends"

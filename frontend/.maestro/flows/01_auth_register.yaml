@@ -1,0 +1,31 @@
+appId: host.exp.exponent
+name: "01 - Registration UI Flow"
+# Tests the registration form up to the expected PendingVerification gate.
+# Email confirmation is enabled — success means reaching "Check your email".
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- assertVisible: "Welcome back"
+- tapOn: "Create an account"
+
+- assertVisible: "Create your account"
+- tapOn: "your@email.com"
+- inputText: "reg_ui_test@sparr.test"
+
+- tapOn: "Choose a strong password"
+- inputText: "TempTest123!"
+
+- tapOn:
+    id: "Accept Terms of Use and Privacy Policy"
+
+- hideKeyboard
+- tapOn: "Create Account"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+- assertVisible: "Check your email"
+- assertVisible: "We sent a verification link to"

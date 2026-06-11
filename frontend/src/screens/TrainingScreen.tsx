@@ -8,7 +8,7 @@ import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { getBadgeCatalog, logWorkoutCompletion } from '@/src/api/gamification';
 import { useProgress } from '@/src/context/ProgressContext';
 import { showBadgeNotification, showErrorNotification } from '@/src/services/notificationService';
@@ -41,9 +41,10 @@ interface TrainingParams {
 export default function TrainingScreen() {
   const navigation = useNavigation<RootNavigationProp>();
   const route = useRoute<TrainingScreenRouteProp>();
-  
+  const c = useThemeColors();
+
   const { components = [], trainingName = '' } = route.params as TrainingParams;
-  
+
   const [currentComponentIndex, setCurrentComponentIndex] = useState(0);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
@@ -94,7 +95,7 @@ export default function TrainingScreen() {
         showBadgeNotification({
           title: badge.title,
           icon_name: badge.icon_name || 'ribbon-outline',
-          color: badge.color || colors.primary.main,
+          color: badge.color || c.primary.main,
         });
       });
 
@@ -111,10 +112,10 @@ export default function TrainingScreen() {
 
   // Get display name
   const getComponentName = () => {
-    return currentComponent?.drill_title 
-      || currentComponent?.combination_title 
-      || currentComponent?.technique_title 
-      || currentComponent?.title 
+    return currentComponent?.drill_title
+      || currentComponent?.combination_title
+      || currentComponent?.technique_title
+      || currentComponent?.title
       || 'Training Component';
   };
 
@@ -186,11 +187,11 @@ export default function TrainingScreen() {
         const nextIndex = currentComponentIndex + 1;
         const nextComponent = components[nextIndex];
         const nextHasTime = nextComponent?.length ? Number(nextComponent.length) > 0 : false;
-        
+
         setCurrentComponentIndex(nextIndex);
         setCurrentSetIndex(0);
         setTimeRemaining(null);
-        
+
         // Keep isRunning true if next component has time, otherwise stop
         if (!nextHasTime) {
           setIsRunning(false);
@@ -263,9 +264,9 @@ export default function TrainingScreen() {
 
   if (components.length === 0) {
     return (
-      <View style={[styles.root, styles.center]}>
-        <Ionicons name="alert-circle-outline" size={48} color={colors.text.secondary} />
-        <Text style={styles.emptyMsg}>No training components available</Text>
+      <View style={[styles.root, styles.center, { backgroundColor: c.background.secondary }]}>
+        <Ionicons name="alert-circle-outline" size={48} color={c.text.secondary} />
+        <Text style={[styles.emptyMsg, { color: c.text.secondary }]}>No training components available</Text>
         <SparrButton label="Go Back" variant="outline" onPress={() => navigation.goBack()} style={{ marginTop: 16 }} />
       </View>
     );
@@ -274,14 +275,14 @@ export default function TrainingScreen() {
   const videoUri = currentComponent?.video_url || currentComponent?.source;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: c.border.light, backgroundColor: c.background.secondary }]}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
+          <Ionicons name="chevron-back" size={24} color={c.text.primary} />
         </Pressable>
-        <Text style={styles.headerTitle} numberOfLines={1}>{trainingName || 'Training'}</Text>
-        <Text style={styles.indexLabel}>{currentComponentIndex + 1}/{components.length}</Text>
+        <Text style={[styles.headerTitle, { color: c.text.primary }]} numberOfLines={1}>{trainingName || 'Training'}</Text>
+        <Text style={[styles.indexLabel, { color: c.text.secondary }]}>{currentComponentIndex + 1}/{components.length}</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
@@ -289,24 +290,24 @@ export default function TrainingScreen() {
         {videoUri ? (
           <VideoPlayerComponent videoUri={videoUri} />
         ) : (
-          <View style={styles.videoPlaceholder}>
-            <Ionicons name="videocam-outline" size={48} color={colors.text.tertiary} />
+          <View style={[styles.videoPlaceholder, { backgroundColor: c.glass.surface }]}>
+            <Ionicons name="videocam-outline" size={48} color={c.text.tertiary} />
           </View>
         )}
 
         <View style={styles.body}>
           {/* Component name + set counter */}
           <View style={styles.titleBlock}>
-            <Text style={styles.componentName}>{getComponentName()}</Text>
+            <Text style={[styles.componentName, { color: c.text.primary }]}>{getComponentName()}</Text>
             {hasMultipleSets && (
-              <Text style={styles.setLabel}>Set {currentSetIndex + 1} of {componentSets}</Text>
+              <Text style={[styles.setLabel, { color: c.text.secondary }]}>Set {currentSetIndex + 1} of {componentSets}</Text>
             )}
           </View>
 
           {/* Timer */}
           {hasTime && timeRemaining !== null && (
             <GlassCard variant="medium" radius={16} padding={20}>
-              <Text style={[styles.timerDisplay, timeRemaining <= 5 && styles.timerUrgent]}>
+              <Text style={[styles.timerDisplay, { color: c.text.primary }, timeRemaining <= 5 && styles.timerUrgent]}>
                 {formatTime(timeRemaining)}
               </Text>
               <View style={styles.timerControls}>
@@ -330,17 +331,17 @@ export default function TrainingScreen() {
           {hasReps && !hasTime && (
             <GlassCard variant="medium" radius={16} padding={20}>
               <View style={styles.repsBlock}>
-                <Text style={styles.repsLabel}>Complete all reps</Text>
-                <Text style={styles.repsCount}>{currentComponent.reps} Reps</Text>
+                <Text style={[styles.repsLabel, { color: c.text.secondary }]}>Complete all reps</Text>
+                <Text style={[styles.repsCount, { color: c.primary.main }]}>{currentComponent.reps} Reps</Text>
               </View>
               <View style={styles.navBtns}>
                 {currentComponentIndex > 0 || currentSetIndex > 0 ? (
                   <Pressable style={styles.navBtn} onPress={handleGoPrev}>
-                    <Ionicons name="chevron-back-circle" size={48} color={colors.text.secondary} />
+                    <Ionicons name="chevron-back-circle" size={48} color={c.text.secondary} />
                   </Pressable>
                 ) : <View style={styles.navBtnPlaceholder} />}
                 <Pressable style={styles.navBtn} onPress={handleGoNext}>
-                  <Ionicons name="chevron-forward-circle" size={48} color={colors.primary.main} />
+                  <Ionicons name="chevron-forward-circle" size={48} color={c.primary.main} />
                 </Pressable>
               </View>
             </GlassCard>
@@ -350,17 +351,17 @@ export default function TrainingScreen() {
           {!hasTime && !hasReps && (
             <GlassCard variant="medium" radius={16} padding={20}>
               <View style={styles.repsBlock}>
-                <Ionicons name="checkmark-circle" size={36} color={colors.primary.main} />
-                <Text style={styles.repsLabel}>Complete this exercise</Text>
+                <Ionicons name="checkmark-circle" size={36} color={c.primary.main} />
+                <Text style={[styles.repsLabel, { color: c.text.secondary }]}>Complete this exercise</Text>
               </View>
               <View style={styles.navBtns}>
                 {currentComponentIndex > 0 || currentSetIndex > 0 ? (
                   <Pressable style={styles.navBtn} onPress={handleGoPrev}>
-                    <Ionicons name="chevron-back-circle" size={48} color={colors.text.secondary} />
+                    <Ionicons name="chevron-back-circle" size={48} color={c.text.secondary} />
                   </Pressable>
                 ) : <View style={styles.navBtnPlaceholder} />}
                 <Pressable style={styles.navBtn} onPress={handleGoNext}>
-                  <Ionicons name="chevron-forward-circle" size={48} color={colors.primary.main} />
+                  <Ionicons name="chevron-forward-circle" size={48} color={c.primary.main} />
                 </Pressable>
               </View>
             </GlassCard>
@@ -369,17 +370,17 @@ export default function TrainingScreen() {
           {/* Description */}
           {!!currentComponent?.description && (
             <GlassCard variant="default" radius={14} padding={16}>
-              <Text style={styles.descLabel}>DESCRIPTION</Text>
+              <Text style={[styles.descLabel, { color: c.text.tertiary }]}>DESCRIPTION</Text>
               <Text
-                style={styles.descText}
+                style={[styles.descText, { color: c.text.secondary }]}
                 numberOfLines={descriptionExpanded ? undefined : 3}
               >
                 {currentComponent.description}
               </Text>
               {currentComponent.description.length > 150 && (
                 <Pressable onPress={() => setDescriptionExpanded(!descriptionExpanded)} style={styles.expandBtn}>
-                  <Text style={styles.expandText}>{descriptionExpanded ? 'Show less' : 'Show more'}</Text>
-                  <Ionicons name={descriptionExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.primary.main} />
+                  <Text style={[styles.expandText, { color: c.primary.main }]}>{descriptionExpanded ? 'Show less' : 'Show more'}</Text>
+                  <Ionicons name={descriptionExpanded ? 'chevron-up' : 'chevron-down'} size={14} color={c.primary.main} />
                 </Pressable>
               )}
             </GlassCard>
@@ -388,13 +389,13 @@ export default function TrainingScreen() {
       </ScrollView>
 
       {/* Sticky progress bar */}
-      <View style={styles.progressBar}>
+      <View style={[styles.progressBar, { backgroundColor: c.background.secondary, borderTopColor: c.border.light }]}>
         <View style={styles.progressRow}>
-          <Text style={styles.progressLabel}>PROGRESS</Text>
-          <Text style={styles.progressCounter}>{currentUnit + 1} / {totalUnits}</Text>
+          <Text style={[styles.progressLabel, { color: c.text.tertiary }]}>PROGRESS</Text>
+          <Text style={[styles.progressCounter, { color: c.text.secondary }]}>{currentUnit + 1} / {totalUnits}</Text>
         </View>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
+        <View style={[styles.progressTrack, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+          <View style={[styles.progressFill, { width: `${progressPercentage}%`, backgroundColor: c.primary.main }]} />
         </View>
       </View>
     </View>
@@ -411,17 +412,18 @@ function VideoPlayerComponent({ videoUri }: { videoUri: string }) {
 }
 
 function CompletionScreen({ trainingName, onClose }: { trainingName: string; onClose: () => void }) {
+  const c = useThemeColors();
   return (
-    <View style={[styles.root, styles.center]}>
-      <View style={styles.completionIcon}>
+    <View style={[styles.root, styles.center, { backgroundColor: c.background.secondary }]}>
+      <View style={[styles.completionIcon, { backgroundColor: c.primary.main, shadowColor: c.primary.main }]}>
         <Ionicons name="checkmark" size={56} color="#fff" />
       </View>
-      <Text style={styles.completionHeading}>Congratulations!</Text>
-      <Text style={styles.completionSub}>You've completed</Text>
+      <Text style={[styles.completionHeading, { color: c.text.primary }]}>Congratulations!</Text>
+      <Text style={[styles.completionSub, { color: c.text.secondary }]}>You've completed</Text>
       <GlassCard variant="red" radius={14} padding={16} style={{ marginTop: 12, marginHorizontal: 32 }}>
-        <Text style={styles.completionName}>{trainingName}</Text>
+        <Text style={[styles.completionName, { color: c.primary.main }]}>{trainingName}</Text>
       </GlassCard>
-      <Text style={styles.completionMsg}>
+      <Text style={[styles.completionMsg, { color: c.text.secondary }]}>
         Great job! Keep up the excellent work with your training routine and keep improving.
       </Text>
       <SparrButton label="Back to Calendar" variant="primary" onPress={onClose} style={{ marginTop: 30, width: '80%' }} />
@@ -430,62 +432,60 @@ function CompletionScreen({ trainingName, onClose }: { trainingName: string; onC
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center', padding: 24 },
   header: {
     paddingTop: 48, paddingHorizontal: 16, paddingBottom: 12,
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
-    backgroundColor: colors.background.secondary,
+    borderBottomWidth: 1,
   },
   backBtn: { padding: 6 },
-  headerTitle: { flex: 1, color: colors.text.primary, fontSize: 16, fontWeight: '700' },
-  indexLabel: { color: colors.text.secondary, fontSize: 13, fontWeight: '600' },
+  headerTitle: { flex: 1, fontSize: 16, fontWeight: '700' },
+  indexLabel: { fontSize: 13, fontWeight: '600' },
   videoContainer: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#000' },
   videoPlaceholder: {
     width: '100%', aspectRatio: 16 / 9,
-    backgroundColor: colors.glass.surface, alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   body: { padding: 16, gap: 14 },
   titleBlock: { alignItems: 'center', paddingVertical: 8 },
-  componentName: { color: colors.text.primary, fontSize: 26, fontWeight: '800', textAlign: 'center' },
-  setLabel: { color: colors.text.secondary, fontSize: 14, marginTop: 4 },
-  timerDisplay: { color: colors.text.primary, fontSize: 60, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] },
+  componentName: { fontSize: 26, fontWeight: '800', textAlign: 'center' },
+  setLabel: { fontSize: 14, marginTop: 4 },
+  timerDisplay: { fontSize: 60, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] },
   timerUrgent: { color: '#ef4444' },
   timerControls: { flexDirection: 'row', gap: 10, marginTop: 16 },
   repsBlock: { alignItems: 'center', gap: 6, marginBottom: 16 },
-  repsLabel: { color: colors.text.secondary, fontSize: 14 },
-  repsCount: { color: colors.primary.main, fontSize: 36, fontWeight: '800', lineHeight: 44 },
+  repsLabel: { fontSize: 14 },
+  repsCount: { fontSize: 36, fontWeight: '800', lineHeight: 44 },
   navBtns: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 24 },
   navBtn: { padding: 4 },
   navBtnPlaceholder: { width: 56, height: 56 },
-  descLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8 },
-  descText: { color: colors.text.secondary, fontSize: 13, lineHeight: 20 },
+  descLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8 },
+  descText: { fontSize: 13, lineHeight: 20 },
   expandBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
-  expandText: { color: colors.primary.main, fontSize: 13, fontWeight: '600' },
+  expandText: { fontSize: 13, fontWeight: '600' },
   progressBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     paddingHorizontal: 16, paddingVertical: 14,
-    backgroundColor: colors.background.secondary,
-    borderTopWidth: 1, borderTopColor: colors.border.light,
+    borderTopWidth: 1,
   },
   progressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  progressLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
-  progressCounter: { color: colors.text.secondary, fontSize: 11 },
+  progressLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.2 },
+  progressCounter: { fontSize: 11 },
   progressTrack: {
-    height: 6, borderRadius: 99, backgroundColor: colors.glass.surface,
-    overflow: 'hidden', borderWidth: 1, borderColor: colors.glass.border,
+    height: 6, borderRadius: 99,
+    overflow: 'hidden', borderWidth: 1,
   },
-  progressFill: { height: '100%', borderRadius: 99, backgroundColor: colors.primary.main },
-  emptyMsg: { color: colors.text.secondary, fontSize: 15, marginTop: 12, textAlign: 'center' },
+  progressFill: { height: '100%', borderRadius: 99 },
+  emptyMsg: { fontSize: 15, marginTop: 12, textAlign: 'center' },
   completionIcon: {
     width: 96, height: 96, borderRadius: 48,
-    backgroundColor: colors.primary.main, alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.primary.main, shadowOpacity: 0.5, shadowRadius: 20, elevation: 12,
+    alignItems: 'center', justifyContent: 'center',
+    shadowOpacity: 0.5, shadowRadius: 20, elevation: 12,
     marginBottom: 8,
   },
-  completionHeading: { color: colors.text.primary, fontSize: 28, fontWeight: '800', marginTop: 12 },
-  completionSub: { color: colors.text.secondary, fontSize: 15, marginTop: 8 },
-  completionName: { color: colors.primary.main, fontSize: 18, fontWeight: '700', textAlign: 'center' },
-  completionMsg: { color: colors.text.secondary, fontSize: 13, textAlign: 'center', lineHeight: 20, marginTop: 20, paddingHorizontal: 24 },
+  completionHeading: { fontSize: 28, fontWeight: '800', marginTop: 12 },
+  completionSub: { fontSize: 15, marginTop: 8 },
+  completionName: { fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  completionMsg: { fontSize: 13, textAlign: 'center', lineHeight: 20, marginTop: 20, paddingHorizontal: 24 },
 });

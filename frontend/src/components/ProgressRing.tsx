@@ -3,7 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
 import Animated, { useAnimatedProps, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { Text } from '@/components/ui/text';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface ProgressRingProps {
   percent: number;
@@ -30,8 +30,8 @@ export default function ProgressRing({
   percent,
   size = 96,
   strokeWidth = 8,
-  backgroundColor = colors.border.light,
-  foregroundColor = colors.primary.main,
+  backgroundColor,
+  foregroundColor,
   animateDuration = 600,
   milestones,
   useGradient = false,
@@ -40,6 +40,9 @@ export default function ProgressRing({
   animateOnMount = true,
   accessibilityLabel,
 }: ProgressRingProps) {
+  const c = useThemeColors();
+  const resolvedBg = backgroundColor ?? c.border.light;
+  const resolvedFg = foregroundColor ?? c.primary.main;
   const radius = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * radius;
   const safePercent = Number.isFinite(percent) ? percent : 0;
@@ -70,8 +73,8 @@ export default function ProgressRing({
     strokeDashoffset: circ - (progress.value / 100) * circ,
   }));
 
-  const ringStroke = useGradient ? `url(#${gradientId})` : foregroundColor;
-  const gradientStops = gradientColors ?? [colors.primary.main, colors.primary.dark];
+  const ringStroke = useGradient ? `url(#${gradientId})` : resolvedFg;
+  const gradientStops = gradientColors ?? [c.primary.main, c.primary.dark];
 
   return (
     <View
@@ -93,7 +96,7 @@ export default function ProgressRing({
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={backgroundColor}
+          stroke={resolvedBg}
           strokeWidth={strokeWidth}
           fill="transparent"
         />
@@ -120,14 +123,14 @@ export default function ProgressRing({
               cx={x}
               cy={y}
               r={strokeWidth / 3}
-              fill={milestone.color ?? colors.text.secondary}
+              fill={milestone.color ?? c.text.secondary}
             />
           );
         })}
       </Svg>
       <View style={styles.centerContent}>
         {centerContent ?? (
-          <Text className="text-lg font-bold text-white">{Math.round(clampedPercent)}%</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: c.text.primary }}>{Math.round(clampedPercent)}%</Text>
         )}
       </View>
     </View>

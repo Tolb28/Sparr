@@ -17,7 +17,7 @@ import { useNavigation, useFocusEffect } from "@react-navigation/core";
 
 import Animated, { useSharedValue, useAnimatedStyle, withSequence, withTiming } from 'react-native-reanimated';
 import { Avatar, AvatarFallbackText, AvatarImage } from "@/components/ui/avatar";
-import { colors } from "@/src/theme/colors";
+import { useThemeColors } from "@/src/hooks/useThemeColors";
 
 interface FeedPostProps {
   post: {
@@ -38,6 +38,7 @@ interface FeedPostProps {
 
 function FeedPost({ post }: FeedPostProps) {
   const navigation = useNavigation();
+  const c = useThemeColors();
 
   const [likes, setLikes] = useState(Number(post.likes_count) || 0);
   const [commentsCount, setCommentsCount] = useState(Number(post.comments_count) || 0);
@@ -51,6 +52,7 @@ function FeedPost({ post }: FeedPostProps) {
   
   // Create video player if source is a video
   const isVideo = post.source && (post.source.includes('.mp4') || post.source.includes('video'));
+  if (isVideo) console.log('[POST VIDEO] id:', post.id_posts, 'source:', post.source);
   const player = useVideoPlayer(isVideo ? post.source || null : null, player => {
     player.play();
   });
@@ -63,9 +65,7 @@ function FeedPost({ post }: FeedPostProps) {
         (width, height) => {
           setMediaDimensions({ width, height });
         },
-        (error) => {
-          console.log("Error loading image dimensions:", error);
-          // Fallback to default if loading fails
+        () => {
           setMediaDimensions({ width: 1, height: 1 });
         }
       );
@@ -193,7 +193,7 @@ function FeedPost({ post }: FeedPostProps) {
     <>
     <Box
       className="mx-3 mb-4 rounded-2xl border overflow-hidden"
-      style={{ backgroundColor: colors.background.card, borderColor: colors.border.medium }}
+      style={{ backgroundColor: c.background.card, borderColor: c.border.medium }}
     >
       {/* User row */}
       <Pressable
@@ -208,7 +208,7 @@ function FeedPost({ post }: FeedPostProps) {
           </AvatarFallbackText>
           <AvatarImage source={{ uri: post?.avatar_url || undefined }} />
         </Avatar>
-          <Text className="font-bold text-base text-white">{post.display_name}</Text>
+          <Text className="font-bold text-base" style={{ color: c.text.primary }}>{post.display_name}</Text>
         </HStack>
       </Pressable>
 
@@ -217,8 +217,8 @@ function FeedPost({ post }: FeedPostProps) {
         <Box
           className="mb-3 overflow-hidden border-y"
           style={{
-            backgroundColor: colors.background.tertiary,
-            borderColor: colors.border.light,
+            backgroundColor: c.background.tertiary,
+            borderColor: c.border.light,
             aspectRatio: mediaDimensions ? mediaDimensions.width / mediaDimensions.height : 1
           }}
         >
@@ -235,6 +235,8 @@ function FeedPost({ post }: FeedPostProps) {
               source={{ uri: post.source }}
               style={{ width: '100%', height: '100%' }}
               resizeMode="cover"
+              onError={(e) => console.warn('[POST IMAGE ERROR] id:', post.id_posts, 'uri:', post.source, 'error:', e.nativeEvent.error)}
+              onLoad={() => console.log('[POST IMAGE OK] id:', post.id_posts, 'uri:', post.source?.substring(0, 60))}
             />
           )}
         </Box>
@@ -242,7 +244,7 @@ function FeedPost({ post }: FeedPostProps) {
 
       {/* Text description */}
       {!!post.description && (
-        <Text className="leading-5 px-4 mb-2" style={{ color: colors.text.secondary }}>
+        <Text className="leading-5 px-4 mb-2" style={{ color: c.text.secondary }}>
           {post.description}
         </Text>
       )}
@@ -261,10 +263,10 @@ function FeedPost({ post }: FeedPostProps) {
             <HStack className="items-center gap-1">
               <ThumbsUp
                 size={18}
-                color={interaction === 'like' ? colors.info.main : colors.text.tertiary}
-                fill={interaction === 'like' ? colors.info.main : 'transparent'}
+                color={interaction === 'like' ? c.info.main : c.text.tertiary}
+                fill={interaction === 'like' ? c.info.main : 'transparent'}
               />
-              <Text className="text-sm text-white">{likes}</Text>
+              <Text className="text-sm" style={{ color: c.text.primary }}>{likes}</Text>
             </HStack>
           </Animated.View>
         </Pressable>
@@ -274,18 +276,18 @@ function FeedPost({ post }: FeedPostProps) {
             <HStack className="items-center gap-1">
               <ThumbsDown
                 size={18}
-                color={interaction === 'dislike' ? colors.error.dark : colors.text.tertiary}
-                fill={interaction === 'dislike' ? colors.error.dark : 'transparent'}
+                color={interaction === 'dislike' ? c.error.dark : c.text.tertiary}
+                fill={interaction === 'dislike' ? c.error.dark : 'transparent'}
               />
-              <Text className="text-sm text-white">{dislikes}</Text>
+              <Text className="text-sm" style={{ color: c.text.primary }}>{dislikes}</Text>
             </HStack>
           </Animated.View>
         </Pressable>
 
         <Pressable onPress={handleCommentOpen} accessibilityRole="button" accessibilityLabel="Open comments">
           <HStack className="items-center gap-1">
-            <Icon as={MessageCircle} size="md" style={{ color: colors.text.secondary }} />
-            <Text className="text-sm text-white">{commentsCount}</Text>
+            <Icon as={MessageCircle} size="md" style={{ color: c.text.secondary }} />
+            <Text className="text-sm" style={{ color: c.text.primary }}>{commentsCount}</Text>
           </HStack>
         </Pressable>
       </HStack>

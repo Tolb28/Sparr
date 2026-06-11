@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { ImageBackground, View, Animated } from 'react-native';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { createPressFeedback } from '@/src/utils/motion';
 
 type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -53,6 +53,7 @@ export default function TrainingCard({
   isRestDay = false,
 }: TrainingCardProps) {
   const navigation = useNavigation<RootNavigationProp>();
+  const c = useThemeColors();
   const [descExpanded, setDescExpanded] = useState(false);
   const [contentExpanded, setContentExpanded] = useState(false);
 
@@ -88,13 +89,13 @@ export default function TrainingCard({
 
   const truncateLength = 120;
   const shouldTruncateDesc = description.length > truncateLength;
-  const displayDescription = !descExpanded && shouldTruncateDesc 
-    ? description.slice(0, truncateLength) + '...' 
+  const displayDescription = !descExpanded && shouldTruncateDesc
+    ? description.slice(0, truncateLength) + '...'
     : description;
 
   const MAX_VISIBLE_COMPONENTS = 3;
-  const displayComponents = !contentExpanded 
-    ? components.slice(0, MAX_VISIBLE_COMPONENTS) 
+  const displayComponents = !contentExpanded
+    ? components.slice(0, MAX_VISIBLE_COMPONENTS)
     : components;
 
   const isButtonsDisabled = isEmpty || isLoading;
@@ -108,7 +109,10 @@ export default function TrainingCard({
   };
 
   return (
-    <Box className="rounded-2xl border border-[#2e1919] overflow-hidden" style={{ backgroundColor: '#221010' }}>
+    <Box
+      className="rounded-2xl border overflow-hidden"
+      style={{ backgroundColor: c.background.primary, borderColor: c.border.light }}
+    >
       {/* Banner/Header */}
       {bannerImage ? (
         <ImageBackground
@@ -117,33 +121,36 @@ export default function TrainingCard({
           imageStyle={{ resizeMode: 'cover' }}
         >
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', padding: 16, justifyContent: 'flex-end' }}>
-            <Text className="text-2xl font-bold text-white">{isLoading ? 'Loading...' : title}</Text>
+            <Text className="text-2xl font-bold" style={{ color: '#fff' }}>{isLoading ? 'Loading...' : title}</Text>
             <HStack className="items-center justify-between mt-3">
               <VStack>
-                <Text className="text-xs text-white/75 uppercase">Duration</Text>
-                <Text className="text-sm font-semibold text-white">{length}</Text>
+                <Text className="text-xs uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>Duration</Text>
+                <Text className="text-sm font-semibold" style={{ color: '#fff' }}>{length}</Text>
               </VStack>
               {start_time && (
                 <VStack className="items-end">
-                  <Text className="text-xs text-white/75 uppercase">Time</Text>
-                  <Text className="text-sm font-semibold text-white">{formatTime(start_time)}</Text>
+                  <Text className="text-xs uppercase" style={{ color: 'rgba(255,255,255,0.75)' }}>Time</Text>
+                  <Text className="text-sm font-semibold" style={{ color: '#fff' }}>{formatTime(start_time)}</Text>
                 </VStack>
               )}
             </HStack>
           </View>
         </ImageBackground>
       ) : (
-        <VStack className="px-5 py-4 border-b border-[#2e1919]" style={{ backgroundColor: '#2a1515' }}>
-          <Text className="text-xl font-bold text-white mb-3">{isLoading ? 'Loading...' : title}</Text>
+        <VStack
+          className="px-5 py-4 border-b"
+          style={{ backgroundColor: c.border.light, borderBottomColor: c.border.light }}
+        >
+          <Text className="text-xl font-bold mb-3" style={{ color: c.text.primary }}>{isLoading ? 'Loading...' : title}</Text>
           <HStack className="gap-4">
             <VStack className="gap-1">
-              <Text className="text-xs font-semibold text-[#cb9090] uppercase tracking-wider">Duration</Text>
-              <Text className="text-sm font-semibold text-white">{length}</Text>
+              <Text className="text-xs font-semibold uppercase tracking-wider" style={{ color: c.text.secondary }}>Duration</Text>
+              <Text className="text-sm font-semibold" style={{ color: c.text.primary }}>{length}</Text>
             </VStack>
             {start_time && (
               <VStack className="gap-1">
-                <Text className="text-xs font-semibold text-[#cb9090] uppercase tracking-wider">Time</Text>
-                <Text className="text-sm font-semibold text-white">{formatTime(start_time)}</Text>
+                <Text className="text-xs font-semibold uppercase tracking-wider" style={{ color: c.text.secondary }}>Time</Text>
+                <Text className="text-sm font-semibold" style={{ color: c.text.primary }}>{formatTime(start_time)}</Text>
               </VStack>
             )}
           </HStack>
@@ -151,11 +158,11 @@ export default function TrainingCard({
       )}
 
       {/* Content */}
-      <VStack className="px-5 py-4 gap-4" style={{ backgroundColor: '#221010' }}>
+      <VStack className="px-5 py-4 gap-4" style={{ backgroundColor: c.background.primary }}>
         {/* Description Section */}
         <VStack className="gap-2">
-          <Text className="text-sm font-semibold text-[#cb9090] uppercase tracking-wide">About</Text>
-          <Text className="text-sm text-white/85 leading-6">
+          <Text className="text-sm font-semibold uppercase tracking-wide" style={{ color: c.text.secondary }}>About</Text>
+          <Text className="text-sm leading-6" style={{ color: c.text.primary, opacity: 0.85 }}>
             {displayDescription}
           </Text>
           {shouldTruncateDesc && (
@@ -164,7 +171,7 @@ export default function TrainingCard({
                 <Text className="text-sm font-semibold text-primary-500">
                   {descExpanded ? 'Show less' : 'Show more'}
                 </Text>
-                <Ionicons 
+                <Ionicons
                   name={descExpanded ? 'chevron-up' : 'chevron-down'}
                   size={16}
                   color="#f20d0d"
@@ -177,12 +184,12 @@ export default function TrainingCard({
         {/* Components Section */}
         {components.length > 0 && (
           <VStack className="gap-2">
-            <Text className="text-sm font-semibold text-[#cb9090] uppercase tracking-wide">What's included</Text>
+            <Text className="text-sm font-semibold uppercase tracking-wide" style={{ color: c.text.secondary }}>What's included</Text>
             <VStack className="gap-2">
               {displayComponents.map((component, idx) => (
                 <HStack key={idx} className="gap-3">
                   <Box className="w-2 h-2 rounded-full bg-primary-500 mt-1.5" />
-                  <Text className="text-sm text-white/80 flex-1">{component}</Text>
+                  <Text className="text-sm flex-1" style={{ color: c.text.primary, opacity: 0.80 }}>{component}</Text>
                 </HStack>
               ))}
             </VStack>
@@ -192,7 +199,7 @@ export default function TrainingCard({
                   <Text className="text-sm font-semibold text-primary-500">
                     {contentExpanded ? 'Show less' : `Show ${components.length - MAX_VISIBLE_COMPONENTS} more`}
                   </Text>
-                  <Ionicons 
+                  <Ionicons
                     name={contentExpanded ? 'chevron-up' : 'chevron-down'}
                     size={16}
                     color="#f20d0d"
@@ -204,8 +211,11 @@ export default function TrainingCard({
         )}
 
         {isEmpty && (
-          <Box className="rounded-lg px-4 py-3 border border-[#6d2e2e]" style={{ backgroundColor: '#341818' }}>
-            <Text className="text-sm text-[#f5d6d6]">
+          <Box
+            className="rounded-lg px-4 py-3 border"
+            style={{ backgroundColor: c.background.tertiary, borderColor: c.input.border }}
+          >
+            <Text className="text-sm" style={{ color: c.text.primary }}>
               No training assigned for this day. Visit "Select Calendar" to choose a training schedule.
             </Text>
           </Box>
@@ -213,11 +223,14 @@ export default function TrainingCard({
       </VStack>
 
       {/* Action Buttons */}
-      <HStack className="px-5 py-4 gap-3 border-t border-[#2e1919]" style={{ backgroundColor: '#1a0c0c' }}>
+      <HStack
+        className="px-5 py-4 gap-3 border-t"
+        style={{ backgroundColor: c.background.card, borderTopColor: c.border.light }}
+      >
         <Animated.View style={{ flex: 1, transform: [{ scale: startBtnFeedback.scale }] }}>
           <Pressable
             className="rounded-lg px-5 py-3.5 items-center justify-center"
-            style={{ backgroundColor: isButtonsDisabled ? '#374151' : colors.primary.main }}
+            style={{ backgroundColor: isButtonsDisabled ? '#374151' : c.primary.main }}
             onPress={handleStartPress}
             onPressIn={startBtnFeedback.onPressIn}
             onPressOut={startBtnFeedback.onPressOut}
@@ -230,17 +243,18 @@ export default function TrainingCard({
         </Animated.View>
         <Animated.View style={{ transform: [{ scale: editBtnFeedback.scale }] }}>
           <Pressable
-            className={`rounded-lg px-5 py-3.5 items-center justify-center ${
-              isButtonsDisabled 
-                ? 'bg-[#2a1515] border border-[#472323]' 
-                : 'bg-[#2a1515] border border-[#6d2e2e] active:bg-[#341818]'
-            }`}
+            className="rounded-lg px-5 py-3.5 items-center justify-center"
+            style={{
+              backgroundColor: c.border.light,
+              borderWidth: 1,
+              borderColor: isButtonsDisabled ? c.border.light : c.input.border,
+            }}
             onPress={onEditPress}
             onPressIn={editBtnFeedback.onPressIn}
             onPressOut={editBtnFeedback.onPressOut}
             disabled={isButtonsDisabled}
           >
-            <Text className={`font-semibold ${isButtonsDisabled ? 'text-gray-400' : 'text-white'}`}>
+            <Text style={{ fontWeight: '600', color: isButtonsDisabled ? '#9ca3af' : c.text.primary }}>
               Edit
             </Text>
           </Pressable>

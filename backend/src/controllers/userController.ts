@@ -7,6 +7,8 @@ import {
   loginWithGoogleIdToken,
   registerLocalUser,
   resolveGoogleOwnershipConflict,
+  resendVerificationEmail,
+  getEmailVerificationStatus,
 } from "../services/authService";
 
 const requestContext = (req: Request) => ({
@@ -33,9 +35,34 @@ export const register = async (req: Request, res: Response) => {
     }
 
     const result = await registerLocalUser(email, password, requestContext(req));
+    if ("requiresEmailVerification" in result && result.requiresEmailVerification) {
+      return res.status(202).json({ status: "email_verification_required", email: result.email });
+    }
     return res.status(201).json(result);
   } catch (err) {
     return handleAuthError(err, res, "Registration failed");
+  }
+};
+
+export const resendVerification = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body as { email?: string };
+    if (!email) return res.status(400).json({ error: "Missing email" });
+    await resendVerificationEmail(email, requestContext(req));
+    return res.json({ success: true });
+  } catch (err) {
+    return handleAuthError(err, res, "Failed to resend verification email");
+  }
+};
+
+export const checkVerificationStatus = async (req: Request, res: Response) => {
+  try {
+    const token = (req.headers["authorization"] as string | undefined)?.replace("Bearer ", "");
+    if (!token) return res.status(401).json({ error: "Missing token" });
+    const status = await getEmailVerificationStatus(token);
+    return res.json(status);
+  } catch (err) {
+    return handleAuthError(err, res, "Failed to check verification status");
   }
 };
 

@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { GlassCard } from '@/components/ui/glass-card';
 import { ErrorState } from '@/components/ui/error-state';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 type CombinationDetailRouteProp = RouteProp<RootStackParamList, 'CombinationDetail'>;
 type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -25,6 +25,7 @@ interface Combination {
 }
 
 export default function CombinationDetailScreen() {
+  const c = useThemeColors();
   const navigation = useNavigation<RootNavigationProp>();
   const route = useRoute<CombinationDetailRouteProp>();
   const [combination, setCombination] = useState<Combination | null>(null);
@@ -42,7 +43,7 @@ export default function CombinationDetailScreen() {
       onMoveShouldSetPanResponder: () => true,
       onPanResponderRelease: (event: GestureResponderEvent, gestureState) => {
         const threshold = 50;
-        
+
         if (gestureState.dx > threshold && actualIndex > 0) {
           // Swipe right - go to previous item
           const prevItem = itemsList[actualIndex - 1];
@@ -100,20 +101,20 @@ export default function CombinationDetailScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.root, styles.center]}>
-        <ActivityIndicator size="large" color={colors.primary.main} />
+      <View style={[styles.root, styles.center, { backgroundColor: c.background.secondary }]}>
+        <ActivityIndicator size="large" color={c.primary.main} />
       </View>
     );
   }
 
   if (error || !combination) {
     return (
-      <View style={styles.root}>
-        <View style={styles.header}>
+      <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
+        <View style={[styles.header, { borderBottomColor: c.border.light, backgroundColor: c.background.secondary }]}>
           <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
+            <Ionicons name="chevron-back" size={24} color={c.text.primary} />
           </Pressable>
-          <Text style={styles.headerTitle}>Combination</Text>
+          <Text style={[styles.headerTitle, { color: c.text.primary }]}>Combination</Text>
           <View style={{ width: 40 }} />
         </View>
         <ErrorState message={error || 'Combination not found'} onRetry={loadCombination} />
@@ -122,51 +123,51 @@ export default function CombinationDetailScreen() {
   }
 
   return (
-    <View style={styles.root} {...panResponder.panHandlers}>
-      <View style={styles.header}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]} {...panResponder.panHandlers}>
+      <View style={[styles.header, { borderBottomColor: c.border.light, backgroundColor: c.background.secondary }]}>
         <Pressable onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
+          <Ionicons name="chevron-back" size={24} color={c.text.primary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Combination</Text>
+        <Text style={[styles.headerTitle, { color: c.text.primary }]}>Combination</Text>
         {itemsList.length > 1 ? (
-          <Text style={styles.indexLabel}>{actualIndex + 1} / {itemsList.length}</Text>
+          <Text style={[styles.indexLabel, { color: c.text.secondary }]}>{actualIndex + 1} / {itemsList.length}</Text>
         ) : (
           <View style={{ width: 40 }} />
         )}
       </View>
 
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={c.primary.main} />}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         {(combination.video_url || combination.source) ? (
           <VideoPlayerComponent videoUri={(combination.video_url || combination.source) as string} />
         ) : (
-          <View style={styles.videoPlaceholder}>
-            <Ionicons name="videocam-outline" size={48} color={colors.text.tertiary} />
+          <View style={[styles.videoPlaceholder, { backgroundColor: c.glass.surface }]}>
+            <Ionicons name="videocam-outline" size={48} color={c.text.tertiary} />
           </View>
         )}
 
         <View style={styles.body}>
-          <Text style={styles.title}>{combination.title}</Text>
+          <Text style={[styles.title, { color: c.text.primary }]}>{combination.title}</Text>
 
           {!!combination.category && (
-            <View style={styles.categoryChip}>
-              <Text style={styles.categoryText}>{combination.category}</Text>
+            <View style={[styles.categoryChip, { backgroundColor: c.glass.redSurface, borderColor: c.primary.main + '44' }]}>
+              <Text style={[styles.categoryText, { color: c.primary.main }]}>{combination.category}</Text>
             </View>
           )}
 
           {!!combination.description && (
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.descLabel}>DESCRIPTION</Text>
-              <Text style={styles.descText}>{combination.description}</Text>
+              <Text style={[styles.descLabel, { color: c.text.tertiary }]}>DESCRIPTION</Text>
+              <Text style={[styles.descText, { color: c.text.secondary }]}>{combination.description}</Text>
             </GlassCard>
           )}
 
           {itemsList.length > 1 && (
             <View style={styles.swipeHint}>
-              <Ionicons name="swap-horizontal" size={14} color={colors.text.tertiary} />
-              <Text style={styles.swipeHintText}>Swipe to navigate</Text>
+              <Ionicons name="swap-horizontal" size={14} color={c.text.tertiary} />
+              <Text style={[styles.swipeHintText, { color: c.text.tertiary }]}>Swipe to navigate</Text>
             </View>
           )}
         </View>
@@ -185,31 +186,30 @@ function VideoPlayerComponent({ videoUri }: { videoUri: string }) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
   header: {
     paddingTop: 48, paddingHorizontal: 16, paddingBottom: 12,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
-    backgroundColor: colors.background.secondary,
+    borderBottomWidth: 1,
   },
   backBtn: { padding: 6, width: 40 },
-  headerTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700', flex: 1, textAlign: 'center' },
-  indexLabel: { color: colors.text.secondary, fontSize: 13, fontWeight: '600', width: 40, textAlign: 'right' },
+  headerTitle: { fontSize: 16, fontWeight: '700', flex: 1, textAlign: 'center' },
+  indexLabel: { fontSize: 13, fontWeight: '600', width: 40, textAlign: 'right' },
   videoContainer: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#000' },
   videoPlaceholder: {
     width: '100%', aspectRatio: 16 / 9,
-    backgroundColor: colors.glass.surface, alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   body: { padding: 16, gap: 14 },
-  title: { color: colors.text.primary, fontSize: 26, fontWeight: '800' },
+  title: { fontSize: 26, fontWeight: '800' },
   categoryChip: {
     alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20,
-    backgroundColor: colors.glass.redSurface, borderWidth: 1, borderColor: colors.primary.main + '44',
+    borderWidth: 1,
   },
-  categoryText: { color: colors.primary.main, fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
-  descLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8 },
-  descText: { color: colors.text.secondary, fontSize: 14, lineHeight: 22 },
+  categoryText: { fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  descLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, marginBottom: 8 },
+  descText: { fontSize: 14, lineHeight: 22 },
   swipeHint: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 8 },
-  swipeHintText: { color: colors.text.tertiary, fontSize: 12 },
+  swipeHintText: { fontSize: 12 },
 });

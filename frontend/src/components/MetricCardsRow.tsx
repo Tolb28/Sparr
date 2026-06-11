@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Text } from '@/components/ui/text';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
+import { MAX_FONT_SCALE } from '@/src/utils/typography';
 import { useProgress } from '@/src/context/ProgressContext';
 import { calculateMetricDelta, ProgressDelta, Snapshot } from '@/src/api/progress';
 
@@ -77,23 +78,25 @@ const getDelta = (snapshots: Snapshot[], metricKey?: keyof Snapshot): ProgressDe
   }
 };
 
-const getDeltaDisplay = (delta: ProgressDelta | null) => {
+type ThemeColors = ReturnType<typeof useThemeColors>;
+const getDeltaDisplay = (delta: ProgressDelta | null, c: ThemeColors) => {
   if (!delta) {
-    return { label: placeholderValue, color: colors.text.tertiary };
+    return { label: placeholderValue, color: c.text.tertiary };
   }
   const deltaValue = Number.isInteger(delta.delta) ? delta.delta : Number(delta.delta.toFixed(1));
   const sign = deltaValue >= 0 ? '+' : '';
   const label = `${sign}${deltaValue}`;
   const color =
     delta.delta > 0
-      ? colors.success.main
+      ? c.success.main
       : delta.delta < 0
-        ? colors.error.main
-        : colors.text.tertiary;
+        ? c.error.main
+        : c.text.tertiary;
   return { label, color };
 };
 
 const MetricCardsRowBase: React.FC<MetricCardsRowProps> = ({ onMetricTap }) => {
+  const c = useThemeColors();
   const { metrics, snapshots, loading } = useProgress();
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 375;
@@ -159,8 +162,8 @@ const MetricCardsRowBase: React.FC<MetricCardsRowProps> = ({ onMetricTap }) => {
   if (!metrics) {
     return (
       <GlassCard variant="medium" radius={16} padding={16} style={styles.emptyCard}>
-        <Text style={styles.emptyTitle}>No metrics tracked yet</Text>
-        <Text style={styles.emptySub}>Complete a workout to get started.</Text>
+        <Text style={[styles.emptyTitle, { color: c.text.primary }]}>No metrics tracked yet</Text>
+        <Text style={[styles.emptySub, { color: c.text.tertiary }]}>Complete a workout to get started.</Text>
       </GlassCard>
     );
   }
@@ -174,7 +177,7 @@ const MetricCardsRowBase: React.FC<MetricCardsRowProps> = ({ onMetricTap }) => {
       testID="MetricCardsRow_Scroll"
     >
       {metricCards.map((metric) => {
-        const deltaDisplay = getDeltaDisplay(metric.delta ?? null);
+        const deltaDisplay = getDeltaDisplay(metric.delta ?? null, c);
         const isTouchable = Boolean(onMetricTap) && !metric.isPlaceholder;
 
         return (
@@ -193,23 +196,25 @@ const MetricCardsRowBase: React.FC<MetricCardsRowProps> = ({ onMetricTap }) => {
           >
             <GlassCard variant="default" radius={16} padding={14} style={[styles.card, { width: cardWidth }]}>
               <View style={styles.cardHeader}>
-                <View style={styles.iconWrap}>
-                  <Ionicons name={metric.icon} size={16} color={colors.primary.main} />
+                <View style={[styles.iconWrap, { borderColor: c.glass.redBorder, backgroundColor: c.glass.redSurface }]}>
+                  <Ionicons name={metric.icon} size={16} color={c.primary.main} />
                 </View>
-                <Text style={styles.metricLabel}>{metric.label}</Text>
+                <Text style={[styles.metricLabel, { color: c.text.tertiary }]}>{metric.label}</Text>
               </View>
               <Text
                 style={[
                   styles.metricValue,
+                  { color: c.text.primary },
                   isSmallScreen && styles.metricValueSmall,
-                  metric.isPlaceholder && styles.metricPlaceholder,
+                  metric.isPlaceholder && { color: c.text.tertiary },
                 ]}
+                maxFontSizeMultiplier={MAX_FONT_SCALE}
               >
                 {metric.valueDisplay}
               </Text>
               <View style={styles.deltaContainer}>
                 {deltaDisplay.label !== placeholderValue && (
-                  <Text 
+                  <Text
                     style={[styles.metricDelta, { color: deltaDisplay.color }]}
                     accessibilityLabel={`${metric.label} change: ${deltaDisplay.label}`}
                   >
@@ -254,27 +259,20 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 1,
-    borderColor: colors.glass.redBorder,
-    backgroundColor: colors.glass.redSurface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   metricLabel: {
-    color: colors.text.tertiary,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.6,
   },
   metricValue: {
-    color: colors.text.primary,
     fontSize: 24,
     fontWeight: '800',
   },
   metricValueSmall: {
     fontSize: 20,
-  },
-  metricPlaceholder: {
-    color: colors.text.tertiary,
   },
   metricDelta: {
     fontSize: 12,
@@ -290,12 +288,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   emptyTitle: {
-    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '700',
   },
   emptySub: {
-    color: colors.text.tertiary,
     fontSize: 12,
     marginTop: 4,
   },

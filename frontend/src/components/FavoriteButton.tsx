@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/text';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface FavoriteButtonProps {
   isFavorited?: boolean;
@@ -21,6 +21,7 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
   count = 0,
   size = 'md',
 }) => {
+  const c = useThemeColors();
   const [liked, setLiked] = useState(isFavorited);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -63,11 +64,11 @@ export const FavoriteButton: React.FC<FavoriteButtonProps> = ({
         <Ionicons
           name={liked ? 'heart' : 'heart-outline'}
           size={iconSizes[size]}
-          color={liked ? colors.primary.main : colors.text.secondary}
+          color={liked ? c.primary.main : c.text.secondary}
         />
       </Pressable>
       {showCount && count > 0 && (
-        <Text style={styles.countText}>{count}</Text>
+        <Text style={[styles.countText, { color: c.text.secondary }]}>{count}</Text>
       )}
     </View>
   );
@@ -89,7 +90,6 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   countText: {
-    color: colors.text.secondary,
     fontSize: 12,
     fontWeight: '600',
   },

@@ -17,7 +17,7 @@ import { TabBar } from '@/components/ui/tab-bar';
 import { SkeletonCard, SkeletonLoader } from '@/components/ui/skeleton-loader';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ErrorState } from '@/components/ui/error-state';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import BadgeCarousel from '../components/BadgeCarousel';
 import { useProgress } from '@/src/context/ProgressContext';
 
@@ -38,6 +38,7 @@ const TABS = ['Personalized', 'Posts', 'About'];
 export default function ProfileScreen() {
   const navigation = useNavigation<RootNavigationProp>();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,7 +107,7 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.root, { paddingTop: insets.top }]}>
+      <View style={[styles.root, { paddingTop: insets.top, backgroundColor: c.background.secondary }]}>
         <View style={styles.loadingHeader}>
           <SkeletonLoader width={36} height={36} borderRadius={18} />
           <SkeletonLoader width={140} height={18} borderRadius={8} />
@@ -136,31 +137,31 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
        <ScrollView
          contentContainerStyle={{ paddingBottom: 120 + (insets.bottom || 0) }}
          showsVerticalScrollIndicator={false}
-         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
+         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={c.primary.main} />}
        >
         {/* Header bar */}
-        <View style={[styles.headerBar, { paddingTop: (insets.top || 0) + 8 }]}>
+        <View style={[styles.headerBar, { paddingTop: (insets.top || 0) + 8, backgroundColor: c.background.secondary, borderBottomColor: c.border.light }]}>
           <Pressable
-            style={styles.iconBtn}
+            style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}
             onPress={() => navigation.navigate('Settings')}
             accessibilityLabel="Settings"
           >
-            <Ionicons name="settings-outline" size={18} color={colors.text.primary} />
+            <Ionicons name="settings-outline" size={18} color={c.text.primary} />
           </Pressable>
-          <Text style={styles.headerTitle}>Athlete Profile</Text>
-          <Pressable style={styles.iconBtn} accessibilityLabel="Share profile" onPress={handleShareProfile}>
-            <Ionicons name="share-social-outline" size={18} color={colors.text.primary} />
+          <Text style={[styles.headerTitle, { color: c.text.primary }]}>Athlete Profile</Text>
+          <Pressable style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]} accessibilityLabel="Share profile" onPress={handleShareProfile}>
+            <Ionicons name="share-social-outline" size={18} color={c.text.primary} />
           </Pressable>
         </View>
 
         {/* Hero: avatar + info + actions */}
         <View style={styles.hero}>
           <View style={styles.heroTop}>
-            <View style={styles.avatarRing}>
+            <View style={[styles.avatarRing, { borderColor: c.primary.main }]}>
               <Avatar size="2xl">
                 <AvatarFallbackText style={styles.avatarFallback}>{profile?.display_name || '?'}</AvatarFallbackText>
                 <AvatarImage source={{ uri: profile?.avatar_url || undefined }} />
@@ -168,12 +169,12 @@ export default function ProfileScreen() {
             </View>
 
             <View style={styles.heroInfo}>
-              <Text style={styles.displayName}>{profile?.display_name || 'Athlete'}</Text>
-              <Text style={styles.username}>@{profile?.username || 'username'}</Text>
+              <Text style={[styles.displayName, { color: c.text.primary }]}>{profile?.display_name || 'Athlete'}</Text>
+              <Text style={[styles.username, { color: c.text.secondary }]}>@{profile?.username || 'username'}</Text>
               {!!profile?.location && (
                 <View style={styles.locationRow}>
-                  <Ionicons name="location-outline" size={12} color={colors.text.tertiary} />
-                  <Text style={styles.locationText}>{profile.location}</Text>
+                  <Ionicons name="location-outline" size={12} color={c.text.tertiary} />
+                  <Text style={[styles.locationText, { color: c.text.tertiary }]}>{profile.location}</Text>
                 </View>
               )}
             </View>
@@ -181,23 +182,23 @@ export default function ProfileScreen() {
 
           {!!profile?.bio && (
             <GlassCard style={styles.bioCard} radius={12} padding={12}>
-              <Text style={styles.bioText}>"{profile.bio}"</Text>
+              <Text style={[styles.bioText, { color: c.text.secondary }]}>"{profile.bio}"</Text>
             </GlassCard>
           )}
 
           {/* Stats row */}
           <View style={styles.statsRow}>
             <GlassCard style={styles.statCard} radius={12} padding={12}>
-              <Text style={styles.statLabel}>WEIGHT</Text>
-              <Text style={styles.statValue}>{profile?.title_weight || '—'}</Text>
+              <Text style={[styles.statLabel, { color: c.text.tertiary }]}>WEIGHT</Text>
+              <Text style={[styles.statValue, { color: c.text.primary }]}>{profile?.title_weight || '—'}</Text>
             </GlassCard>
             <GlassCard style={styles.statCard} radius={12} padding={12}>
-              <Text style={styles.statLabel}>STYLE</Text>
-              <Text style={styles.statValue}>{profile?.title_style || '—'}</Text>
+              <Text style={[styles.statLabel, { color: c.text.tertiary }]}>STYLE</Text>
+              <Text style={[styles.statValue, { color: c.text.primary }]}>{profile?.title_style || '—'}</Text>
             </GlassCard>
               <GlassCard style={[styles.statCard, styles.statCardScore]} radius={12} padding={12}>
-                <Text style={styles.statLabel}>SCORE</Text>
-                <Text style={[styles.statValue, styles.statValueRed]}>{metrics?.score ?? 0}</Text>
+                <Text style={[styles.statLabel, { color: c.text.tertiary }]}>SCORE</Text>
+                <Text style={[styles.statValue, styles.statValueRed, { color: c.primary.main }]}>{metrics?.score ?? 0}</Text>
               </GlassCard>
             </View>
 
@@ -210,7 +211,7 @@ export default function ProfileScreen() {
         {activeTab === 'Personalized' && (
           <View style={styles.tabContent}>
             <GlassCard variant="medium" radius={16} padding={16} style={styles.contentCard}>
-              <Text style={styles.sectionLabel}>YOUR PROGRESS</Text>
+              <Text style={[styles.sectionLabel, { color: c.text.tertiary }]}>YOUR PROGRESS</Text>
               {progressLoading ? (
                 <View style={styles.quickSkeleton}>
                   <SkeletonLoader width="55%" height={12} borderRadius={6} />
@@ -219,35 +220,35 @@ export default function ProfileScreen() {
                 </View>
               ) : progressError ? (
                 <View style={styles.progressFallbackWrap}>
-                  <Text style={styles.progressFallback}>Progress unavailable right now.</Text>
+                  <Text style={[styles.progressFallback, { color: c.text.secondary }]}>Progress unavailable right now.</Text>
                   <Pressable
-                    style={styles.progressRetryButton}
+                    style={[styles.progressRetryButton, { borderColor: c.glass.redBorder, backgroundColor: c.glass.redSurface }]}
                     onPress={() => refreshProgress(true).catch(() => {})}
                     accessibilityRole="button"
                     accessibilityLabel="Retry loading progress"
                     testID="ProfileScreen_ProgressRetry"
                   >
-                    <Ionicons name="reload" size={14} color={colors.primary.main} />
-                    <Text style={styles.progressRetryText}>Retry</Text>
+                    <Ionicons name="reload" size={14} color={c.primary.main} />
+                    <Text style={[styles.progressRetryText, { color: c.primary.main }]}>Retry</Text>
                   </Pressable>
                 </View>
               ) : (
                 <View style={styles.quickStats}>
                   <View style={styles.quickRow}>
-                    <Ionicons name="flame" size={14} color={colors.warning.main} />
-                    <Text style={styles.quickText}>
+                    <Ionicons name="flame" size={14} color={c.warning.main} />
+                    <Text style={[styles.quickText, { color: c.text.secondary }]}>
                       Streak: {metrics?.streak_days ?? 0} days
                     </Text>
                   </View>
                   <View style={styles.quickRow}>
-                    <Ionicons name="barbell" size={14} color={colors.primary.main} />
-                    <Text style={styles.quickText}>
+                    <Ionicons name="barbell" size={14} color={c.primary.main} />
+                    <Text style={[styles.quickText, { color: c.text.secondary }]}>
                       This Week: {metrics?.workouts_completed ?? 0} workouts
                     </Text>
                   </View>
                   <View style={styles.quickRow}>
-                    <Ionicons name="trophy" size={14} color={colors.warning.light} />
-                    <Text style={styles.quickText}>
+                    <Ionicons name="trophy" size={14} color={c.warning.light} />
+                    <Text style={[styles.quickText, { color: c.text.secondary }]}>
                       Next Badge:{' '}
                       {nextBadge
                         ? `${nextBadge.title} ${nextBadgeProgress}%`
@@ -257,19 +258,19 @@ export default function ProfileScreen() {
                 </View>
               )}
               <Pressable
-                style={styles.viewProgressButton}
+                style={[styles.viewProgressButton, { borderColor: c.glass.border, backgroundColor: c.glass.surface }]}
                 onPress={() => (navigation as any).navigate('Calendar')}
                 accessibilityRole="button"
                 accessibilityLabel="View full progress"
                 testID="ProfileScreen_ViewFullProgress"
               >
-                <Text style={styles.viewProgressText}>View Full Progress</Text>
-                <Ionicons name="arrow-forward" size={14} color={colors.text.primary} />
+                <Text style={[styles.viewProgressText, { color: c.text.primary }]}>View Full Progress</Text>
+                <Ionicons name="arrow-forward" size={14} color={c.text.primary} />
               </Pressable>
             </GlassCard>
             {/* Progress */}
             <GlassCard variant="medium" radius={16} padding={16} style={styles.contentCard}>
-              <Text style={styles.sectionLabel}>WEEKLY PROGRESS</Text>
+              <Text style={[styles.sectionLabel, { color: c.text.tertiary }]}>WEEKLY PROGRESS</Text>
               {progressLoading ? (
                 <View style={styles.progressSkeleton}>
                   <SkeletonLoader width={70} height={18} borderRadius={8} />
@@ -277,22 +278,22 @@ export default function ProfileScreen() {
                   <SkeletonLoader width={70} height={18} borderRadius={8} />
                 </View>
               ) : progressError ? (
-                <Text style={styles.progressFallback}>Failed to load progress data.</Text>
+                <Text style={[styles.progressFallback, { color: c.text.secondary }]}>Failed to load progress data.</Text>
               ) : (
                 <View style={styles.progressStats}>
                   <View style={styles.progressStat}>
-                    <Text style={styles.progressNum}>{metrics?.workouts_completed ?? 0}</Text>
-                    <Text style={styles.progressStatLabel}>Workouts</Text>
+                    <Text style={[styles.progressNum, { color: c.text.primary }]}>{metrics?.workouts_completed ?? 0}</Text>
+                    <Text style={[styles.progressStatLabel, { color: c.text.tertiary }]}>Workouts</Text>
                   </View>
-                  <View style={styles.progressDivider} />
+                  <View style={[styles.progressDivider, { backgroundColor: c.border.light }]} />
                   <View style={styles.progressStat}>
-                    <Text style={styles.progressNum}>{metrics?.club_sessions ?? 0}</Text>
-                    <Text style={styles.progressStatLabel}>Club</Text>
+                    <Text style={[styles.progressNum, { color: c.text.primary }]}>{metrics?.club_sessions ?? 0}</Text>
+                    <Text style={[styles.progressStatLabel, { color: c.text.tertiary }]}>Club</Text>
                   </View>
-                  <View style={styles.progressDivider} />
+                  <View style={[styles.progressDivider, { backgroundColor: c.border.light }]} />
                   <View style={styles.progressStat}>
-                    <Text style={styles.progressNum}>{metrics?.streak_days ?? 0}</Text>
-                    <Text style={styles.progressStatLabel}>Streak</Text>
+                    <Text style={[styles.progressNum, { color: c.text.primary }]}>{metrics?.streak_days ?? 0}</Text>
+                    <Text style={[styles.progressStatLabel, { color: c.text.tertiary }]}>Streak</Text>
                   </View>
                 </View>
               )}
@@ -300,21 +301,21 @@ export default function ProfileScreen() {
 
             {/* Badges */}
             <GlassCard variant="medium" radius={16} padding={16} style={styles.contentCard}>
-              <Text style={styles.sectionLabel}>BADGES</Text>
+              <Text style={[styles.sectionLabel, { color: c.text.tertiary }]}>BADGES</Text>
               {progressLoading ? (
                 <View style={styles.progressSkeleton}>
                   <SkeletonLoader width="60%" height={14} borderRadius={6} />
                   <SkeletonLoader width="80%" height={14} borderRadius={6} />
                 </View>
               ) : progressError ? (
-                <Text style={styles.progressFallback}>Badges unavailable right now.</Text>
+                <Text style={[styles.progressFallback, { color: c.text.secondary }]}>Badges unavailable right now.</Text>
               ) : (
                 <BadgeCarousel badges={progressBadges || []} showProgress />
               )}
             </GlassCard>
 
             {/* Club roles */}
-            <Text style={styles.sectionTitle}>Club Roles</Text>
+            <Text style={[styles.sectionTitle, { color: c.text.primary }]}>Club Roles</Text>
             {memberships.length === 0 ? (
               <EmptyState
                 icon="shield-outline"
@@ -333,24 +334,24 @@ export default function ProfileScreen() {
                   >
                     <GlassCard variant="medium" radius={14} padding={14} style={styles.clubCard}>
                       <View style={styles.clubCardRow}>
-                        <View style={styles.clubDot} />
+                        <View style={[styles.clubDot, { backgroundColor: c.primary.main }]} />
                         <View style={styles.flex1}>
-                          <Text style={styles.clubTitle}>{m.role_title || 'Member'} · {m.title}</Text>
-                          {!!m.location && <Text style={styles.clubLocation}>{m.location}</Text>}
+                          <Text style={[styles.clubTitle, { color: c.text.primary }]}>{m.role_title || 'Member'} · {m.title}</Text>
+                          {!!m.location && <Text style={[styles.clubLocation, { color: c.text.tertiary }]}>{m.location}</Text>}
                         </View>
                         {canManageClub ? (
                           <Pressable
-                            style={styles.manageClubBtn}
+                            style={[styles.manageClubBtn, { borderColor: c.glass.redBorder, backgroundColor: c.glass.redSurface }]}
                             onPress={(e: any) => {
                               e?.stopPropagation?.();
                               navigation.navigate('ManageClub', { clubId: Number(m.idclubs) });
                             }}
                           >
-                            <Ionicons name="settings-outline" size={13} color={colors.primary.main} />
-                            <Text style={styles.manageClubBtnText}>Manage</Text>
+                            <Ionicons name="settings-outline" size={13} color={c.primary.main} />
+                            <Text style={[styles.manageClubBtnText, { color: c.primary.main }]}>Manage</Text>
                           </Pressable>
                         ) : (
-                          <Ionicons name="chevron-forward" size={14} color={colors.text.tertiary} />
+                          <Ionicons name="chevron-forward" size={14} color={c.text.tertiary} />
                         )}
                       </View>
                     </GlassCard>
@@ -370,12 +371,12 @@ export default function ProfileScreen() {
         {activeTab === 'About' && (
           <View style={styles.tabContent}>
             <GlassCard variant="medium" radius={16} padding={16} style={styles.contentCard}>
-              <Text style={styles.sectionLabel}>BIO</Text>
-              <Text style={styles.aboutText}>{profile?.bio || 'No bio added yet.'}</Text>
+              <Text style={[styles.sectionLabel, { color: c.text.tertiary }]}>BIO</Text>
+              <Text style={[styles.aboutText, { color: c.text.secondary }]}>{profile?.bio || 'No bio added yet.'}</Text>
             </GlassCard>
             <GlassCard variant="medium" radius={16} padding={16} style={styles.contentCard}>
-              <Text style={styles.sectionLabel}>LOCATION</Text>
-              <Text style={styles.aboutText}>{profile?.location || 'No location set.'}</Text>
+              <Text style={[styles.sectionLabel, { color: c.text.tertiary }]}>LOCATION</Text>
+              <Text style={[styles.aboutText, { color: c.text.secondary }]}>{profile?.location || 'No location set.'}</Text>
             </GlassCard>
           </View>
         )}
@@ -384,7 +385,7 @@ export default function ProfileScreen() {
       {/* FAB */}
       <Pressable
         onPress={() => (navigation as any).navigate('CreatePost')}
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: c.primary.main, shadowColor: c.primary.main }]}
         accessibilityRole="button"
         accessibilityLabel="Create post"
       >
@@ -395,53 +396,52 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   headerBar: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 12,
-    backgroundColor: colors.background.secondary,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    borderBottomWidth: 1,
   },
-  headerTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  headerTitle: { fontSize: 16, fontWeight: '700' },
   iconBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   hero: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 4 },
   heroTop: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
   avatarRing: {
-    padding: 3, borderRadius: 46, borderWidth: 2, borderColor: colors.primary.main,
+    padding: 3, borderRadius: 46, borderWidth: 2,
   },
   avatarFallback: { color: '#ffffff' },
   heroInfo: { flex: 1 },
-  displayName: { color: colors.text.primary, fontSize: 22, fontWeight: '800', letterSpacing: 0.2 },
-  username: { color: colors.text.secondary, fontSize: 13, marginTop: 3 },
+  displayName: { fontSize: 22, fontWeight: '800', letterSpacing: 0.2 },
+  username: { fontSize: 13, marginTop: 3 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 5 },
-  locationText: { color: colors.text.tertiary, fontSize: 12 },
+  locationText: { fontSize: 12 },
   bioCard: { marginBottom: 14 },
-  bioText: { color: colors.text.secondary, fontSize: 13, fontStyle: 'italic', lineHeight: 18 },
+  bioText: { fontSize: 13, fontStyle: 'italic', lineHeight: 18 },
   statsRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   statCard: { flex: 1, minWidth: 80 },
   statCardScore: {},
-  statLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 0.8, marginBottom: 4, textAlign: 'center' },
-  statValue: { color: colors.text.primary, fontSize: 15, fontWeight: '700', textAlign: 'center' },
-  statValueRed: { color: colors.primary.main },
+  statLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8, marginBottom: 4, textAlign: 'center' },
+  statValue: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  statValueRed: {},
   logoutBtn: {
     width: 46, height: 46, borderRadius: 12,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   tabs: { marginTop: 8 },
   tabContent: { paddingHorizontal: 16, paddingTop: 16, gap: 12 },
   contentCard: { marginBottom: 0 },
-  sectionLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
+  sectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 10 },
   quickStats: { gap: 8, marginBottom: 10 },
   quickRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  quickText: { color: colors.text.secondary, fontSize: 12, lineHeight: 18 },
+  quickText: { fontSize: 12, lineHeight: 18 },
   quickSkeleton: { gap: 8, marginBottom: 10 },
   progressFallbackWrap: { gap: 8, marginBottom: 8 },
-  progressFallback: { color: colors.text.secondary, fontSize: 12 },
+  progressFallback: { fontSize: 12 },
   progressRetryButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -452,10 +452,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.glass.redBorder,
-    backgroundColor: colors.glass.redSurface,
   },
-  progressRetryText: { color: colors.primary.main, fontSize: 12, fontWeight: '700' },
+  progressRetryText: { fontSize: 12, fontWeight: '700' },
   viewProgressButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -465,34 +463,32 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.glass.border,
-    backgroundColor: colors.glass.surface,
     minHeight: 44,
   },
-  viewProgressText: { color: colors.text.primary, fontSize: 12, fontWeight: '700' },
-  sectionTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700', marginHorizontal: 16, marginTop: 16, marginBottom: 8 },
+  viewProgressText: { fontSize: 12, fontWeight: '700' },
+  sectionTitle: { fontSize: 14, fontWeight: '700', marginHorizontal: 16, marginTop: 16, marginBottom: 8 },
   progressStats: { flexDirection: 'row', alignItems: 'center' },
   progressSkeleton: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   progressStat: { flex: 1, alignItems: 'center' },
-  progressNum: { color: colors.text.primary, fontSize: 22, fontWeight: '800' },
-  progressStatLabel: { color: colors.text.tertiary, fontSize: 11, marginTop: 2 },
-  progressDivider: { width: 1, height: 30, backgroundColor: colors.border.light },
+  progressNum: { fontSize: 22, fontWeight: '800' },
+  progressStatLabel: { fontSize: 11, marginTop: 2 },
+  progressDivider: { width: 1, height: 30 },
   badgeWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   badge: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
   },
-  badgeEarned: { backgroundColor: colors.glass.redSurface, borderColor: colors.primary.main },
-  badgeText: { color: colors.text.tertiary, fontSize: 12, fontWeight: '600' },
-  badgeTextEarned: { color: colors.text.primary },
-  emptyText: { color: colors.text.tertiary, fontSize: 13 },
+  badgeEarned: {},
+  badgeText: { fontSize: 12, fontWeight: '600' },
+  badgeTextEarned: {},
+  emptyText: { fontSize: 13 },
   emptyState: { paddingVertical: 24 },
   clubCard: { marginHorizontal: 16, marginBottom: 8 },
   clubCardRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  clubDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary.main },
+  clubDot: { width: 8, height: 8, borderRadius: 4 },
   flex1: { flex: 1 },
-  clubTitle: { color: colors.text.primary, fontSize: 13, fontWeight: '600' },
-  clubLocation: { color: colors.text.tertiary, fontSize: 11, marginTop: 2 },
+  clubTitle: { fontSize: 13, fontWeight: '600' },
+  clubLocation: { fontSize: 11, marginTop: 2 },
   manageClubBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -501,11 +497,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.glass.redBorder,
-    backgroundColor: colors.glass.redSurface,
   },
-  manageClubBtnText: { color: colors.primary.main, fontSize: 12, fontWeight: '700' },
-  aboutText: { color: colors.text.secondary, fontSize: 14, lineHeight: 20 },
+  manageClubBtnText: { fontSize: 12, fontWeight: '700' },
+  aboutText: { fontSize: 14, lineHeight: 20 },
   loadingHeader: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 16, paddingBottom: 12,
@@ -516,9 +510,8 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute', right: 20, bottom: 24,
     width: 54, height: 54, borderRadius: 27,
-    backgroundColor: colors.primary.main,
     alignItems: 'center', justifyContent: 'center',
-    shadowColor: colors.primary.main, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8,
     elevation: 8,
   },
 });

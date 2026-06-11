@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallbackText } from '@/components/ui/avatar'
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/core';
 import { createConversation } from '../api/chatApi';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface FriendProps {
   friend: {
@@ -26,6 +26,7 @@ export default function Friend({ friend }: FriendProps) {
   const navigation = useNavigation();
   const [isPressed, setIsPressed] = useState(false);
   const [messagingLoading, setMessagingLoading] = useState(false);
+  const c = useThemeColors();
 
   const handleMessage = async (e: any) => {
     e.stopPropagation();
@@ -55,7 +56,7 @@ export default function Friend({ friend }: FriendProps) {
       onPressOut={() => setIsPressed(false)}
       style={[styles.pressable, isPressed && styles.pressableActive]}
     >
-      <Box style={[styles.container, { backgroundColor: colors.background.tertiary, borderColor: colors.border.light }]}>
+      <Box style={[styles.container, { backgroundColor: c.background.tertiary, borderColor: c.border.light }]}>
         <HStack style={styles.row}>
           <Avatar size="md">
             {friend.avatar_url ? (
@@ -66,16 +67,16 @@ export default function Friend({ friend }: FriendProps) {
           </Avatar>
 
           <VStack style={styles.content}>
-            <Text style={[styles.displayName, { color: colors.text.primary }]}>
+            <Text style={[styles.displayName, { color: c.text.primary }]}>
               {friend.display_name ?? 'No name'}
             </Text>
-            <Text style={[styles.username, { color: colors.text.secondary }]}>
+            <Text style={[styles.username, { color: c.text.secondary }]}>
               @{friend.username ?? 'unknown'}
             </Text>
           </VStack>
 
-          <Pressable onPress={handleMessage} disabled={messagingLoading} style={styles.messageBtn} hitSlop={8}>
-            <Ionicons name="chatbubble-outline" size={18} color={colors.primary.main} />
+          <Pressable onPress={handleMessage} disabled={messagingLoading} style={[styles.messageBtn, { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]} hitSlop={8}>
+            <Ionicons name="chatbubble-outline" size={18} color={c.primary.main} />
           </Pressable>
         </HStack>
       </Box>
@@ -118,9 +119,7 @@ const styles = StyleSheet.create({
   messageBtn: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: colors.glass.redSurface,
     borderWidth: 1,
-    borderColor: colors.glass.redBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },

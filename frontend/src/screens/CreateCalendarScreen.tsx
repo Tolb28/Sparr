@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Text } from '@/components/ui/text';
 import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import {
   createCalendar,
   selectCalendar,
@@ -34,6 +34,7 @@ const START_DATE_OPTIONS = [
 export default function CreateCalendarScreen() {
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
 
   const [title, setTitle] = useState('');
   const [privacy, setPrivacy] = useState<'public' | 'private'>('private');
@@ -296,15 +297,15 @@ export default function CreateCalendarScreen() {
 
   /* -------------------------------- Render --------------------------------- */
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8 }]}>
-        <Pressable onPress={() => nav.goBack()} style={styles.iconBtn}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8, borderBottomColor: c.border.light }]}>
+        <Pressable onPress={() => nav.goBack()} style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+          <Ionicons name="chevron-back" size={20} color={c.text.primary} />
         </Pressable>
         <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>New Calendar</Text>
-          <Text style={styles.headerSub}>Build your training program</Text>
+          <Text style={[styles.headerTitle, { color: c.text.primary }]}>New Calendar</Text>
+          <Text style={[styles.headerSub, { color: c.text.tertiary }]}>Build your training program</Text>
         </View>
         <View style={{ width: 38 }} />
       </View>
@@ -312,29 +313,29 @@ export default function CreateCalendarScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Calendar Name */}
         <GlassCard variant="medium" radius={14} padding={16}>
-          <Text style={styles.label}>Calendar Name</Text>
-          <Text style={styles.hint}>Give your calendar a meaningful name</Text>
+          <Text style={[styles.label, { color: c.text.primary }]}>Calendar Name</Text>
+          <Text style={[styles.hint, { color: c.text.tertiary }]}>Give your calendar a meaningful name</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
             value={title}
             onChangeText={setTitle}
             placeholder="e.g., Boxing Program, Summer Training"
-            placeholderTextColor={colors.text.tertiary}
+            placeholderTextColor={c.text.tertiary}
           />
         </GlassCard>
 
         {/* Privacy */}
         <GlassCard variant="medium" radius={14} padding={16}>
-          <Text style={styles.label}>Privacy</Text>
-          <Text style={styles.hint}>Choose who can view your calendar</Text>
+          <Text style={[styles.label, { color: c.text.primary }]}>Privacy</Text>
+          <Text style={[styles.hint, { color: c.text.tertiary }]}>Choose who can view your calendar</Text>
           <View style={styles.privacyRow}>
             {(['private', 'public'] as const).map((p) => (
               <Pressable
                 key={p}
-                style={[styles.privacyBtn, privacy === p && styles.privacyBtnActive]}
+                style={[styles.privacyBtn, { borderColor: c.glass.border, backgroundColor: c.glass.surface }, privacy === p && { borderColor: c.primary.main, backgroundColor: c.glass.redSurface }]}
                 onPress={() => setPrivacy(p)}
               >
-                <Text style={[styles.privacyText, privacy === p && styles.privacyTextActive]}>
+                <Text style={[styles.privacyText, { color: c.text.secondary }, privacy === p && { color: c.primary.main }]}>
                   {p === 'private' ? '🔒 Private' : '🌐 Public'}
                 </Text>
               </Pressable>
@@ -350,16 +351,16 @@ export default function CreateCalendarScreen() {
           <>
             {/* Start Date */}
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.label}>Start Date</Text>
-              <Text style={styles.hint}>When does the cycle begin counting?</Text>
+              <Text style={[styles.label, { color: c.text.primary }]}>Start Date</Text>
+              <Text style={[styles.hint, { color: c.text.tertiary }]}>When does the cycle begin counting?</Text>
               <View style={styles.startDateRow}>
                 {START_DATE_OPTIONS.map((opt) => (
                   <Pressable
                     key={opt.key}
-                    style={[styles.startDateBtn, startDateOption === opt.key && styles.startDateBtnActive]}
+                    style={[styles.startDateBtn, { borderColor: c.glass.border, backgroundColor: c.glass.surface }, startDateOption === opt.key && { borderColor: c.primary.main, backgroundColor: c.glass.redSurface }]}
                     onPress={() => setStartDateOption(opt.key)}
                   >
-                    <Text style={[styles.startDateText, startDateOption === opt.key && styles.startDateTextActive]}>
+                    <Text style={[styles.startDateText, { color: c.text.secondary }, startDateOption === opt.key && { color: c.primary.main }]}>
                       {opt.label}
                     </Text>
                   </Pressable>
@@ -380,8 +381,8 @@ export default function CreateCalendarScreen() {
             <GlassCard variant="medium" radius={14} padding={16}>
               <View style={styles.sectionHeader}>
                 <View>
-                  <Text style={styles.label}>Your Schedule ({orderSlots.length} days)</Text>
-                  <Text style={styles.hint}>Add trainings in order — you can add rest days</Text>
+                  <Text style={[styles.label, { color: c.text.primary }]}>Your Schedule ({orderSlots.length} days)</Text>
+                  <Text style={[styles.hint, { color: c.text.tertiary }]}>Add trainings in order — you can add rest days</Text>
                 </View>
               </View>
 
@@ -390,21 +391,21 @@ export default function CreateCalendarScreen() {
                   <Ionicons name="add" size={16} color="#fff" />
                   <Text style={styles.addBtnText}>Add Training</Text>
                 </Pressable>
-                <Pressable style={styles.restBtn} onPress={addRestDay}>
-                  <Ionicons name="bed-outline" size={16} color={colors.text.secondary} />
-                  <Text style={styles.restBtnText}>Rest Day</Text>
+                <Pressable style={[styles.restBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]} onPress={addRestDay}>
+                  <Ionicons name="bed-outline" size={16} color={c.text.secondary} />
+                  <Text style={[styles.restBtnText, { color: c.text.secondary }]}>Rest Day</Text>
                 </Pressable>
-                <Pressable style={styles.createBtn} onPress={() => (nav as any).navigate('CreateTraining')}>
-                  <Ionicons name="hammer-outline" size={16} color={colors.primary.main} />
-                  <Text style={styles.createBtnText}>New</Text>
+                <Pressable style={[styles.createBtn, { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]} onPress={() => (nav as any).navigate('CreateTraining')}>
+                  <Ionicons name="hammer-outline" size={16} color={c.primary.main} />
+                  <Text style={[styles.createBtnText, { color: c.primary.main }]}>New</Text>
                 </Pressable>
               </View>
 
               {orderSlots.length === 0 ? (
                 <View style={styles.emptySchedule}>
-                  <Ionicons name="calendar-outline" size={32} color={colors.text.tertiary} />
-                  <Text style={styles.emptyScheduleTitle}>No days yet</Text>
-                  <Text style={styles.emptyScheduleSub}>Add trainings to build your program</Text>
+                  <Ionicons name="calendar-outline" size={32} color={c.text.tertiary} />
+                  <Text style={[styles.emptyScheduleTitle, { color: c.text.secondary }]}>No days yet</Text>
+                  <Text style={[styles.emptyScheduleSub, { color: c.text.tertiary }]}>Add trainings to build your program</Text>
                 </View>
               ) : (
                 orderSlots.map((slot, i) => (
@@ -430,23 +431,23 @@ export default function CreateCalendarScreen() {
           <>
             {/* Number of weeks */}
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.label}>Rotation Length</Text>
-              <Text style={styles.hint}>How many weeks before the schedule repeats?</Text>
+              <Text style={[styles.label, { color: c.text.primary }]}>Rotation Length</Text>
+              <Text style={[styles.hint, { color: c.text.tertiary }]}>How many weeks before the schedule repeats?</Text>
               <View style={styles.stepperRow}>
                 <Pressable
-                  style={[styles.stepperBtn, numWeeks <= 1 && styles.stepperBtnDisabled]}
+                  style={[styles.stepperBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }, numWeeks <= 1 && styles.stepperBtnDisabled]}
                   onPress={() => { if (numWeeks > 1) setNumWeeks(numWeeks - 1); }}
                   disabled={numWeeks <= 1}
                 >
-                  <Text style={styles.stepperBtnText}>−</Text>
+                  <Text style={[styles.stepperBtnText, { color: c.text.primary }]}>−</Text>
                 </Pressable>
-                <Text style={styles.stepperValue}>{numWeeks} week{numWeeks > 1 ? 's' : ''}</Text>
+                <Text style={[styles.stepperValue, { color: c.text.primary }]}>{numWeeks} week{numWeeks > 1 ? 's' : ''}</Text>
                 <Pressable
-                  style={[styles.stepperBtn, numWeeks >= 8 && styles.stepperBtnDisabled]}
+                  style={[styles.stepperBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }, numWeeks >= 8 && styles.stepperBtnDisabled]}
                   onPress={() => { if (numWeeks < 8) setNumWeeks(numWeeks + 1); }}
                   disabled={numWeeks >= 8}
                 >
-                  <Text style={styles.stepperBtnText}>+</Text>
+                  <Text style={[styles.stepperBtnText, { color: c.text.primary }]}>+</Text>
                 </Pressable>
               </View>
             </GlassCard>
@@ -499,28 +500,28 @@ export default function CreateCalendarScreen() {
         onRequestClose={() => setPickerOpen(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setPickerOpen(false)}>
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalHeaderTitle}>Select Training</Text>
+          <View style={[styles.modalSheet, { backgroundColor: c.background.secondary, borderTopColor: c.border.light }]} onStartShouldSetResponder={() => true}>
+            <View style={[styles.modalHeader, { borderBottomColor: c.border.light }]}>
+              <Text style={[styles.modalHeaderTitle, { color: c.text.primary }]}>Select Training</Text>
               <Pressable onPress={() => setPickerOpen(false)}>
-                <Ionicons name="close" size={22} color={colors.text.secondary} />
+                <Ionicons name="close" size={22} color={c.text.secondary} />
               </Pressable>
             </View>
 
             {/* Search */}
-            <View style={styles.searchWrap}>
-              <Ionicons name="search" size={16} color={colors.text.tertiary} />
+            <View style={[styles.searchWrap, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+              <Ionicons name="search" size={16} color={c.text.tertiary} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: c.text.primary }]}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Search trainings…"
-                placeholderTextColor={colors.text.tertiary}
+                placeholderTextColor={c.text.tertiary}
               />
             </View>
 
             {loadingData ? (
-              <ActivityIndicator style={{ marginVertical: 24 }} color={colors.primary.main} />
+              <ActivityIndicator style={{ marginVertical: 24 }} color={c.primary.main} />
             ) : (
               <FlatList
                 data={filteredTrainings}
@@ -538,8 +539,8 @@ export default function CreateCalendarScreen() {
                 )}
                 ListEmptyComponent={
                   <View style={styles.emptySchedule}>
-                    <Text style={styles.emptyScheduleTitle}>No trainings found</Text>
-                    <Text style={styles.emptyScheduleSub}>Create a training first</Text>
+                    <Text style={[styles.emptyScheduleTitle, { color: c.text.secondary }]}>No trainings found</Text>
+                    <Text style={[styles.emptyScheduleSub, { color: c.text.tertiary }]}>Create a training first</Text>
                   </View>
                 }
                 style={{ maxHeight: 400 }}
@@ -554,117 +555,110 @@ export default function CreateCalendarScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    borderBottomWidth: 1,
   },
   headerText: { flex: 1, alignItems: 'center' },
-  headerTitle: { color: colors.text.primary, fontSize: 18, fontWeight: '800' },
-  headerSub: { color: colors.text.tertiary, fontSize: 12, marginTop: 2 },
+  headerTitle: { fontSize: 18, fontWeight: '800' },
+  headerSub: { fontSize: 12, marginTop: 2 },
   iconBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   scroll: { padding: 16, gap: 12 },
-  label: { color: colors.text.primary, fontSize: 13, fontWeight: '700', marginBottom: 4 },
-  hint: { color: colors.text.tertiary, fontSize: 12, marginBottom: 10 },
+  label: { fontSize: 13, fontWeight: '700', marginBottom: 4 },
+  hint: { fontSize: 12, marginBottom: 10 },
   input: {
-    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border, color: colors.text.primary,
+    borderRadius: 10, borderWidth: 1,
     paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, marginTop: 4,
   },
   privacyRow: { flexDirection: 'row', gap: 10 },
   privacyBtn: {
     flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.glass.border, backgroundColor: colors.glass.surface,
+    borderWidth: 1,
   },
-  privacyBtnActive: { borderColor: colors.primary.main, backgroundColor: colors.glass.redSurface },
-  privacyText: { color: colors.text.secondary, fontWeight: '600', fontSize: 13 },
-  privacyTextActive: { color: colors.primary.main },
+  privacyText: { fontWeight: '600', fontSize: 13 },
   sectionHeader: { marginBottom: 8 },
   actionRow: { flexDirection: 'row', gap: 6, marginBottom: 12 },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: colors.primary.main,
+    backgroundColor: '#c0392b',
   },
   addBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   restBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
   },
-  restBtnText: { color: colors.text.secondary, fontSize: 12, fontWeight: '600' },
+  restBtnText: { fontSize: 12, fontWeight: '600' },
   createBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 'auto',
     paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8,
-    backgroundColor: colors.glass.redSurface, borderWidth: 1, borderColor: colors.glass.redBorder,
+    borderWidth: 1,
   },
-  createBtnText: { color: colors.primary.main, fontSize: 12, fontWeight: '700' },
+  createBtnText: { fontSize: 12, fontWeight: '700' },
   startDateRow: { flexDirection: 'row', gap: 8 },
   startDateBtn: {
     flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.glass.border, backgroundColor: colors.glass.surface,
+    borderWidth: 1,
   },
-  startDateBtnActive: { borderColor: colors.primary.main, backgroundColor: colors.glass.redSurface },
-  startDateText: { color: colors.text.secondary, fontSize: 12, fontWeight: '600' },
-  startDateTextActive: { color: colors.primary.main },
+  startDateText: { fontSize: 12, fontWeight: '600' },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 14, justifyContent: 'center' },
   stepperBtn: {
     width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
   },
   stepperBtnDisabled: { opacity: 0.3 },
-  stepperBtnText: { color: colors.text.primary, fontSize: 18, fontWeight: '700' },
-  stepperValue: { color: colors.text.primary, fontSize: 15, fontWeight: '700', minWidth: 80, textAlign: 'center' },
+  stepperBtnText: { fontSize: 18, fontWeight: '700' },
+  stepperValue: { fontSize: 15, fontWeight: '700', minWidth: 80, textAlign: 'center' },
   emptySchedule: { alignItems: 'center', paddingVertical: 24 },
-  emptyScheduleTitle: { color: colors.text.secondary, fontWeight: '600', fontSize: 14 },
-  emptyScheduleSub: { color: colors.text.tertiary, fontSize: 12, marginTop: 4 },
+  emptyScheduleTitle: { fontWeight: '600', fontSize: 14 },
+  emptyScheduleSub: { fontSize: 12, marginTop: 4 },
   scheduleItem: {
     flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6,
-    borderBottomWidth: 1, borderBottomColor: colors.glass.border,
+    borderBottomWidth: 1,
   },
   dayBadge: {
-    width: 28, height: 28, borderRadius: 14, backgroundColor: colors.primary.main,
+    width: 28, height: 28, borderRadius: 14, backgroundColor: '#c0392b',
     alignItems: 'center', justifyContent: 'center',
   },
   dayBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   flex1: { flex: 1 },
   restSlot: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
-  restSlotText: { color: colors.text.tertiary, fontSize: 13, fontStyle: 'italic' },
+  restSlotText: { fontSize: 13, fontStyle: 'italic' },
   scheduleActions: { gap: 3 },
   moveBtn: {
     width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.glass.medium,
   },
   moveBtnDisabled: { opacity: 0.35 },
-  moveBtnText: { color: colors.text.secondary, fontSize: 10 },
+  moveBtnText: { fontSize: 10 },
   removeBtn: {
     width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.glass.redSurface,
   },
   errorText: { color: '#fecaca', fontWeight: '600', fontSize: 13 },
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: colors.background.secondary, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '70%', borderTopWidth: 1, borderTopColor: colors.border.light,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '70%', borderTopWidth: 1,
   },
   modalHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    padding: 16, borderBottomWidth: 1,
   },
-  modalHeaderTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  modalHeaderTitle: { fontSize: 16, fontWeight: '700' },
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginHorizontal: 16, marginTop: 10, marginBottom: 6,
-    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border, paddingHorizontal: 10, paddingVertical: 8,
+    borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 10, paddingVertical: 8,
   },
-  searchInput: { flex: 1, color: colors.text.primary, fontSize: 13 },
+  searchInput: { flex: 1, fontSize: 13 },
   pickerItem: { marginBottom: 2 },
 });

@@ -162,6 +162,25 @@ export async function getProgressByTimeframe(
   return parsed;
 }
 
+export interface HoursBreakdownEntry {
+  date: string;
+  hours: number;
+}
+
+export async function fetchHoursBreakdown(
+  profileId: string,
+  timeframe: ProgressTimeframe
+): Promise<HoursBreakdownEntry[]> {
+  const response = await fetchWithRetry(
+    `${ServerIP}/auth/gamification/profiles/${profileId}/hours-breakdown?range=${timeframe}`,
+    {
+      method: 'GET',
+      headers: await buildAuthHeaders({ 'Content-Type': 'application/json' }),
+    }
+  );
+  return (response as any)?.breakdown ?? [];
+}
+
 export function aggregateMetrics(snapshots: Snapshot[]): ProgressMetrics {
   if (!snapshots.length) return { ...metricDefaults };
 

@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, StyleSheet, Pressable, Animated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, colorUtils } from '@/src/theme/colors';
+import { colorUtils } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import BadgeDetailModal, { Badge } from './BadgeDetailModal';
+import { createUnlockAnimation } from '@/src/utils/motion';
 
 export type { Badge } from './BadgeDetailModal';
 
@@ -25,9 +27,29 @@ interface BadgeIconProps {
 }
 
 function BadgeIcon({ badge, showProgress, onPress }: BadgeIconProps) {
-  const badgeColor = badge.color || colors.primary.main;
+  const c = useThemeColors();
+  const badgeColor = badge.color || c.primary.main;
   const earned = !!badge.earned;
   const progress = badge.progress ?? 0;
+  
+  // Unlock animation when badge is earned
+  const [scaleAnim] = useState(() => new Animated.Value(earned ? 1 : 0.8));
+  useEffect(() => {
+    if (earned) {
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.15,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [earned, scaleAnim]);
 
   const radius = (BADGE_SIZE - RING_STROKE) / 2;
   const circ = 2 * Math.PI * radius;
@@ -35,14 +57,14 @@ function BadgeIcon({ badge, showProgress, onPress }: BadgeIconProps) {
 
   return (
     <Pressable onPress={onPress} style={bStyles.item}>
-      <View style={bStyles.circle}>
+      <Animated.View style={[bStyles.circle, { transform: [{ scale: scaleAnim }] }]}>
         {/* Background ring (track) */}
         <Svg width={BADGE_SIZE} height={BADGE_SIZE} style={StyleSheet.absoluteFill}>
           <Circle
             cx={BADGE_SIZE / 2}
             cy={BADGE_SIZE / 2}
             r={radius}
-            stroke={earned ? badgeColor : colors.border.light}
+            stroke={earned ? badgeColor : c.border.light}
             strokeWidth={RING_STROKE}
             fill="transparent"
           />
@@ -69,24 +91,24 @@ function BadgeIcon({ badge, showProgress, onPress }: BadgeIconProps) {
             bStyles.inner,
             earned
               ? { backgroundColor: colorUtils.hexToRgba(badgeColor, 0.15) }
-              : { backgroundColor: colors.glass.surface },
+              : { backgroundColor: c.glass.surface },
           ]}
         >
           <Ionicons
             name={(badge.icon_name as any) || 'ribbon-outline'}
             size={ICON_SIZE}
-            color={earned ? badgeColor : colors.text.tertiary}
+            color={earned ? badgeColor : c.text.tertiary}
           />
           {/* Lock overlay for unearned */}
           {!earned && (
-            <View style={bStyles.lockOverlay}>
-              <Ionicons name="lock-closed" size={12} color={colors.text.tertiary} />
+            <View style={[bStyles.lockOverlay, { backgroundColor: c.background.primary }]}>
+              <Ionicons name="lock-closed" size={12} color={c.text.tertiary} />
             </View>
           )}
         </View>
-      </View>
+      </Animated.View>
       <Text
-        style={[bStyles.label, earned && { color: colors.text.primary }]}
+        style={[bStyles.label, { color: c.text.tertiary }, earned && { color: c.text.primary }]}
         numberOfLines={1}
       >
         {badge.title}
@@ -96,6 +118,7 @@ function BadgeIcon({ badge, showProgress, onPress }: BadgeIconProps) {
 }
 
 export default function BadgeCarousel({ badges, showProgress = false }: BadgeCarouselProps) {
+  const c = useThemeColors();
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -110,7 +133,7 @@ export default function BadgeCarousel({ badges, showProgress = false }: BadgeCar
   };
 
   if (!badges || badges.length === 0) {
-    return <Text style={bStyles.empty}>No badges yet. Start training!</Text>;
+    return <Text style={[bStyles.empty, { color: c.text.tertiary }]}>No badges yet. Start training!</Text>;
   }
 
   // Sort: earned first, then by progress desc
@@ -165,16 +188,14 @@ const bStyles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: colors.background.primary,
     borderRadius: 8,
     padding: 1,
   },
   label: {
-    color: colors.text.tertiary,
     fontSize: 10,
     fontWeight: '600',
     marginTop: 4,
     textAlign: 'center',
   },
-  empty: { color: colors.text.tertiary, fontSize: 13 },
+  empty: { fontSize: 13 },
 });

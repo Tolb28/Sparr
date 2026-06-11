@@ -3,6 +3,7 @@ import {
   getBadgeCatalog,
   getProfileBadges,
   getProfileIdForUser,
+  getHoursBreakdown,
   logWorkoutCompletion,
   recalculateProfileGamification,
 } from '../services/gamificationService';
@@ -125,6 +126,27 @@ export const logWorkoutCompletionController = async (req: Request, res: Response
     );
 
     res.json({ success: true, completion });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+export const getHoursBreakdownController = async (req: Request, res: Response) => {
+  try {
+    const profileId = validateProfileIdParam(req);
+    // @ts-ignore
+    const userId = req.userId;
+    if (!userId) {
+      throw createError(401, 'Unauthorized', 'UNAUTHORIZED');
+    }
+
+    const validRanges = ['week', 'month', 'year', 'lifetime'];
+    const range = validRanges.includes(req.query.range as string)
+      ? (req.query.range as 'week' | 'month' | 'year' | 'lifetime')
+      : 'month';
+
+    const breakdown = await getHoursBreakdown(profileId, range);
+    res.json({ range, breakdown });
   } catch (error) {
     handleError(error, res);
   }

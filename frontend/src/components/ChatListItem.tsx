@@ -7,7 +7,7 @@ import { VStack } from '@/components/ui/vstack';
 import { Divider } from '@/components/ui/divider';
 import { ConversationPreview } from '../types/chat';
 import { useNavigation } from '@react-navigation/native';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface ChatListItemProps {
   conversation: ConversationPreview;
@@ -15,6 +15,7 @@ interface ChatListItemProps {
 
 export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
   const navigation = useNavigation<any>();
+  const c = useThemeColors();
 
   const handlePress = () => {
     navigation.navigate('ChatDetail', {
@@ -69,7 +70,10 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
       <TouchableOpacity
         onPress={handlePress}
         activeOpacity={0.65}
-        style={[styles.content, hasUnread && styles.contentUnread]}
+        style={[
+          styles.content,
+          hasUnread && { backgroundColor: c.glass.redSurface },
+        ]}
       >
         <HStack style={styles.row}>
           <View style={styles.avatarWrapper}>
@@ -86,15 +90,15 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
               )}
             </Avatar>
             {/* Optional: Online indicator */}
-            {/* <View style={[styles.statusIndicator, { backgroundColor: colors.status.online }]} /> */}
+            {/* <View style={[styles.statusIndicator, { backgroundColor: c.status.online, borderColor: c.background.secondary }]} /> */}
           </View>
 
           <VStack style={styles.messageContent}>
-            <Text style={[styles.participantName, hasUnread && styles.unreadText, { color: colors.text.primary }]}>
+            <Text style={[styles.participantName, hasUnread && styles.unreadText, { color: c.text.primary }]}>
               {conversation.otherParticipantName}
             </Text>
             <Text
-              style={[styles.lastMessage, hasUnread && styles.unreadMessageText, { color: colors.text.secondary }]}
+              style={[styles.lastMessage, hasUnread && styles.unreadMessageText, { color: c.text.secondary }]}
               numberOfLines={1}
             >
               {truncateMessage(conversation.lastMessage || 'No messages yet')}
@@ -102,11 +106,11 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
           </VStack>
 
           <VStack style={styles.rightContent}>
-            <Text style={[styles.timestamp, hasUnread && styles.unreadTimestamp, { color: colors.text.tertiary }]}>
+            <Text style={[styles.timestamp, hasUnread && { color: c.primary.main }, !hasUnread && { color: c.text.tertiary }]}>
               {formatTimestamp}
             </Text>
             {hasUnread && (
-              <View style={[styles.unreadBadge, { backgroundColor: colors.primary.main, minWidth: (conversation.unreadCount ?? 0) > 9 ? 18 : 16 }]}>
+              <View style={[styles.unreadBadge, { backgroundColor: c.primary.main, minWidth: (conversation.unreadCount ?? 0) > 9 ? 18 : 16 }]}>
                 <Text style={styles.unreadCount}>
                   {(conversation.unreadCount ?? 0) > 99 ? '99+' : conversation.unreadCount}
                 </Text>
@@ -115,7 +119,7 @@ export const ChatListItem: React.FC<ChatListItemProps> = ({ conversation }) => {
           </VStack>
         </HStack>
       </TouchableOpacity>
-      <Divider style={[styles.divider, { backgroundColor: colors.border.light }]} />
+      <Divider style={[styles.divider, { backgroundColor: c.border.light }]} />
     </View>
   );
 };
@@ -127,9 +131,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-  },
-  contentUnread: {
-    backgroundColor: `${colors.glass.redSurface}`,
   },
   row: {
     alignItems: 'center',
@@ -146,7 +147,6 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: colors.background.secondary,
   },
   messageContent: {
     flex: 1,
@@ -187,10 +187,6 @@ const styles = StyleSheet.create({
   },
   unreadMessageText: {
     fontWeight: '600',
-  },
-  unreadTimestamp: {
-    fontWeight: '700',
-    color: colors.primary.main,
   },
   divider: {
     marginLeft: 72,

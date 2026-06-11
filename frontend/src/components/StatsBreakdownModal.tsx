@@ -5,17 +5,17 @@ import {
   ScrollView,
   StyleSheet,
   View,
-  ViewStyle,
   useWindowDimensions,
 } from 'react-native';
-import { Motion, MotionComponentProps } from '@legendapp/motion';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '@/components/ui/text';
 import { GlassCard } from '@/components/ui/glass-card';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { useProgress } from '@/src/context/ProgressContext';
 import type { ProgressTimeframe, Snapshot } from '@/src/api/progress';
+import { fetchHoursBreakdown, type HoursBreakdownEntry } from '@/src/api/progress';
+import { getActiveProfileId } from '@/src/api/profileHandler';
 import { BarChart } from './charts/BarChart';
 import { LineChart } from './charts/LineChart';
 
@@ -34,6 +34,7 @@ const CHART_TYPE_MAP: Record<string, 'line' | 'bar'> = {
   score: 'line',
   skill_level: 'line',
   intensity: 'bar',
+  total_hours: 'bar',
 };
 
 type SnapshotMetricKey = Exclude<keyof Snapshot, 'snapshot_date'>;
@@ -48,11 +49,6 @@ const SNAPSHOT_KEYS: SnapshotMetricKey[] = [
 
 const isSnapshotMetricKey = (key: string): key is SnapshotMetricKey =>
   SNAPSHOT_KEYS.includes(key as SnapshotMetricKey);
-
-type MotionViewProps = React.ComponentProps<typeof View> &
-  MotionComponentProps<typeof View, ViewStyle, unknown, unknown, unknown>;
-
-const MotionView = Motion.View as React.ComponentType<MotionViewProps>;
 
 const formatSnapshotLabel = (dateStr: string, timeframe: ProgressTimeframe) => {
   const date = new Date(dateStr);
@@ -85,31 +81,42 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
   metricKey,
   metricLabel,
 }) => {
-  const { timeframe, snapshots, loading, error, refresh } = useProgress();
+  const c = useThemeColors();
+  const { timeframe, metrics, snapshots, loading, error, refresh } = useProgress();
   const [compareEnabled, setCompareEnabled] = useState(false);
   const [rendered, setRendered] = useState(isVisible);
-  const [animateIn, setAnimateIn] = useState(isVisible);
-  const exitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [hoursBreakdown, setHoursBreakdown] = useState<HoursBreakdownEntry[]>([]);
+  const [hoursLoading, setHoursLoading] = useState(false);
+  const isHoursMetric = metricKey === 'total_hours';
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isSmallScreen = width < 375;
   const isTablet = width >= 768;
 
   useEffect(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
     if (isVisible) {
-      if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
       setRendered(true);
-      requestAnimationFrame(() => setAnimateIn(true));
     } else {
-      setAnimateIn(false);
-      exitTimeoutRef.current = setTimeout(() => {
-        setRendered(false);
-      }, 220);
+      hideTimer.current = setTimeout(() => setRendered(false), 250);
     }
     return () => {
-      if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
+      if (hideTimer.current) clearTimeout(hideTimer.current);
     };
   }, [isVisible]);
+
+  useEffect(() => {
+    if (!isHoursMetric || !isVisible) return;
+    setHoursLoading(true);
+    getActiveProfileId().then((pid) => {
+      if (!pid) { setHoursLoading(false); return; }
+      fetchHoursBreakdown(String(pid), timeframe)
+        .then(setHoursBreakdown)
+        .catch(() => setHoursBreakdown([]))
+        .finally(() => setHoursLoading(false));
+    });
+  }, [isHoursMetric, isVisible, timeframe]);
 
   const snapshotMetricKey = isSnapshotMetricKey(metricKey) ? metricKey : null;
   const data = useMemo(
@@ -122,16 +129,36 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
     () => snapshots.map((snapshot) => formatSnapshotLabel(snapshot.snapshot_date, timeframe)),
     [snapshots, timeframe]
   );
-  const chartData = data;
-  const chartLabels = snapshotMetricKey ? labels : [];
+  const chartData = isHoursMetric
+    ? hoursBreakdown.map((e) => e.hours)
+    : data;
+  const chartLabels = isHoursMetric
+    ? hoursBreakdown.map((e) => formatSnapshotLabel(e.date, timeframe))
+    : snapshotMetricKey ? labels : [];
 
-  const total = useMemo(() => chartData.reduce((sum, value) => sum + value, 0), [chartData]);
-  const average = useMemo(() => (chartData.length ? total / chartData.length : 0), [chartData, total]);
+  // Use the authoritative per-timeframe metric value (same as the card), not a sum of
+  // cumulative snapshots (which would multiply-count a running total).
+  // For hours: metrics.total_hours is always all-time (no timeframe filter on the backend),
+  // so we surface it as "All Time" rather than pretending it's scoped to the selected period.
+  const current = isHoursMetric
+    ? Math.round((metrics?.total_hours ?? 0) * 10) / 10
+    : (snapshotMetricKey && metrics
+        ? Number(metrics[snapshotMetricKey as keyof typeof metrics] ?? 0)
+        : 0);
   const peakValue = useMemo(() => (chartData.length ? Math.max(...chartData) : 0), [chartData]);
   const peakIndex = useMemo(
     () => chartData.findIndex((value) => value === peakValue),
     [chartData, peakValue]
   );
+  const netChange = useMemo(
+    () => chartData.length >= 2 ? chartData[chartData.length - 1] - chartData[0] : 0,
+    [chartData]
+  );
+  const todayHours = useMemo(() => {
+    if (!isHoursMetric) return null;
+    const todayStr = new Date().toISOString().split('T')[0];
+    return hoursBreakdown.find((e) => e.date === todayStr)?.hours ?? 0;
+  }, [isHoursMetric, hoursBreakdown]);
 
   if (!rendered) return null;
 
@@ -140,9 +167,9 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
   const chartHeight = isSmallScreen ? 200 : 240;
   const chartPadding = isSmallScreen ? 32 : 40;
 
-  const isChartLoading = loading;
+  const isChartLoading = isHoursMetric ? hoursLoading : loading;
   const hasChartData = chartData.length > 0 && chartLabels.length > 0;
-  const emptyMessage = snapshotMetricKey
+  const emptyMessage = (snapshotMetricKey || isHoursMetric)
     ? 'No data available for this timeframe.'
     : 'Detailed breakdown is coming soon for this metric.';
   const handleRetry = () => {
@@ -153,26 +180,22 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
     <Modal
       visible={rendered}
       transparent
-      animationType="none"
+      animationType="fade"
       presentationStyle="overFullScreen"
       statusBarTranslucent
       navigationBarTranslucent
       onRequestClose={onClose}
     >
-      <View style={[styles.overlay, isSmallScreen && styles.overlayCompact]}>
+      <View style={[styles.overlay, { backgroundColor: c.overlay.dark }, isSmallScreen && styles.overlayCompact]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <MotionView
+        <View
           style={[
             styles.modalCard,
+            { backgroundColor: c.background.secondary, borderColor: c.glass.border },
             isSmallScreen ? styles.modalCardFull : styles.modalCardCentered,
           ]}
-          animate={{
-            opacity: animateIn ? 1 : 0,
-            translateY: animateIn ? 0 : 24,
-          }}
-          transition={{ type: 'timing', duration: animateIn ? 300 : 200 }}
         >
-          <View style={styles.header}>
+          <View style={[styles.header, { borderBottomColor: c.border.light }]}>
             <Pressable
               style={styles.closeButton}
               onPress={onClose}
@@ -180,9 +203,9 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
               accessibilityLabel="Close stats breakdown"
               testID="StatsBreakdownModal_Close"
             >
-              <Ionicons name="chevron-back" size={20} color={colors.text.primary} />
+              <Ionicons name="chevron-back" size={20} color={c.text.primary} />
             </Pressable>
-            <Text style={styles.headerTitle} testID="StatsBreakdownModal_Title">
+            <Text style={[styles.headerTitle, { color: c.text.primary }]} testID="StatsBreakdownModal_Title">
               {metricLabel.toUpperCase()}
             </Text>
             <View style={styles.closeSpacer} />
@@ -197,7 +220,7 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
             showsVerticalScrollIndicator={false}
           >
             <Pressable
-              style={[styles.compareToggle, compareEnabled && styles.compareToggleActive]}
+              style={[styles.compareToggle, { borderColor: c.glass.border }, compareEnabled && { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]}
               onPress={() => setCompareEnabled((prev) => !prev)}
               accessibilityRole="button"
               accessibilityLabel="Toggle comparison"
@@ -207,16 +230,16 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
               <Ionicons
                 name={compareEnabled ? 'swap-horizontal' : 'swap-horizontal-outline'}
                 size={16}
-                color={compareEnabled ? colors.text.primary : colors.text.secondary}
+                color={compareEnabled ? c.text.primary : c.text.secondary}
               />
-              <Text style={compareEnabled ? styles.compareTextActive : styles.compareText}>
+              <Text style={compareEnabled ? [styles.compareTextActive, { color: c.text.primary }] : [styles.compareText, { color: c.text.secondary }]}>
                 {getComparisonLabel(timeframe)}
               </Text>
             </Pressable>
 
-            {!snapshotMetricKey && (
+            {!snapshotMetricKey && !isHoursMetric && (
               <GlassCard variant="medium" radius={16} padding={16} style={styles.infoCard}>
-                <Text style={styles.infoText}>Detailed breakdown is coming soon for this metric.</Text>
+                <Text style={[styles.infoText, { color: c.text.secondary }]}>Detailed breakdown is coming soon for this metric.</Text>
               </GlassCard>
             )}
 
@@ -256,55 +279,57 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
 
             {error && (
               <GlassCard variant="medium" radius={16} padding={16} style={styles.errorCard}>
-                <Text style={styles.errorText}>{error}</Text>
+                <Text style={[styles.errorText, { color: c.error.main }]}>{error}</Text>
                 <Pressable
-                  style={styles.retryButton}
+                  style={[styles.retryButton, { borderColor: c.glass.redBorder, backgroundColor: c.glass.redSurface }]}
                   onPress={handleRetry}
                   accessibilityRole="button"
                   accessibilityLabel="Retry loading progress data"
                   testID="StatsBreakdownModal_Retry"
                 >
-                  <Ionicons name="reload" size={14} color={colors.primary.main} />
-                  <Text style={styles.retryText}>Retry</Text>
+                  <Ionicons name="reload" size={14} color={c.primary.main} />
+                  <Text style={[styles.retryText, { color: c.primary.main }]}>Retry</Text>
                 </Pressable>
               </GlassCard>
             )}
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>BREAKDOWN</Text>
+              <Text style={[styles.sectionTitle, { color: c.text.tertiary }]}>BREAKDOWN</Text>
               {chartData.length ? (
                 chartData.map((value, index) => (
-                  <View key={`breakdown-${index}`} style={styles.breakdownRow}>
-                    <Text style={styles.breakdownLabel}>{chartLabels[index] || '—'}</Text>
-                    <Text style={styles.breakdownValue}>{value}</Text>
+                  <View key={`breakdown-${index}`} style={[styles.breakdownRow, { borderBottomColor: c.border.light }]}>
+                    <Text style={[styles.breakdownLabel, { color: c.text.secondary }]}>{chartLabels[index] || '—'}</Text>
+                    <Text style={[styles.breakdownValue, { color: c.text.primary }]}>{value}</Text>
                   </View>
                 ))
               ) : (
-                <Text style={styles.emptyText}>No data available for this timeframe.</Text>
+                <Text style={[styles.emptyText, { color: c.text.tertiary }]}>No data available for this timeframe.</Text>
               )}
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>SUMMARY</Text>
+              <Text style={[styles.sectionTitle, { color: c.text.tertiary }]}>SUMMARY</Text>
               <View style={styles.summaryRow}>
                 <GlassCard variant="default" radius={14} padding={14} style={styles.summaryCard}>
-                  <Text style={styles.summaryLabel}>Total</Text>
-                  <Text style={styles.summaryValue}>{Math.round(total)}</Text>
+                  <Text style={[styles.summaryLabel, { color: c.text.tertiary }]}>{isHoursMetric ? 'All Time' : 'Current'}</Text>
+                  <Text style={[styles.summaryValue, { color: c.text.primary }]}>{current}</Text>
                 </GlassCard>
                 <GlassCard variant="default" radius={14} padding={14} style={styles.summaryCard}>
-                  <Text style={styles.summaryLabel}>Avg</Text>
-                  <Text style={styles.summaryValue}>{average.toFixed(2)}</Text>
+                  <Text style={[styles.summaryLabel, { color: c.text.tertiary }]}>Change</Text>
+                  <Text style={[styles.summaryValue, { color: c.text.primary }]}>{netChange >= 0 ? `+${netChange}` : `${netChange}`}</Text>
                 </GlassCard>
                 <GlassCard variant="default" radius={14} padding={14} style={styles.summaryCard}>
-                  <Text style={styles.summaryLabel}>Peak</Text>
-                  <Text style={styles.summaryValue}>
-                    {peakValue} {peakIndex >= 0 ? `(${labels[peakIndex]})` : ''}
+                  <Text style={[styles.summaryLabel, { color: c.text.tertiary }]}>{isHoursMetric ? 'Today' : 'Peak'}</Text>
+                  <Text style={[styles.summaryValue, { color: c.text.primary }]}>
+                    {isHoursMetric
+                      ? todayHours
+                      : `${peakValue}${peakIndex >= 0 ? ` (${chartLabels[peakIndex]})` : ''}`}
                   </Text>
                 </GlassCard>
               </View>
             </View>
           </ScrollView>
-        </MotionView>
+        </View>
       </View>
     </Modal>
   );
@@ -313,7 +338,7 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: colors.overlay.dark,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 24,
@@ -323,10 +348,8 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   modalCard: {
-    backgroundColor: colors.glass.surfaceStrong,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.glass.border,
     overflow: 'hidden',
     maxHeight: '94%',
   },
@@ -348,7 +371,6 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
   },
   closeButton: {
     width: 44,
@@ -363,7 +385,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: colors.text.primary,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.6,
@@ -384,39 +405,27 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.glass.border,
     alignSelf: 'flex-start',
   },
-  compareToggleActive: {
-    backgroundColor: colors.glass.redSurface,
-    borderColor: colors.glass.redBorder,
-  },
   compareText: {
-    color: colors.text.secondary,
     fontSize: 12,
     fontWeight: '600',
   },
   compareTextActive: {
-    color: colors.text.primary,
     fontSize: 12,
     fontWeight: '700',
   },
   chartWrap: {
     alignItems: 'center',
   },
-  infoCard: {
-    backgroundColor: colors.glass.surface,
-  },
+  infoCard: {},
   infoText: {
-    color: colors.text.secondary,
     fontSize: 12,
   },
   errorCard: {
-    backgroundColor: colors.glass.surface,
     gap: 10,
   },
   errorText: {
-    color: colors.error.main,
     fontSize: 12,
   },
   retryButton: {
@@ -429,11 +438,8 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.glass.redBorder,
-    backgroundColor: colors.glass.redSurface,
   },
   retryText: {
-    color: colors.primary.main,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -441,7 +447,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionTitle: {
-    color: colors.text.tertiary,
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.6,
@@ -451,19 +456,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
   },
   breakdownLabel: {
-    color: colors.text.secondary,
     fontSize: 13,
   },
   breakdownValue: {
-    color: colors.text.primary,
     fontSize: 13,
     fontWeight: '600',
   },
   emptyText: {
-    color: colors.text.tertiary,
     fontSize: 12,
   },
   summaryRow: {
@@ -475,12 +476,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   summaryLabel: {
-    color: colors.text.tertiary,
     fontSize: 11,
     marginBottom: 4,
   },
   summaryValue: {
-    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',

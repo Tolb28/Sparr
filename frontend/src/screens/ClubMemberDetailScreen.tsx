@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,17 +15,11 @@ import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar'
 import { GlassCard } from '@/components/ui/glass-card';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { removeMember, updateMemberRole } from '../api/clubs';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 
 type RouteType = RouteProp<RootStackParamList, 'ClubMemberDetail'>;
-
-const ROLE_COLORS: Record<string, string> = {
-  owner:  '#f5c518',
-  admin:  colors.primary.main,
-  coach:  '#06b6d4',
-  member: colors.text.tertiary,
-};
 
 const ROLE_OPTIONS: { value: string; label: string; icon: any; description: string }[] = [
   { value: 'admin',  label: 'Admin',  icon: 'shield-half-outline', description: 'Can manage members and content' },
@@ -38,14 +31,23 @@ export default function ClubMemberDetailScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<RouteType>();
+  const c = useThemeColors();
   const { clubId, member } = route.params;
   const memberName = member.display_name || member.username || 'This member';
 
+  const ROLE_COLORS: Record<string, string> = {
+    owner:  '#f5c518',
+    admin:  c.primary.main,
+    coach:  '#06b6d4',
+    member: c.text.tertiary,
+  };
+
   const role = (member.role_title ?? 'member').toLowerCase();
   const isOwner = role === 'owner';
-  const roleColor = ROLE_COLORS[role] ?? colors.text.tertiary;
+  const roleColor = ROLE_COLORS[role] ?? c.text.tertiary;
 
   const [saving, setSaving] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [currentRole, setCurrentRole] = useState(role);
   const [currentRoleLabel, setCurrentRoleLabel] = useState(member.role_title ?? 'Member');
 
@@ -64,48 +66,38 @@ export default function ClubMemberDetailScreen() {
     }
   };
 
-  const handleRemove = () => {
-    Alert.alert(
-      'Remove Member',
-      `Remove ${member.display_name || member.username} from this club?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-            onPress: async () => {
-              try {
-                setSaving(true);
-                await removeMember(clubId, member.id_profiles);
-                showSuccessNotification(`${memberName} has been removed from this club.`);
-                navigation.goBack();
-              } catch (e: any) {
-                showErrorNotification(e?.message ?? 'Unable to remove member');
-              } finally {
-                setSaving(false);
-              }
-            },
-          },
-      ]
-    );
+  const handleRemove = () => setConfirmRemove(true);
+
+  const doRemove = async () => {
+    setConfirmRemove(false);
+    try {
+      setSaving(true);
+      await removeMember(clubId, member.id_profiles);
+      showSuccessNotification(`${memberName} has been removed from this club.`);
+      navigation.goBack();
+    } catch (e: any) {
+      showErrorNotification(e?.message ?? 'Unable to remove member');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const currentRoleColor = ROLE_COLORS[currentRole] ?? colors.text.tertiary;
+  const currentRoleColor = ROLE_COLORS[currentRole] ?? c.text.tertiary;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: (insets.top || 0) + 4 }]}>
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 4, borderBottomColor: c.border.light }]}>
         <Pressable
-          style={styles.iconBtn}
+          style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Back"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={c.text.primary} />
         </Pressable>
-        <Text style={styles.headerTitle}>Member Details</Text>
+        <Text style={[styles.headerTitle, { color: c.text.primary }]}>Member Details</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -122,14 +114,14 @@ export default function ClubMemberDetailScreen() {
               </Avatar>
             </TouchableOpacity>
             <View style={styles.profileInfo}>
-              <Text style={styles.displayName}>{member.display_name || member.username}</Text>
+              <Text style={[styles.displayName, { color: c.text.primary }]}>{member.display_name || member.username}</Text>
               {!!member.username && (
-                <Text style={styles.username}>@{member.username}</Text>
+                <Text style={[styles.username, { color: c.text.tertiary }]}>@{member.username}</Text>
               )}
               {!!member.location && (
                 <View style={styles.locationRow}>
-                  <Ionicons name="location-outline" size={12} color={colors.text.tertiary} />
-                  <Text style={styles.locationText}>{member.location}</Text>
+                  <Ionicons name="location-outline" size={12} color={c.text.tertiary} />
+                  <Text style={[styles.locationText, { color: c.text.tertiary }]}>{member.location}</Text>
                 </View>
               )}
               <View style={[styles.roleBadge, { borderColor: currentRoleColor + '55', backgroundColor: currentRoleColor + '18' }]}>
@@ -140,29 +132,30 @@ export default function ClubMemberDetailScreen() {
             </View>
           </View>
           <TouchableOpacity
-            style={styles.viewProfileBtn}
+            style={[styles.viewProfileBtn, { borderTopColor: c.border.light }]}
             onPress={() => navigation.navigate('ForeignProfile', { foreign_profile_id: member.id_profiles })}
           >
-            <Ionicons name="person-outline" size={15} color={colors.primary.main} />
-            <Text style={styles.viewProfileText}>View Full Profile</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.primary.main} />
+            <Ionicons name="person-outline" size={15} color={c.primary.main} />
+            <Text style={[styles.viewProfileText, { color: c.primary.main }]}>View Full Profile</Text>
+            <Ionicons name="chevron-forward" size={14} color={c.primary.main} />
           </TouchableOpacity>
         </GlassCard>
 
         {/* Role management — only for non-owners */}
         {!isOwner && (
           <GlassCard variant="medium" radius={16} padding={16}>
-            <Text style={styles.sectionTitle}>Change Role</Text>
-            <Text style={styles.sectionSub}>Select the role for this member in your club.</Text>
+            <Text style={[styles.sectionTitle, { color: c.text.primary }]}>Change Role</Text>
+            <Text style={[styles.sectionSub, { color: c.text.tertiary }]}>Select the role for this member in your club.</Text>
             <View style={{ gap: 8, marginTop: 12 }}>
               {ROLE_OPTIONS.map((opt) => {
                 const selected = currentRole === opt.value;
-                const optColor = ROLE_COLORS[opt.value] ?? colors.text.tertiary;
+                const optColor = ROLE_COLORS[opt.value] ?? c.text.tertiary;
                 return (
                   <Pressable
                     key={opt.value}
                     style={[
                       styles.roleOption,
+                      { borderColor: c.glass.border, backgroundColor: c.glass.surface },
                       selected && { borderColor: optColor, backgroundColor: optColor + '14' },
                     ]}
                     onPress={() => handleRoleChange(opt.value, opt.label)}
@@ -172,8 +165,8 @@ export default function ClubMemberDetailScreen() {
                       <Ionicons name={opt.icon} size={18} color={optColor} />
                     </View>
                     <View style={styles.roleOptionInfo}>
-                      <Text style={[styles.roleOptionLabel, selected && { color: optColor }]}>{opt.label}</Text>
-                      <Text style={styles.roleOptionDesc}>{opt.description}</Text>
+                      <Text style={[styles.roleOptionLabel, { color: c.text.primary }, selected && { color: optColor }]}>{opt.label}</Text>
+                      <Text style={[styles.roleOptionDesc, { color: c.text.tertiary }]}>{opt.description}</Text>
                     </View>
                     {selected && (
                       saving
@@ -201,38 +194,47 @@ export default function ClubMemberDetailScreen() {
           <GlassCard variant="medium" radius={14} padding={16}>
             <View style={styles.ownerNote}>
               <Ionicons name="shield-checkmark" size={20} color="#f5c518" />
-              <Text style={styles.ownerNoteText}>
+              <Text style={[styles.ownerNoteText, { color: c.text.secondary }]}>
                 This member is the club owner and cannot have their role changed or be removed.
               </Text>
             </View>
           </GlassCard>
         )}
       </ScrollView>
+      <ConfirmationModal
+        visible={confirmRemove}
+        title="Remove Member"
+        message={`Remove ${member.display_name || member.username} from this club?`}
+        confirmText="Remove"
+        destructive
+        onConfirm={doRemove}
+        onCancel={() => setConfirmRemove(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    borderBottomWidth: 1,
   },
-  headerTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  headerTitle: { fontSize: 16, fontWeight: '700' },
   iconBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
 
   profileRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
   profileInfo: { flex: 1, gap: 4 },
-  displayName: { color: colors.text.primary, fontWeight: '800', fontSize: 18 },
-  username: { color: colors.text.tertiary, fontSize: 13 },
+  displayName: { fontWeight: '800', fontSize: 18 },
+  username: { fontSize: 13 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  locationText: { color: colors.text.tertiary, fontSize: 12 },
+  locationText: { fontSize: 12 },
   roleBadge: {
     alignSelf: 'flex-start', marginTop: 6,
     paddingHorizontal: 9, paddingVertical: 3,
@@ -242,26 +244,25 @@ const styles = StyleSheet.create({
   viewProfileBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginTop: 16, paddingTop: 14,
-    borderTopWidth: 1, borderTopColor: colors.border.light,
+    borderTopWidth: 1,
   },
-  viewProfileText: { flex: 1, color: colors.primary.main, fontWeight: '600', fontSize: 14 },
+  viewProfileText: { flex: 1, fontWeight: '600', fontSize: 14 },
 
-  sectionTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },
-  sectionSub: { color: colors.text.tertiary, fontSize: 12, marginTop: 4 },
+  sectionTitle: { fontSize: 14, fontWeight: '700' },
+  sectionSub: { fontSize: 12, marginTop: 4 },
 
   roleOption: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 14, borderRadius: 12,
-    borderWidth: 1, borderColor: colors.glass.border,
-    backgroundColor: colors.glass.surface,
+    borderWidth: 1,
   },
   roleIconWrap: {
     width: 38, height: 38, borderRadius: 10,
     borderWidth: 1, alignItems: 'center', justifyContent: 'center',
   },
   roleOptionInfo: { flex: 1 },
-  roleOptionLabel: { color: colors.text.primary, fontWeight: '700', fontSize: 14 },
-  roleOptionDesc: { color: colors.text.tertiary, fontSize: 12, marginTop: 2 },
+  roleOptionLabel: { fontWeight: '700', fontSize: 14 },
+  roleOptionDesc: { fontSize: 12, marginTop: 2 },
 
   removeBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -270,5 +271,5 @@ const styles = StyleSheet.create({
   removeBtnText: { color: '#ef4444', fontWeight: '700', fontSize: 15 },
 
   ownerNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  ownerNoteText: { flex: 1, color: colors.text.secondary, fontSize: 13, lineHeight: 19 },
+  ownerNoteText: { flex: 1, fontSize: 13, lineHeight: 19 },
 });

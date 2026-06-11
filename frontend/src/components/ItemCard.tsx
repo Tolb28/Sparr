@@ -5,7 +5,7 @@ import { Text } from '@/components/ui/text';
 import { Pressable } from '@/components/ui/pressable';
 import { VStack } from '@/components/ui/vstack';
 import { ServerIP } from '../api/tokenHandler';
-import { colors } from '../theme';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { DifficultyBadge, DifficultyLevel } from './DifficultyBadge';
 import { FavoriteButton } from './FavoriteButton';
 import { ContentTypeIndicator } from './ContentTypeIndicator';
@@ -33,6 +33,7 @@ export default function ItemCard({
   onPress,
   onFavoriteToggle,
 }: ItemCardProps) {
+  const c = useThemeColors();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -71,25 +72,19 @@ export default function ItemCard({
 
   return (
     <Pressable onPress={onPress} className="flex-1 m-2 min-w-[45%]">
-      <Box className="rounded-xl overflow-hidden border border-[#3a1d1d]" style={{ backgroundColor: '#341818' }}>
+      <Box className="rounded-xl overflow-hidden border" style={{ backgroundColor: c.background.tertiary, borderColor: c.border.light }}>
         {/* Image Container - Smaller */}
-        <View className="w-full aspect-video items-center justify-center relative" style={{ backgroundColor: '#2a1414' }}>
+        <View className="w-full aspect-video items-center justify-center relative" style={{ backgroundColor: c.background.card }}>
           {imageUri ? (
             <Image
               source={{ uri: imageUri }}
               className="w-full h-full"
               resizeMode="cover"
-              onError={(error) => {
-                console.error(`Image failed to load for ${itemType}/${itemId}:`, error);
-                setImageUri(null);
-              }}
-              onLoad={() => {
-                console.log(`Image loaded successfully for ${itemType}/${itemId}`);
-              }}
+              onError={() => setImageUri(null)}
             />
           ) : (
-            <View className="w-full h-full items-center justify-center" style={{ backgroundColor: '#3a1d1d' }}>
-              <Text className="text-xs text-center px-2" style={{ color: '#cb9090' }}>
+            <View className="w-full h-full items-center justify-center" style={{ backgroundColor: c.border.light }}>
+              <Text className="text-xs text-center px-2" style={{ color: c.text.secondary }}>
                 {loading ? 'Loading...' : 'No Image'}
               </Text>
             </View>
@@ -116,7 +111,7 @@ export default function ItemCard({
           <Text
             className="font-bold text-base"
             numberOfLines={2}
-            style={{ color: '#ffffff' }}
+            style={{ color: c.text.primary }}
           >
             {title}
           </Text>
