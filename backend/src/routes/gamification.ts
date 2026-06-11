@@ -6,6 +6,7 @@ import {
   getChallengeDetailsController,
   getHoursBreakdownController,
   getSessionsBreakdownController,
+  getStreakBreakdownController,
   listChallengesController,
   getProfileBadgesController,
   getProfileProgressController,
@@ -22,6 +23,7 @@ router.get('/profiles/:profileId/badges', authenticate, getProfileBadgesControll
 router.get('/profiles/:profileId/progress', authenticate, getProfileProgressController);
 router.get('/profiles/:profileId/hours-breakdown', authenticate, getHoursBreakdownController);
 router.get('/profiles/:profileId/sessions-breakdown', authenticate, getSessionsBreakdownController);
+router.get('/profiles/:profileId/streak-breakdown', authenticate, getStreakBreakdownController);
 router.post('/recalculate/:profileId', authenticate, recalculateProfileController);
 router.post('/complete', authenticate, logWorkoutCompletionController);
 router.get('/challenges', authenticate, listChallengesController);

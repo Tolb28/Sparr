@@ -204,6 +204,25 @@ export async function fetchSessionsBreakdown(
   return (response as any)?.breakdown ?? [];
 }
 
+export interface StreakBreakdownEntry {
+  date: string;
+  streak: number;
+}
+
+export async function fetchStreakBreakdown(
+  profileId: string,
+  timeframe: ProgressTimeframe
+): Promise<StreakBreakdownEntry[]> {
+  const response = await fetchWithRetry(
+    `${ServerIP}/auth/gamification/profiles/${profileId}/streak-breakdown?range=${timeframe}`,
+    {
+      method: 'GET',
+      headers: await buildAuthHeaders({ 'Content-Type': 'application/json' }),
+    }
+  );
+  return (response as any)?.breakdown ?? [];
+}
+
 export interface DailySeriesPoint {
   /** ISO date (YYYY-MM-DD) for daily buckets, or YYYY-MM for monthly buckets. */
   key: string;

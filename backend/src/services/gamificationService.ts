@@ -344,7 +344,12 @@ export async function getProfileProgress(profileId: number, range: ProgressRange
     total_hours: Math.round(Number(thRows[0]?.total_seconds ?? 0) / 360) / 10,
   };
 
-  const baseQuery = `SELECT snapshot_date,
+  // Return snapshot_date as plain YYYY-MM-DD text. Selecting the raw DATE column makes
+  // pg hand back a JS Date that JSON-serializes to a UTC timestamp ("...T22:00:00.000Z"),
+  // which the frontend's date parser (expects YYYY-MM-DD) drops — zeroing every
+  // snapshot-based chart (e.g. score). Matches the ::text convention used by the
+  // hours/sessions/streak breakdown endpoints.
+  const baseQuery = `SELECT snapshot_date::text AS snapshot_date,
                             workouts_completed,
                             club_sessions,
                             streak_days,
@@ -418,4 +423,46 @@ export async function getSessionsBreakdown(
   );
 
   return rows.map((r) => ({ date: r.date, count: Number(r.count) }));
+}
+
+/**
+ * Per-day running streak for the selected range: for each training day, how many
+ * consecutive training days the streak had reached *as of that day* (Mon=1, Tue=2, …).
+ *
+ * Computed straight from `workout_completions` via the classic gaps-and-islands trick:
+ * consecutive dates share `d - row_number()`, so a day's position within its island is
+ * the running streak length. Islands are computed over all history first, then filtered
+ * to the window — so a streak that began before the window still counts correctly at the
+ * window's edge. Non-training days simply have no row and are zero-filled by the client.
+ */
+export async function getStreakBreakdown(
+  profileId: number,
+  range: ProgressRange
+): Promise<{ date: string; streak: number }[]> {
+  const rangeMap: Record<ProgressRange, number> = { week: 7, month: 30, year: 365, lifetime: 3650 };
+  const days = rangeMap[range] ?? 7;
+
+  const { rows } = await pool.query<{ date: string; streak: number }>(
+    `WITH daily AS (
+       SELECT DISTINCT completed_at::date AS d
+       FROM workout_completions
+       WHERE profile_id = $1
+     ),
+     numbered AS (
+       SELECT d, d - (ROW_NUMBER() OVER (ORDER BY d))::int AS grp
+       FROM daily
+     ),
+     running AS (
+       SELECT d, (d - MIN(d) OVER (PARTITION BY grp))::int + 1 AS streak
+       FROM numbered
+     )
+     SELECT d::text AS date, streak
+     FROM running
+     WHERE d >= CURRENT_DATE - ($2::int - 1)
+       AND d <  CURRENT_DATE + 1
+     ORDER BY d ASC`,
+    [profileId, days]
+  );
+
+  return rows.map((r) => ({ date: r.date, streak: Number(r.streak) }));
 }

@@ -18,9 +18,11 @@ import {
   buildDailySeries,
   fetchHoursBreakdown,
   fetchSessionsBreakdown,
+  fetchStreakBreakdown,
   type DailySeriesPoint,
   type HoursBreakdownEntry,
   type SessionsBreakdownEntry,
+  type StreakBreakdownEntry,
 } from '@/src/api/progress';
 import { getActiveProfileId } from '@/src/api/profileHandler';
 import { BarChart } from './charts/BarChart';
@@ -92,8 +94,11 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
   const [sessionsBreakdown, setSessionsBreakdown] = useState<SessionsBreakdownEntry[]>([]);
   const [prevSessionsBreakdown, setPrevSessionsBreakdown] = useState<SessionsBreakdownEntry[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [streakBreakdown, setStreakBreakdown] = useState<StreakBreakdownEntry[]>([]);
+  const [streakLoading, setStreakLoading] = useState(false);
   const isHoursMetric = metricKey === 'total_hours';
   const isSessionsMetric = metricKey === 'workouts_completed';
+  const isStreakMetric = metricKey === 'streak_days';
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -151,6 +156,20 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
     });
   }, [isSessionsMetric, compareEnabled, timeframe]);
 
+  // Fetch the per-day running streak (Mon=1, Tue=2, …) fresh each time, straight from the
+  // dedicated endpoint — bypasses the snapshot path and its in-memory progress cache.
+  useEffect(() => {
+    if (!isStreakMetric || !isVisible) return;
+    setStreakLoading(true);
+    getActiveProfileId().then((pid) => {
+      if (!pid) { setStreakLoading(false); return; }
+      fetchStreakBreakdown(String(pid), timeframe)
+        .then(setStreakBreakdown)
+        .catch(() => setStreakBreakdown([]))
+        .finally(() => setStreakLoading(false));
+    });
+  }, [isStreakMetric, isVisible, timeframe]);
+
   const snapshotMetricKey = isSnapshotMetricKey(metricKey) ? metricKey : null;
 
   // Build a continuous, zero-filled series for the selected timeframe so the chart and
@@ -163,6 +182,11 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
     if (isHoursMetric) {
       return buildDailySeries(timeframe, hoursBreakdown, (e) => e.date, (e) => e.hours, 'sum');
     }
+    if (isStreakMetric) {
+      // 'last': the streak value is a running level, not additive; non-training days
+      // have no entry and are zero-filled.
+      return buildDailySeries(timeframe, streakBreakdown, (e) => e.date, (e) => e.streak, 'last');
+    }
     if (snapshotMetricKey) {
       return buildDailySeries(
         timeframe,
@@ -173,7 +197,7 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
       );
     }
     return [];
-  }, [isSessionsMetric, isHoursMetric, snapshotMetricKey, timeframe, sessionsBreakdown, hoursBreakdown, snapshots]);
+  }, [isSessionsMetric, isHoursMetric, isStreakMetric, snapshotMetricKey, timeframe, sessionsBreakdown, hoursBreakdown, streakBreakdown, snapshots]);
 
   const chartData = useMemo(() => series.map((p) => p.value), [series]);
   const chartLabels = useMemo(() => series.map((p) => p.label), [series]);
@@ -233,7 +257,7 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
   const chartHeight = isSmallScreen ? 200 : 240;
   const chartPadding = isSmallScreen ? 32 : 40;
 
-  const isChartLoading = isSessionsMetric ? sessionsLoading : isHoursMetric ? hoursLoading : loading;
+  const isChartLoading = isSessionsMetric ? sessionsLoading : isHoursMetric ? hoursLoading : isStreakMetric ? streakLoading : loading;
   const hasChartData = chartData.length > 0 && chartLabels.length > 0;
   const emptyMessage = (snapshotMetricKey || isHoursMetric || isSessionsMetric)
     ? 'No data available for this timeframe.'
