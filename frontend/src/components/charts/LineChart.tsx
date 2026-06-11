@@ -28,6 +28,8 @@ interface LineChartProps {
   gridColor?: string;
   isLoading?: boolean;
   emptyMessage?: string;
+  compareData?: number[];
+  compareColor?: string;
 }
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -79,18 +81,38 @@ const LineChartBase: React.FC<LineChartProps> = ({
   gridColor,
   isLoading = false,
   emptyMessage,
+  compareData,
+  compareColor,
 }) => {
   const c = useThemeColors();
   const resolvedColor = color ?? c.primary.main;
+  const resolvedCompareColor = compareColor ?? c.text.tertiary;
   const resolvedGridColor = gridColor ?? c.border.light;
   const safeData = useMemo(() => data.map((val) => (Number.isFinite(val) ? val : 0)), [data]);
-  const maxValue = useMemo(() => (safeData.length ? Math.max(...safeData) : 0), [safeData]);
+  const safeCompareData = useMemo(
+    () => compareData?.map((val) => (Number.isFinite(val) ? val : 0)),
+    [compareData]
+  );
+  // Normalize both series against the same max so they share the same y-axis scale.
+  const maxValue = useMemo(() => {
+    const primary = safeData.length ? Math.max(...safeData) : 0;
+    const compare = safeCompareData?.length ? Math.max(...safeCompareData) : 0;
+    return Math.max(primary, compare);
+  }, [safeData, safeCompareData]);
   const normalized = useMemo(() => normalizeData(safeData, 0, maxValue), [safeData, maxValue]);
+  const normalizedCompare = useMemo(
+    () => (safeCompareData ? normalizeData(safeCompareData, 0, maxValue) : null),
+    [safeCompareData, maxValue]
+  );
   const points = useMemo(
     () => generateDataPoints(normalized, labels, width, height, padding),
     [normalized, labels, width, height, padding]
   );
   const path = useMemo(() => generateLinePath(normalized, width, height, padding), [normalized, width, height, padding]);
+  const comparePath = useMemo(
+    () => (normalizedCompare ? generateLinePath(normalizedCompare, width, height, padding) : null),
+    [normalizedCompare, width, height, padding]
+  );
   const gridLines = useMemo(
     () => (showGrid ? generateGridLines(maxValue, 5) : []),
     [maxValue, showGrid]
@@ -106,6 +128,7 @@ const LineChartBase: React.FC<LineChartProps> = ({
   const gridMax = gridLines.length ? gridLines[gridLines.length - 1]?.y ?? maxValue : maxValue;
 
   const pathProgress = animatePathStroke(animateDuration);
+  const compareProgress = animatePathStroke(animateDuration);
   const activeIndex = useSharedValue(-1);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; value: number; label: string } | null>(null);
 
@@ -119,8 +142,17 @@ const LineChartBase: React.FC<LineChartProps> = ({
     pathProgress.value = withTiming(1, { duration: animateDuration, easing: Easing.out(Easing.cubic) });
   }, [animateDuration, path, pathProgress]);
 
+  useEffect(() => {
+    compareProgress.value = 0;
+    compareProgress.value = withTiming(1, { duration: animateDuration, easing: Easing.out(Easing.cubic) });
+  }, [animateDuration, comparePath, compareProgress]);
+
   const animatedPathProps = useAnimatedProps(() => ({
     strokeDashoffset: 1 - pathProgress.value,
+  }));
+
+  const animatedComparePathProps = useAnimatedProps(() => ({
+    strokeDashoffset: 1 - compareProgress.value,
   }));
 
   const handlePointPress = (index: number) => {
@@ -166,6 +198,19 @@ const LineChartBase: React.FC<LineChartProps> = ({
             </React.Fragment>
           );
         })}
+
+        {comparePath && (
+          <AnimatedPath
+            d={comparePath}
+            stroke={resolvedCompareColor}
+            strokeWidth={1.5}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray="4 3"
+            opacity={0.55}
+            animatedProps={animatedComparePathProps}
+          />
+        )}
 
         {path && (
           <AnimatedPath
