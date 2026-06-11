@@ -181,6 +181,29 @@ export async function fetchHoursBreakdown(
   return (response as any)?.breakdown ?? [];
 }
 
+export interface SessionsBreakdownEntry {
+  date: string;
+  count: number;
+}
+
+const offsetMap: Record<ProgressTimeframe, number> = { week: 7, month: 30, year: 365, lifetime: 3650 };
+
+export async function fetchSessionsBreakdown(
+  profileId: string,
+  timeframe: ProgressTimeframe,
+  compare = false
+): Promise<SessionsBreakdownEntry[]> {
+  const offset = compare ? (offsetMap[timeframe] ?? 7) : 0;
+  const response = await fetchWithRetry(
+    `${ServerIP}/auth/gamification/profiles/${profileId}/sessions-breakdown?range=${timeframe}&offset=${offset}`,
+    {
+      method: 'GET',
+      headers: await buildAuthHeaders({ 'Content-Type': 'application/json' }),
+    }
+  );
+  return (response as any)?.breakdown ?? [];
+}
+
 export function aggregateMetrics(snapshots: Snapshot[]): ProgressMetrics {
   if (!snapshots.length) return { ...metricDefaults };
 

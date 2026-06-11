@@ -4,6 +4,7 @@ import {
   getProfileBadges,
   getProfileIdForUser,
   getHoursBreakdown,
+  getSessionsBreakdown,
   logWorkoutCompletion,
   recalculateProfileGamification,
 } from '../services/gamificationService';
@@ -146,6 +147,29 @@ export const getHoursBreakdownController = async (req: Request, res: Response) =
       : 'month';
 
     const breakdown = await getHoursBreakdown(profileId, range);
+    res.json({ range, breakdown });
+  } catch (error) {
+    handleError(error, res);
+  }
+};
+
+export const getSessionsBreakdownController = async (req: Request, res: Response) => {
+  try {
+    const profileId = validateProfileIdParam(req);
+    // @ts-ignore
+    const userId = req.userId;
+    if (!userId) {
+      throw createError(401, 'Unauthorized', 'UNAUTHORIZED');
+    }
+
+    const validRanges = ['week', 'month', 'year', 'lifetime'];
+    const range = validRanges.includes(req.query.range as string)
+      ? (req.query.range as 'week' | 'month' | 'year' | 'lifetime')
+      : 'week';
+    const rawOffset = Number(req.query.offset ?? 0);
+    const offsetDays = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+
+    const breakdown = await getSessionsBreakdown(profileId, range, offsetDays);
     res.json({ range, breakdown });
   } catch (error) {
     handleError(error, res);

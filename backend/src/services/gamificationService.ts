@@ -367,3 +367,26 @@ export async function getHoursBreakdown(
     hours: Math.round((Number(r.total_seconds) / 3600) * 10) / 10,
   }));
 }
+
+export async function getSessionsBreakdown(
+  profileId: number,
+  range: ProgressRange,
+  offsetDays = 0
+): Promise<{ date: string; count: number }[]> {
+  const rangeMap: Record<ProgressRange, number> = { week: 7, month: 30, year: 365, lifetime: 3650 };
+  const days = rangeMap[range] ?? 7;
+
+  const { rows } = await pool.query<{ date: string; count: string }>(
+    `SELECT DATE(completed_at)::text AS date,
+            COUNT(*)::int AS count
+       FROM workout_completions
+      WHERE profile_id = $1
+        AND completed_at >= NOW() - (($2 + $3) || ' days')::interval
+        AND completed_at <  NOW() - ($3 || ' days')::interval
+      GROUP BY DATE(completed_at)
+      ORDER BY DATE(completed_at) ASC`,
+    [profileId, days, offsetDays]
+  );
+
+  return rows.map((r) => ({ date: r.date, count: Number(r.count) }));
+}

@@ -14,7 +14,12 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { useProgress } from '@/src/context/ProgressContext';
 import type { ProgressTimeframe, Snapshot } from '@/src/api/progress';
-import { fetchHoursBreakdown, type HoursBreakdownEntry } from '@/src/api/progress';
+import {
+  fetchHoursBreakdown,
+  fetchSessionsBreakdown,
+  type HoursBreakdownEntry,
+  type SessionsBreakdownEntry,
+} from '@/src/api/progress';
 import { getActiveProfileId } from '@/src/api/profileHandler';
 import { BarChart } from './charts/BarChart';
 import { LineChart } from './charts/LineChart';
@@ -87,7 +92,11 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
   const [rendered, setRendered] = useState(isVisible);
   const [hoursBreakdown, setHoursBreakdown] = useState<HoursBreakdownEntry[]>([]);
   const [hoursLoading, setHoursLoading] = useState(false);
+  const [sessionsBreakdown, setSessionsBreakdown] = useState<SessionsBreakdownEntry[]>([]);
+  const [prevSessionsBreakdown, setPrevSessionsBreakdown] = useState<SessionsBreakdownEntry[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
   const isHoursMetric = metricKey === 'total_hours';
+  const isSessionsMetric = metricKey === 'workouts_completed';
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -118,23 +127,64 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
     });
   }, [isHoursMetric, isVisible, timeframe]);
 
+  // Fetch current-period sessions breakdown for workouts_completed
+  useEffect(() => {
+    if (!isSessionsMetric || !isVisible) return;
+    setSessionsLoading(true);
+    getActiveProfileId().then((pid) => {
+      if (!pid) { setSessionsLoading(false); return; }
+      fetchSessionsBreakdown(String(pid), timeframe, false)
+        .then(setSessionsBreakdown)
+        .catch(() => setSessionsBreakdown([]))
+        .finally(() => setSessionsLoading(false));
+    });
+  }, [isSessionsMetric, isVisible, timeframe]);
+
+  // Fetch previous-period sessions breakdown when compare toggle is turned on
+  useEffect(() => {
+    if (!isSessionsMetric || !compareEnabled) {
+      setPrevSessionsBreakdown([]);
+      return;
+    }
+    getActiveProfileId().then((pid) => {
+      if (!pid) return;
+      fetchSessionsBreakdown(String(pid), timeframe, true)
+        .then(setPrevSessionsBreakdown)
+        .catch(() => setPrevSessionsBreakdown([]));
+    });
+  }, [isSessionsMetric, compareEnabled, timeframe]);
+
   const snapshotMetricKey = isSnapshotMetricKey(metricKey) ? metricKey : null;
   const data = useMemo(
-    () => (snapshotMetricKey
+    () => (snapshotMetricKey && !isSessionsMetric
       ? snapshots.map((snapshot) => Number(snapshot[snapshotMetricKey] ?? 0))
       : []),
-    [snapshotMetricKey, snapshots]
+    [snapshotMetricKey, isSessionsMetric, snapshots]
   );
   const labels = useMemo(
     () => snapshots.map((snapshot) => formatSnapshotLabel(snapshot.snapshot_date, timeframe)),
     [snapshots, timeframe]
   );
-  const chartData = isHoursMetric
-    ? hoursBreakdown.map((e) => e.hours)
-    : data;
-  const chartLabels = isHoursMetric
-    ? hoursBreakdown.map((e) => formatSnapshotLabel(e.date, timeframe))
-    : snapshotMetricKey ? labels : [];
+
+  // For workouts_completed: use per-day counts from sessions breakdown (not cumulative snapshots)
+  const chartData = isSessionsMetric
+    ? sessionsBreakdown.map((e) => e.count)
+    : isHoursMetric
+      ? hoursBreakdown.map((e) => e.hours)
+      : data;
+  const chartLabels = isSessionsMetric
+    ? sessionsBreakdown.map((e) => formatSnapshotLabel(e.date, timeframe))
+    : isHoursMetric
+      ? hoursBreakdown.map((e) => formatSnapshotLabel(e.date, timeframe))
+      : snapshotMetricKey ? labels : [];
+  const compareChartData = compareEnabled && isSessionsMetric && prevSessionsBreakdown.length > 0
+    ? prevSessionsBreakdown.map((e) => e.count)
+    : undefined;
+
+  const prevTotal = useMemo(
+    () => prevSessionsBreakdown.reduce((sum, e) => sum + e.count, 0),
+    [prevSessionsBreakdown]
+  );
 
   // Use the authoritative per-timeframe metric value (same as the card), not a sum of
   // cumulative snapshots (which would multiply-count a running total).
@@ -142,18 +192,22 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
   // so we surface it as "All Time" rather than pretending it's scoped to the selected period.
   const current = isHoursMetric
     ? Math.round((metrics?.total_hours ?? 0) * 10) / 10
-    : (snapshotMetricKey && metrics
-        ? Number(metrics[snapshotMetricKey as keyof typeof metrics] ?? 0)
-        : 0);
+    : isSessionsMetric
+      ? (metrics?.workouts_completed ?? 0)
+      : (snapshotMetricKey && metrics
+          ? Number(metrics[snapshotMetricKey as keyof typeof metrics] ?? 0)
+          : 0);
   const peakValue = useMemo(() => (chartData.length ? Math.max(...chartData) : 0), [chartData]);
   const peakIndex = useMemo(
     () => chartData.findIndex((value) => value === peakValue),
     [chartData, peakValue]
   );
-  const netChange = useMemo(
-    () => chartData.length >= 2 ? chartData[chartData.length - 1] - chartData[0] : 0,
-    [chartData]
-  );
+  const netChange = useMemo(() => {
+    if (isSessionsMetric && compareEnabled) {
+      return current - prevTotal;
+    }
+    return chartData.length >= 2 ? chartData[chartData.length - 1] - chartData[0] : 0;
+  }, [isSessionsMetric, compareEnabled, current, prevTotal, chartData]);
   const todayHours = useMemo(() => {
     if (!isHoursMetric) return null;
     const todayStr = new Date().toISOString().split('T')[0];
@@ -167,14 +221,17 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
   const chartHeight = isSmallScreen ? 200 : 240;
   const chartPadding = isSmallScreen ? 32 : 40;
 
-  const isChartLoading = isHoursMetric ? hoursLoading : loading;
+  const isChartLoading = isSessionsMetric ? sessionsLoading : isHoursMetric ? hoursLoading : loading;
   const hasChartData = chartData.length > 0 && chartLabels.length > 0;
-  const emptyMessage = (snapshotMetricKey || isHoursMetric)
+  const emptyMessage = (snapshotMetricKey || isHoursMetric || isSessionsMetric)
     ? 'No data available for this timeframe.'
     : 'Detailed breakdown is coming soon for this metric.';
   const handleRetry = () => {
     refresh(true).catch(() => {});
   };
+
+  // Only show the compare toggle for metrics that have breakdown support
+  const showCompareToggle = isSessionsMetric;
 
   return (
     <Modal
@@ -219,25 +276,27 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
             ]}
             showsVerticalScrollIndicator={false}
           >
-            <Pressable
-              style={[styles.compareToggle, { borderColor: c.glass.border }, compareEnabled && { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]}
-              onPress={() => setCompareEnabled((prev) => !prev)}
-              accessibilityRole="button"
-              accessibilityLabel="Toggle comparison"
-              accessibilityState={{ selected: compareEnabled }}
-              testID="StatsBreakdownModal_CompareToggle"
-            >
-              <Ionicons
-                name={compareEnabled ? 'swap-horizontal' : 'swap-horizontal-outline'}
-                size={16}
-                color={compareEnabled ? c.text.primary : c.text.secondary}
-              />
-              <Text style={compareEnabled ? [styles.compareTextActive, { color: c.text.primary }] : [styles.compareText, { color: c.text.secondary }]}>
-                {getComparisonLabel(timeframe)}
-              </Text>
-            </Pressable>
+            {showCompareToggle && (
+              <Pressable
+                style={[styles.compareToggle, { borderColor: c.glass.border }, compareEnabled && { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]}
+                onPress={() => setCompareEnabled((prev) => !prev)}
+                accessibilityRole="button"
+                accessibilityLabel="Toggle comparison"
+                accessibilityState={{ selected: compareEnabled }}
+                testID="StatsBreakdownModal_CompareToggle"
+              >
+                <Ionicons
+                  name={compareEnabled ? 'swap-horizontal' : 'swap-horizontal-outline'}
+                  size={16}
+                  color={compareEnabled ? c.text.primary : c.text.secondary}
+                />
+                <Text style={compareEnabled ? [styles.compareTextActive, { color: c.text.primary }] : [styles.compareText, { color: c.text.secondary }]}>
+                  {getComparisonLabel(timeframe)}
+                </Text>
+              </Pressable>
+            )}
 
-            {!snapshotMetricKey && !isHoursMetric && (
+            {!snapshotMetricKey && !isHoursMetric && !isSessionsMetric && (
               <GlassCard variant="medium" radius={16} padding={16} style={styles.infoCard}>
                 <Text style={[styles.infoText, { color: c.text.secondary }]}>Detailed breakdown is coming soon for this metric.</Text>
               </GlassCard>
@@ -266,6 +325,7 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
                 <LineChart
                   data={chartData}
                   labels={chartLabels}
+                  compareData={compareChartData}
                   width={chartWidth}
                   height={chartHeight}
                   padding={chartPadding}
@@ -311,11 +371,13 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
               <Text style={[styles.sectionTitle, { color: c.text.tertiary }]}>SUMMARY</Text>
               <View style={styles.summaryRow}>
                 <GlassCard variant="default" radius={14} padding={14} style={styles.summaryCard}>
-                  <Text style={[styles.summaryLabel, { color: c.text.tertiary }]}>{isHoursMetric ? 'All Time' : 'Current'}</Text>
+                  <Text style={[styles.summaryLabel, { color: c.text.tertiary }]}>{isHoursMetric ? 'All Time' : 'Total'}</Text>
                   <Text style={[styles.summaryValue, { color: c.text.primary }]}>{current}</Text>
                 </GlassCard>
                 <GlassCard variant="default" radius={14} padding={14} style={styles.summaryCard}>
-                  <Text style={[styles.summaryLabel, { color: c.text.tertiary }]}>Change</Text>
+                  <Text style={[styles.summaryLabel, { color: c.text.tertiary }]}>
+                    {isSessionsMetric && compareEnabled ? 'vs Last' : 'Change'}
+                  </Text>
                   <Text style={[styles.summaryValue, { color: c.text.primary }]}>{netChange >= 0 ? `+${netChange}` : `${netChange}`}</Text>
                 </GlassCard>
                 <GlassCard variant="default" radius={14} padding={14} style={styles.summaryCard}>
