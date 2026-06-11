@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
 import { Text } from '@/components/ui/text';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { generateGridLines, normalizeData } from './ChartUtils';
 
 interface BarChartProps {
@@ -94,7 +94,7 @@ const BarChartBase: React.FC<BarChartProps> = ({
   width = 320,
   height = 200,
   padding = 40,
-  barColor = colors.primary.main,
+  barColor,
   barRadius = 4,
   animateDuration = 800,
   showValues = false,
@@ -103,6 +103,8 @@ const BarChartBase: React.FC<BarChartProps> = ({
   isLoading = false,
   emptyMessage,
 }) => {
+  const c = useThemeColors();
+  const resolvedBarColor = barColor ?? c.primary.main;
   const safeData = useMemo(() => data.map((val) => (Number.isFinite(val) ? val : 0)), [data]);
   const maxValue = useMemo(() => (safeData.length ? Math.max(...safeData) : 0), [safeData]);
   const normalized = useMemo(() => normalizeData(safeData, 0, maxValue), [safeData, maxValue]);
@@ -143,7 +145,7 @@ const BarChartBase: React.FC<BarChartProps> = ({
 
   if (isLoading) {
     return (
-      <View style={[styles.placeholder, { width, height }]}>
+      <View style={[styles.placeholder, { width, height, backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
         <SkeletonLoader width={width - 32} height={12} borderRadius={6} />
         <SkeletonLoader width={width - 48} height={12} borderRadius={6} style={styles.placeholderGap} />
         <SkeletonLoader width={width - 24} height={12} borderRadius={6} style={styles.placeholderGap} />
@@ -153,8 +155,8 @@ const BarChartBase: React.FC<BarChartProps> = ({
 
   if (!data.length || !labels.length) {
     return (
-      <View style={[styles.emptyState, { width, height }]}>
-        <Text style={styles.emptyText}>{emptyMessage ?? 'No data available for this timeframe.'}</Text>
+      <View style={[styles.emptyState, { width, height, backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+        <Text style={[styles.emptyText, { color: c.text.tertiary }]}>{emptyMessage ?? 'No data available for this timeframe.'}</Text>
       </View>
     );
   }
@@ -176,8 +178,8 @@ const BarChartBase: React.FC<BarChartProps> = ({
           const y = padding + chartHeight - (gridMax ? (line.y / gridMax) * chartHeight : 0);
           return (
             <React.Fragment key={`grid-${index}`}>
-              <Line x1={padding} x2={width - padding} y1={y} y2={y} stroke={colors.border.light} strokeWidth={1} opacity={0.35} />
-              <SvgText x={padding - 8} y={y + 4} fontSize={10} fill={colors.text.tertiary} textAnchor="end">
+              <Line x1={padding} x2={width - padding} y1={y} y2={y} stroke={c.border.light} strokeWidth={1} opacity={0.35} />
+              <SvgText x={padding - 8} y={y + 4} fontSize={10} fill={c.text.tertiary} textAnchor="end">
                 {line.label}
               </SvgText>
             </React.Fragment>
@@ -197,7 +199,7 @@ const BarChartBase: React.FC<BarChartProps> = ({
                 baseHeight={baseHeight}
                 bottomY={padding + chartHeight}
                 radius={barRadius}
-                color={barColor}
+                color={resolvedBarColor}
                 animation={animation}
                 activeIndex={activeIndex}
                 onPress={handleBarPress}
@@ -207,7 +209,7 @@ const BarChartBase: React.FC<BarChartProps> = ({
                   x={x + barWidth / 2}
                   y={padding + chartHeight - baseHeight - 8}
                   fontSize={10}
-                  fill={colors.text.secondary}
+                  fill={c.text.secondary}
                   textAnchor="middle"
                 >
                   {safeData[index]?.toString() ?? '0'}
@@ -218,7 +220,7 @@ const BarChartBase: React.FC<BarChartProps> = ({
                   x={x + barWidth / 2}
                   y={height - padding + 18}
                   fontSize={10}
-                  fill={colors.text.tertiary}
+                  fill={c.text.tertiary}
                   textAnchor="middle"
                 >
                   {labels[index] ?? ''}
@@ -239,12 +241,12 @@ const BarChartBase: React.FC<BarChartProps> = ({
             },
           ]}
         >
-          <View style={styles.tooltipBubble}>
+          <View style={[styles.tooltipBubble, { backgroundColor: c.secondary.light, borderColor: c.glass.border }]}>
             <View style={styles.tooltipRow}>
-              <View style={[styles.tooltipDot, { backgroundColor: barColor }]} />
+              <View style={[styles.tooltipDot, { backgroundColor: resolvedBarColor }]} />
               <View>
-                <Text style={styles.tooltipLabel}>{tooltip.label}</Text>
-                <Text style={styles.tooltipValue}>{tooltip.value}</Text>
+                <Text style={[styles.tooltipLabel, { color: c.text.tertiary }]}>{tooltip.label}</Text>
+                <Text style={[styles.tooltipValue, { color: c.text.primary }]}>{tooltip.value}</Text>
               </View>
             </View>
           </View>
@@ -259,10 +261,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: colors.glass.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.glass.border,
   },
   placeholderGap: {
     marginTop: 6,
@@ -271,13 +271,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: colors.glass.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: colors.glass.border,
   },
   emptyText: {
-    color: colors.text.tertiary,
     fontSize: 12,
   },
   tooltip: {
@@ -285,12 +282,10 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   tooltipBubble: {
-    backgroundColor: colors.secondary.light,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.glass.border,
   },
   tooltipRow: {
     flexDirection: 'row',
@@ -298,12 +293,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tooltipLabel: {
-    color: colors.text.tertiary,
     fontSize: 10,
     marginBottom: 2,
   },
   tooltipValue: {
-    color: colors.text.primary,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -311,7 +304,6 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.primary.main,
   },
 });
 

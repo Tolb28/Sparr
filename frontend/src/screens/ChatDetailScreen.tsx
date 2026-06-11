@@ -8,7 +8,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { Text } from '@/components/ui/text';
@@ -19,7 +18,8 @@ import { getProfile } from '../api/profileHandler';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/ui/empty-state';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 
 
 // Helper: format date for separator
@@ -50,6 +50,7 @@ function buildMessageItems(messages: Message[]): Array<Message | { type: 'date';
 }
 
 export default function ChatDetailScreen() {
+  const c = useThemeColors();
   const route = useRoute<RouteProp<any, 'ChatDetail'>>();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -62,6 +63,7 @@ export default function ChatDetailScreen() {
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [displayName, setDisplayName] = useState(otherParticipantName || 'Chat');
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [msgOptionsTarget, setMsgOptionsTarget] = useState<Message | null>(null);
   const [conversationDetail, setConversationDetail] = useState<Conversation | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -145,16 +147,7 @@ export default function ChatDetailScreen() {
     if (sending) return; // don't allow a new edit while one is in flight
     const senderId = typeof msg.id_sender === 'number' ? msg.id_sender : parseInt(msg.id_sender as any, 10);
     if (currentUserId === null || senderId !== currentUserId) return;
-    Alert.alert('Message Options', undefined, [
-      {
-        text: 'Edit',
-        onPress: () => {
-          setEditingMessage(msg);
-          setMessageText(msg.content);
-        },
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    setMsgOptionsTarget(msg);
   };
 
   const handleSendMessage = async () => {
@@ -196,37 +189,38 @@ export default function ChatDetailScreen() {
 
   if (!conversationId) {
     return (
-      <View style={[styles.root, styles.center]}>
-        <Text style={styles.errorText}>Invalid conversation</Text>
+      <View style={[styles.root, styles.center, { backgroundColor: c.background.secondary }]}>
+        <Text style={[styles.errorText, { color: c.text.primary }]}>Invalid conversation</Text>
       </View>
     );
   }
 
   if (loading) {
     return (
-      <View style={[styles.root, styles.center]}>
-        <ActivityIndicator size="large" color={colors.primary.main} />
+      <View style={[styles.root, styles.center, { backgroundColor: c.background.secondary }]}>
+        <ActivityIndicator size="large" color={c.primary.main} />
       </View>
     );
   }
 
   return (
+    <>
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? (editingMessage ? 122 : 92) : 0}
-      style={[styles.root, { backgroundColor: colors.background.secondary }]}
+      style={[styles.root, { backgroundColor: c.background.secondary }]}
     >
       {/* Header */}
-      <View style={[styles.header, { paddingTop: (insets.top || 0) + 6 }]}>
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 6, borderBottomColor: c.border.light, backgroundColor: c.background.secondary }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={22} color="#ffffff" />
+          <Ionicons name="chevron-back" size={22} color={c.text.primary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerName}>{displayName || 'Chat'}</Text>
-          <Text style={styles.headerStatus}>Active now</Text>
+          <Text style={[styles.headerName, { color: c.text.primary }]}>{displayName || 'Chat'}</Text>
+          <Text style={[styles.headerStatus, { color: c.text.tertiary }]}>Active now</Text>
         </View>
         <TouchableOpacity onPress={handleManage} style={styles.backBtn} disabled={conversationDetail === null}>
-          <Ionicons name="information-circle-outline" size={22} color="#ffffff" />
+          <Ionicons name="information-circle-outline" size={22} color={c.text.primary} />
         </TouchableOpacity>
       </View>
 
@@ -237,9 +231,9 @@ export default function ChatDetailScreen() {
           if ('type' in item && item.type === 'date') {
             return (
               <View style={styles.dateSeparator}>
-                <View style={styles.dateLine} />
-                <Text style={styles.dateLabel}>{item.label}</Text>
-                <View style={styles.dateLine} />
+                <View style={[styles.dateLine, { backgroundColor: c.border.light }]} />
+                <Text style={[styles.dateLabel, { color: c.text.tertiary }]}>{item.label}</Text>
+                <View style={[styles.dateLine, { backgroundColor: c.border.light }]} />
               </View>
             );
           }
@@ -269,79 +263,91 @@ export default function ChatDetailScreen() {
       />
 
       {editingMessage && (
-        <View style={styles.editingBar}>
-          <Ionicons name="pencil" size={14} color={colors.primary.main} />
-          <Text style={styles.editingLabel}>Editing message</Text>
+        <View style={[styles.editingBar, { borderTopColor: c.border.light, backgroundColor: c.background.card }]}>
+          <Ionicons name="pencil" size={14} color={c.primary.main} />
+          <Text style={[styles.editingLabel, { color: c.text.secondary }]}>Editing message</Text>
           <TouchableOpacity
             onPress={() => { setEditingMessage(null); setMessageText(''); }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="close" size={16} color={colors.text.tertiary} />
+            <Ionicons name="close" size={16} color={c.text.tertiary} />
           </TouchableOpacity>
         </View>
       )}
 
       {/* Input bar */}
-      <View style={[styles.inputBar, { paddingBottom: Math.max(16, insets.bottom + 8) }]}>
+      <View style={[styles.inputBar, { paddingBottom: Math.max(16, insets.bottom + 8), borderTopColor: c.border.light, backgroundColor: c.background.secondary }]}>
         <TouchableOpacity style={styles.inputAction}>
-          <Ionicons name="add-circle-outline" size={24} color={colors.text.secondary} />
+          <Ionicons name="add-circle-outline" size={24} color={c.text.secondary} />
         </TouchableOpacity>
-        <View style={styles.inputWrap}>
+        <View style={[styles.inputWrap, { backgroundColor: c.background.card, borderColor: c.border.light }]}>
           <TextInput
             placeholder="Message..."
-            placeholderTextColor={colors.text.tertiary}
+            placeholderTextColor={c.text.tertiary}
             value={messageText}
             onChangeText={setMessageText}
             editable={!sending}
             multiline
-            style={styles.textInput}
+            style={[styles.textInput, { color: c.text.primary }]}
           />
         </View>
         <TouchableOpacity
           onPress={handleSendMessage}
           disabled={!messageText.trim() || sending}
-          style={[styles.sendBtn, { backgroundColor: messageText.trim() ? colors.primary.main : colors.background.primary }]}
+          style={[styles.sendBtn, { backgroundColor: messageText.trim() ? c.primary.main : c.background.primary }]}
         >
           <Ionicons name="send" size={18} color="#fff" />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
+    <ConfirmationModal
+      visible={!!msgOptionsTarget}
+      title="Message Options"
+      confirmText="Edit"
+      onConfirm={() => {
+        if (msgOptionsTarget) {
+          setEditingMessage(msgOptionsTarget);
+          setMessageText(msgOptionsTarget.content);
+        }
+        setMsgOptionsTarget(null);
+      }}
+      onCancel={() => setMsgOptionsTarget(null)}
+    />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: colors.text.primary },
+  errorText: {},
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 10,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
-    backgroundColor: colors.background.secondary,
+    borderBottomWidth: 1,
   },
   backBtn: { padding: 6 },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerName: { color: colors.text.primary, fontWeight: '700', fontSize: 15 },
-  headerStatus: { color: colors.text.tertiary, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
+  headerName: { fontWeight: '700', fontSize: 15 },
+  headerStatus: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 2 },
   headerRight: { width: 34 },
   emptyState: { paddingTop: 60 },
   dateSeparator: { flexDirection: 'row', alignItems: 'center', marginVertical: 12, paddingHorizontal: 16 },
-  dateLine: { flex: 1, height: 1, backgroundColor: colors.border.light },
-  dateLabel: { color: colors.text.tertiary, fontSize: 11, marginHorizontal: 10, fontWeight: '600' },
+  dateLine: { flex: 1, height: 1 },
+  dateLabel: { fontSize: 11, marginHorizontal: 10, fontWeight: '600' },
   inputBar: {
     flexDirection: 'row', alignItems: 'flex-end', gap: 8,
     paddingHorizontal: 14, paddingTop: 10,
-    borderTopWidth: 1, borderTopColor: colors.border.light,
-    backgroundColor: colors.background.secondary,
+    borderTopWidth: 1,
   },
   inputAction: { paddingBottom: 8 },
   inputWrap: {
     flex: 1,
-    backgroundColor: colors.background.card, borderRadius: 22,
+    borderRadius: 22,
     paddingHorizontal: 14, paddingVertical: 2,
-    borderWidth: 1, borderColor: colors.border.light,
+    borderWidth: 1,
   },
-  textInput: { color: colors.text.primary, maxHeight: 96, paddingVertical: 9 },
+  textInput: { maxHeight: 96, paddingVertical: 9 },
   sendBtn: {
     width: 42, height: 42, borderRadius: 21,
     alignItems: 'center', justifyContent: 'center', marginBottom: 2,
@@ -353,13 +359,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
-    backgroundColor: colors.background.card,
   },
   editingLabel: {
     flex: 1,
     fontSize: 12,
     fontWeight: '600',
-    color: colors.text.secondary,
   },
 });

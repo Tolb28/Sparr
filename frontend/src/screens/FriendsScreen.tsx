@@ -11,11 +11,12 @@ import ChatListItem from '../components/ChatListItem';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabBar } from '@/components/ui/tab-bar';
 import { EmptyState } from '@/components/ui/empty-state';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 export default function FriendsScreen() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
   const route = useRoute<RouteProp<any>>();
   const initialTab = (route.params?.activeTab as 'friends' | 'requests' | 'conversations') || 'friends';
   const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'conversations'>(initialTab);
@@ -118,31 +119,31 @@ export default function FriendsScreen() {
   ];
 
   return (
-    <View style={[styles.root, { paddingTop: (insets.top || 0) + 10 }]}>
+    <View style={[styles.root, { paddingTop: (insets.top || 0) + 10, backgroundColor: c.background.secondary }]}>
       {/* Search bar with new conversation button */}
       <View style={styles.searchRow}>
-        <View style={[styles.searchBar, { backgroundColor: colors.glass.surface, borderColor: colors.glass.border }]}>
-          <Ionicons name="search-outline" size={18} color={colors.text.tertiary} />
+        <View style={[styles.searchBar, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+          <Ionicons name="search-outline" size={18} color={c.text.tertiary} />
           <TextInput
             placeholder={activeTab === 'conversations' ? 'Search messages...' : 'Search friends...'}
-            placeholderTextColor={colors.text.tertiary}
+            placeholderTextColor={c.text.tertiary}
             value={query}
             onChangeText={setQuery}
-            style={[styles.searchInput, { color: colors.text.primary }]}
+            style={[styles.searchInput, { color: c.text.primary }]}
           />
           {query && (
             <Pressable onPress={() => setQuery('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={16} color={colors.text.tertiary} />
+              <Ionicons name="close-circle" size={16} color={c.text.tertiary} />
             </Pressable>
           )}
         </View>
         {activeTab === 'conversations' && (
-          <Pressable 
+          <Pressable
             onPress={() => navigation.navigate('NewConversation')}
             hitSlop={8}
             style={styles.newConversationButton}
           >
-            <Ionicons name="add-circle" size={28} color={colors.primary.main} />
+            <Ionicons name="add-circle" size={28} color={c.primary.main} />
           </Pressable>
         )}
       </View>
@@ -165,7 +166,7 @@ export default function FriendsScreen() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             loadingFriends
-              ? <ActivityIndicator color={colors.primary.main} style={{ marginTop: 40 }} />
+              ? <ActivityIndicator color={c.primary.main} style={{ marginTop: 40 }} />
               : <EmptyState icon="people-outline" title="No friends yet" subtitle="Find boxers to connect with in Discovery" style={styles.emptyState} />
           }
           scrollIndicatorInsets={{ right: 1 }}
@@ -181,7 +182,7 @@ export default function FriendsScreen() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             loadingRequests
-              ? <ActivityIndicator color={colors.primary.main} style={{ marginTop: 40 }} />
+              ? <ActivityIndicator color={c.primary.main} style={{ marginTop: 40 }} />
               : <EmptyState icon="person-add-outline" title="No pending requests" subtitle="Your incoming friend requests appear here" style={styles.emptyState} />
           }
           scrollIndicatorInsets={{ right: 1 }}
@@ -207,7 +208,7 @@ export default function FriendsScreen() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             loadingConversations
-              ? <ActivityIndicator color={colors.primary.main} style={{ marginTop: 40 }} />
+              ? <ActivityIndicator color={c.primary.main} style={{ marginTop: 40 }} />
               : <EmptyState icon="chatbubbles-outline" title="No conversations yet" subtitle="Start a conversation with your friends" style={styles.emptyState} />
           }
           scrollIndicatorInsets={{ right: 1 }}
@@ -218,15 +219,15 @@ export default function FriendsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   searchRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, marginBottom: 10 },
   searchBar: {
-    flex: 1, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     borderRadius: 12,
-    paddingHorizontal: 12, 
+    paddingHorizontal: 12,
     borderWidth: 1,
   },
   searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, fontWeight: '500' },

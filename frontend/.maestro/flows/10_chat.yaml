@@ -1,0 +1,73 @@
+appId: host.exp.exponent
+name: "10 - Chat / Messaging"
+# Requires seed script to have run (creates a conversation between test accounts).
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+- tapOn: "Friends"
+- waitForAnimationToEnd
+- tapOn: "Messages"
+- waitForAnimationToEnd
+
+# Open the first conversation (seeded by seed-maestro-account.js)
+- runFlow:
+    when:
+      notVisible: "No conversations yet"
+    commands:
+      - tapOn:
+          index: 0
+          text: "Maestro"
+          optional: true
+      - waitForAnimationToEnd
+
+      # Type and send a message
+      - tapOn: "Message..."
+      - inputText: "Hello from Maestro!"
+      - hideKeyboard
+      - tapOn:
+          id: "Send message"
+          optional: true
+      - runFlow:
+          when:
+            notVisible: "Hello from Maestro!"
+          commands:
+            - pressKey: Enter
+      - waitForAnimationToEnd:
+          timeout: 4000
+
+      # Verify message appeared
+      - assertVisible: "Hello from Maestro!"
+
+      # Long-press to trigger message options
+      - longPressOn: "Hello from Maestro!"
+      - waitForAnimationToEnd:
+          timeout: 2000
+
+      # Assert options modal appears
+      - assertVisible: "Message Options"
+
+      # Dismiss
+      - pressKey: back
+      - waitForAnimationToEnd
+
+      - back
+      - waitForAnimationToEnd
+
+- runFlow:
+    when:
+      visible: "No conversations yet"
+    commands:
+      - assertVisible: "Start chatting with a friend"

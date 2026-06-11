@@ -33,9 +33,6 @@ export async function createPost(
     
     const type = mimeTypes[extension] || 'image/jpeg';
     
-    console.log('[POST FRONTEND] Image URI:', imageUri);
-    console.log('[POST FRONTEND] Image filename:', filename, 'extension:', extension, 'type:', type);
-    
     const imageFile = {
       uri: imageUri,
       type: type,
@@ -59,9 +56,6 @@ export async function createPost(
     
     const type = mimeTypes[extension] || 'video/mp4';
     
-    console.log('[POST FRONTEND] Video URI:', videoUri);
-    console.log('[POST FRONTEND] Video filename:', filename, 'extension:', extension, 'type:', type);
-    
     const videoFile = {
       uri: videoUri,
       type: type,
@@ -73,13 +67,6 @@ export async function createPost(
   if (profile && profile.id_profiles) {
     formData.append('profileId', profile.id_profiles.toString());
   }
-
-  console.log('[POST FRONTEND] Sending request to:', `${ServerIP}/auth/posts`);
-  console.log('[POST FRONTEND] Form data keys:', formData);
-  console.log('[POST FRONTEND] Description:', description);
-  console.log('[POST FRONTEND] ProfileId:', profile?.id_profiles);
-  console.log('[POST FRONTEND] Has image:', !!imageUri);
-  console.log('[POST FRONTEND] Has video:', !!videoUri);
 
   const response = await fetch(`${ServerIP}/auth/posts`, {
     method: 'POST',

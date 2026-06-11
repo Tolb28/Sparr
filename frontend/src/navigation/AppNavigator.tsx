@@ -33,6 +33,9 @@ import CreateTrainingScreen from '../screens/CreateTrainingScreen';
 import EditTrainingScreen from '../screens/EditTrainingScreen';
 import EditCalendarScreen from '../screens/EditCalendarScreen';
 import CalendarPreviewScreen from '../screens/CalendarPreviewScreen';
+import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import PendingVerificationScreen from '../screens/PendingVerificationScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -67,9 +70,21 @@ export type RootStackParamList = {
   EditTraining: { trainingId: number };
   EditCalendar: { calendarId: number };
   CalendarPreview: { calendarId: number; clubId?: number };
+  TermsOfService: undefined;
+  PrivacyPolicy: undefined;
+  PendingVerification: { email: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+export const linking = {
+  prefixes: ['sparr://', 'https://sparr.app'],
+  config: {
+    screens: {
+      Login: 'auth/confirm',
+    },
+  },
+};
 
 export default function AppNavigator() {
   return (
@@ -235,6 +250,21 @@ export default function AppNavigator() {
       <Stack.Screen
         name="CalendarPreview"
         component={CalendarPreviewScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="TermsOfService"
+        component={TermsOfServiceScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicyScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PendingVerification"
+        component={PendingVerificationScreen}
         options={{ headerShown: false }}
       />
     </Stack.Navigator>

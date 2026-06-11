@@ -4,6 +4,7 @@ import {
   completeChallengeController,
   getBadgeCatalogController,
   getChallengeDetailsController,
+  getHoursBreakdownController,
   listChallengesController,
   getProfileBadgesController,
   getProfileProgressController,
@@ -18,6 +19,7 @@ const router = Router();
 router.get('/badges/catalog', authenticate, getBadgeCatalogController);
 router.get('/profiles/:profileId/badges', authenticate, getProfileBadgesController);
 router.get('/profiles/:profileId/progress', authenticate, getProfileProgressController);
+router.get('/profiles/:profileId/hours-breakdown', authenticate, getHoursBreakdownController);
 router.post('/recalculate/:profileId', authenticate, recalculateProfileController);
 router.post('/complete', authenticate, logWorkoutCompletionController);
 router.get('/challenges', authenticate, listChallengesController);

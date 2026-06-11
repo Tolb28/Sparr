@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Pressable, StyleSheet, Animated } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
 import { GlassCard } from '@/components/ui/glass-card';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
+import { createPressFeedback } from '@/src/utils/motion';
 
 interface TrainingPreviewCardProps {
   title: string;
@@ -38,77 +39,84 @@ export default function TrainingPreviewCard({
   selected = false,
   compact = false,
 }: TrainingPreviewCardProps) {
+  const c = useThemeColors();
   const duration = formatDuration(estimatedDurationSeconds);
+  const pressFeedback = createPressFeedback();
 
   const content = (
     <GlassCard
       variant={selected ? 'red' : 'medium'}
       radius={12}
       padding={compact ? 10 : 14}
-      style={[styles.card, ...(selected ? [styles.cardSelected] : [])]}
+      style={[styles.card, ...(selected ? [{ borderWidth: 1, borderColor: c.primary.main }] : [])]}
     >
       <View style={styles.row}>
-        <View style={styles.iconWrap}>
+        <View style={[styles.iconWrap, { backgroundColor: c.glass.surface }]}>
           <Ionicons
             name="barbell-outline"
             size={compact ? 18 : 22}
-            color={selected ? colors.primary.main : colors.text.secondary}
+            color={selected ? c.primary.main : c.text.secondary}
           />
         </View>
         <View style={styles.info}>
-          <Text style={[styles.title, compact && styles.titleCompact]} numberOfLines={1}>
+          <Text style={[styles.title, { color: c.text.primary }, compact && styles.titleCompact]} numberOfLines={1}>
             {title}
           </Text>
           <View style={styles.meta}>
             {componentCount > 0 && (
               <View style={styles.badge}>
-                <Ionicons name="layers-outline" size={11} color={colors.text.tertiary} />
-                <Text style={styles.badgeText}>
+                <Ionicons name="layers-outline" size={11} color={c.text.tertiary} />
+                <Text style={[styles.badgeText, { color: c.text.tertiary }]}>
                   {componentCount} exercise{componentCount !== 1 ? 's' : ''}
                 </Text>
               </View>
             )}
             {estimatedDurationSeconds > 0 && (
               <View style={styles.badge}>
-                <Ionicons name="time-outline" size={11} color={colors.text.tertiary} />
-                <Text style={styles.badgeText}>{duration}</Text>
+                <Ionicons name="time-outline" size={11} color={c.text.tertiary} />
+                <Text style={[styles.badgeText, { color: c.text.tertiary }]}>{duration}</Text>
               </View>
             )}
           </View>
           {!compact && !!description && (
-            <Text style={styles.desc} numberOfLines={2}>{description}</Text>
+            <Text style={[styles.desc, { color: c.text.secondary }]} numberOfLines={2}>{description}</Text>
           )}
         </View>
         {onPress && (
-          <Ionicons name="chevron-forward" size={16} color={colors.text.tertiary} />
+          <Ionicons name="chevron-forward" size={16} color={c.text.tertiary} />
         )}
       </View>
     </GlassCard>
   );
 
   if (onPress) {
-    return <Pressable onPress={onPress}>{content}</Pressable>;
+    return (
+      <Animated.View style={{ transform: [{ scale: pressFeedback.scale }] }}>
+        <Pressable
+          onPress={onPress}
+          onPressIn={pressFeedback.onPressIn}
+          onPressOut={pressFeedback.onPressOut}
+        >
+          {content}
+        </Pressable>
+      </Animated.View>
+    );
   }
   return content;
 }
 
 const styles = StyleSheet.create({
   card: { marginBottom: 0 },
-  cardSelected: {
-    borderWidth: 1,
-    borderColor: colors.primary.main,
-  },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   iconWrap: {
     width: 36, height: 36, borderRadius: 10,
-    backgroundColor: colors.glass.surface,
     alignItems: 'center', justifyContent: 'center',
   },
   info: { flex: 1 },
-  title: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },
+  title: { fontSize: 14, fontWeight: '700' },
   titleCompact: { fontSize: 13 },
   meta: { flexDirection: 'row', gap: 10, marginTop: 3 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  badgeText: { color: colors.text.tertiary, fontSize: 11 },
-  desc: { color: colors.text.secondary, fontSize: 12, marginTop: 4, lineHeight: 16 },
+  badgeText: { fontSize: 11 },
+  desc: { fontSize: 12, marginTop: 4, lineHeight: 16 },
 });

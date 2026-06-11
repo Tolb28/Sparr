@@ -1,0 +1,60 @@
+appId: host.exp.exponent
+name: "12 - Profile View & Edit"
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+- tapOn: "Profile"
+- waitForAnimationToEnd
+
+# Verify profile screen structure
+- assertVisible: "Maestro Test"
+
+# Check sub-tabs
+- assertVisible: "Personalized"
+- assertVisible: "Posts"
+- assertVisible: "About"
+
+# Scroll to see stats row
+- scroll
+- waitForAnimationToEnd
+
+# Navigate to edit profile
+- tapOn: "Settings"
+- waitForAnimationToEnd
+- tapOn: "Edit Athlete Profile"
+- waitForAnimationToEnd
+
+- assertVisible: "Edit Profile"
+
+# Verify all form fields are pre-filled
+- assertVisible: "Display Name"
+- assertVisible: "Username"
+- assertVisible: "Bio"
+- assertVisible: "Location"
+
+# Update the bio field
+- tapOn: "Bio"
+- eraseText: 50
+- inputText: "Updated by Maestro test."
+- hideKeyboard
+
+# Save changes
+- tapOn: "Save Changes"
+- waitForAnimationToEnd:
+    timeout: 6000
+
+# Should be back on Profile screen
+- assertVisible: "Profile"

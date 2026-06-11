@@ -1,0 +1,24 @@
+appId: host.exp.exponent
+name: "02 - Login with Seeded Account"
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+# Verify all 5 bottom tabs are present
+- assertVisible: "Calendar"
+- assertVisible: "Techniques"
+- assertVisible: "Profile"
+- assertVisible: "Discovery"
+- assertVisible: "Friends"

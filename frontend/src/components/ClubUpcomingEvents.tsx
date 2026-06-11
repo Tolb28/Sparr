@@ -3,7 +3,8 @@ import { View, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
+
 
 function dayOfWeekFromDate(dateStr: string): number {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -28,6 +29,7 @@ export default function ClubUpcomingEvents({
   calendar?: any;
   resolvedTrainings?: any[];
 }) {
+  const c = useThemeColors();
   const todayDate = useMemo(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -78,11 +80,11 @@ export default function ClubUpcomingEvents({
   if (todaySessions.length === 0) {
     return (
       <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-        <Text style={{ color: colors.text.primary, fontWeight: '700', marginBottom: 8 }}>Today</Text>
+        <Text style={{ color: c.text.primary, fontWeight: '700', marginBottom: 8 }}>Today</Text>
         <GlassCard variant="medium" radius={14} padding={12}>
           <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-            <Ionicons name="calendar-clear-outline" size={20} color={colors.text.tertiary} />
-            <Text style={{ color: colors.text.tertiary, marginTop: 8, fontSize: 13 }}>
+            <Ionicons name="calendar-clear-outline" size={20} color={c.text.tertiary} />
+            <Text style={{ color: c.text.tertiary, marginTop: 8, fontSize: 13 }}>
               No sessions scheduled for today
             </Text>
           </View>
@@ -101,18 +103,18 @@ export default function ClubUpcomingEvents({
 
   return (
     <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
-      <Text style={{ color: colors.text.primary, fontWeight: '700', marginBottom: 8 }}>Today</Text>
+      <Text style={{ color: c.text.primary, fontWeight: '700', marginBottom: 8 }}>Today</Text>
       {list.map((ev) => (
         <GlassCard key={String(ev.id ?? Math.random())} variant="default" radius={12} padding={12} style={styles.card}>
           <View style={styles.row}>
             <View style={styles.left}>
-              <Text style={styles.title}>{ev.training_title || ev.event_title || ev.title || 'Session'}</Text>
+              <Text style={[styles.title, { color: c.text.primary }]}>{ev.training_title || ev.event_title || ev.title || 'Session'}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 12 }}>
-                <Text style={styles.sub}>{formatEventTime(ev)}</Text>
+                <Text style={[styles.sub, { color: c.text.tertiary }]}>{formatEventTime(ev)}</Text>
                 {ev.resolved?.duration ? (
-                  <Text style={styles.sub}>• {ev.resolved.duration}</Text>
+                  <Text style={[styles.sub, { color: c.text.tertiary }]}>• {ev.resolved.duration}</Text>
                 ) : ev.component_count ? (
-                  <Text style={styles.sub}>• {ev.component_count} exercise{ev.component_count !== 1 ? 's' : ''}</Text>
+                  <Text style={[styles.sub, { color: c.text.tertiary }]}>• {ev.component_count} exercise{ev.component_count !== 1 ? 's' : ''}</Text>
                 ) : null}
               </View>
             </View>
@@ -139,6 +141,6 @@ const styles = StyleSheet.create({
   card: { marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   left: { flex: 1 },
-  title: { color: colors.text.primary, fontWeight: '700' },
-  sub: { color: colors.text.tertiary, marginTop: 4, fontSize: 12 },
+  title: { fontWeight: '700' },
+  sub: { marginTop: 4, fontSize: 12 },
 });

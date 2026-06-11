@@ -6,7 +6,7 @@ import { HStack } from '@/components/ui/hstack';
 import { VStack } from '@/components/ui/vstack';
 import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar';
 import { Message } from '../types/chat';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface MessageBubbleProps {
   message: Message;
@@ -21,6 +21,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   currentUserId,
   onSenderPress,
 }) => {
+  const c = useThemeColors();
+
   const getInitials = (name: string | undefined) => {
     if (!name) return '?';
     return name
@@ -40,9 +42,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     });
   };
 
-  const bubbleBackgroundColor = isMe ? colors.primary.main : colors.background.card;
-  const bubbleBorderColor = isMe ? 'transparent' : colors.border.light;
-  const textColor = isMe ? colors.text.inverse : colors.text.primary;
+  const bubbleBackgroundColor = isMe ? c.primary.main : c.background.card;
+  const bubbleBorderColor = isMe ? 'transparent' : c.border.light;
+  // Own messages sit on the red primary background → keep white; others use theme text
+  const textColor = isMe ? c.text.inverse : c.text.primary;
 
   return (
     <HStack
@@ -75,7 +78,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         ]}
       >
         {!isMe && (
-          <Text style={[styles.senderName, { color: colors.text.secondary }]}>
+          <Text style={[styles.senderName, { color: c.text.secondary }]}>
             {message.senderName}
           </Text>
         )}
@@ -96,11 +99,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         </Box>
 
         <View style={[styles.metadata, isMe && styles.metadataMe]}>
-          <Text style={[styles.time, { color: colors.text.tertiary }]}>
+          <Text style={[styles.time, { color: c.text.tertiary }]}>
             {formatTime(message.created_at)}
           </Text>
           {message.edited_at && (
-            <Text style={[styles.editedLabel, { color: colors.text.tertiary }]}>
+            <Text style={[styles.editedLabel, { color: c.text.tertiary }]}>
               (edited)
             </Text>
           )}

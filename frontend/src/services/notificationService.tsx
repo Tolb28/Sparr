@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
+import { Modal, StyleSheet, View, ViewStyle } from 'react-native';
 import { Motion, MotionComponentProps } from '@legendapp/motion';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -139,43 +139,52 @@ export const NotificationHost: React.FC = () => {
     };
   }, [active, showNext, visible]);
 
-  if (!active) return null;
-
-  const accentColor = active.color || colors.primary.main;
-  const iconColor = active.type === 'error' ? colors.error.main : accentColor;
+  const accentColor = active?.color || colors.primary.main;
+  const iconColor = active?.type === 'error' ? colors.error.main : accentColor;
   const iconName =
-    (active.icon_name as any) || (active.type === 'error' ? 'alert-circle' : 'ribbon-outline');
+    (active?.icon_name as any) || (active?.type === 'error' ? 'alert-circle' : 'ribbon-outline');
 
   return (
-    <View
-      pointerEvents="none"
-      style={[styles.root, { paddingTop: insets.top + 12 }]}
-      accessibilityRole="alert"
-      accessibilityLiveRegion="polite"
-      accessibilityLabel={`${active.title}${active.subtitle ? `, ${active.subtitle}` : ''}${active.message ? `, ${active.message}` : ''}`}
-      testID="NotificationHost_Toast"
+    <Modal
+      visible={!!active}
+      transparent
+      presentationStyle="overFullScreen"
+      statusBarTranslucent
+      navigationBarTranslucent
+      animationType="none"
     >
-      <MotionView
-        style={[
-          styles.toast,
-          {
-            borderColor: colorUtils.hexToRgba(accentColor, 0.4),
-            backgroundColor: colorUtils.hexToRgba(accentColor, 0.12),
-          },
-        ]}
-        animate={{ opacity: visible ? 1 : 0, translateY: visible ? 0 : -20 }}
-        transition={{ type: 'timing', duration: visible ? 200 : 200 }}
+      <View
+        pointerEvents="none"
+        style={[styles.root, { paddingTop: insets.top + 12 }]}
+        accessibilityRole="alert"
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={`${active?.title}${active?.subtitle ? `, ${active.subtitle}` : ''}${active?.message ? `, ${active.message}` : ''}`}
+        testID="NotificationHost_Toast"
       >
-        <View style={styles.iconWrap}>
-          <Ionicons name={iconName} size={28} color={iconColor} />
-        </View>
-        <View style={styles.textWrap}>
-          <Text style={styles.title}>{active.title}</Text>
-          {active.subtitle ? <Text style={styles.subtitle}>{active.subtitle}</Text> : null}
-          {active.message ? <Text style={styles.message}>{active.message}</Text> : null}
-        </View>
-      </MotionView>
-    </View>
+        {active && (
+          <MotionView
+            style={[
+              styles.toast,
+              {
+                borderColor: colorUtils.hexToRgba(accentColor, 0.4),
+                backgroundColor: colorUtils.hexToRgba(accentColor, 0.12),
+              },
+            ]}
+            animate={{ opacity: visible ? 1 : 0, translateY: visible ? 0 : -20 }}
+            transition={{ type: 'timing', duration: visible ? 200 : 200 }}
+          >
+            <View style={styles.iconWrap}>
+              <Ionicons name={iconName} size={28} color={iconColor} />
+            </View>
+            <View style={styles.textWrap}>
+              <Text style={styles.title}>{active.title}</Text>
+              {active.subtitle ? <Text style={styles.subtitle}>{active.subtitle}</Text> : null}
+              {active.message ? <Text style={styles.message}>{active.message}</Text> : null}
+            </View>
+          </MotionView>
+        )}
+      </View>
+    </Modal>
   );
 };
 

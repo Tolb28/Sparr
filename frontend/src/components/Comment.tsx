@@ -18,6 +18,7 @@ import { ThumbsUp, ThumbsDown } from "lucide-react-native";
 
 import { getToken, ServerIP } from "../api/tokenHandler";
 import { useNavigation } from "@react-navigation/core";
+import { useThemeColors } from "@/src/hooks/useThemeColors";
 
 /* =======================
    TYPES
@@ -48,6 +49,7 @@ interface CommentProps {
 
 export default function Comment({ comment, navigation: navigationProp, onNavigate }: CommentProps) {
   const navigation = navigationProp || useNavigation();
+  const c = useThemeColors();
   // keep internal state so this component can be fully self-contained
   const [likes, setLikes] = useState<number>(Number(comment.likes_count) ?? 0);
   const [dislikes, setDislikes] = useState<number>(Number(comment.dislikes_count) ?? 0);
@@ -61,7 +63,6 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
     setLikes(Number(comment.likes_count) ?? 0);
     setDislikes(Number(comment.dislikes_count) ?? 0);
     setInteraction(comment.user_interaction ?? null);
-    console.log("Comment object:", comment);
   }, [comment]);
 
   // Reanimated values & styles
@@ -116,7 +117,6 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
     });
 
     try {
-      console.log("Sending interaction:", {commentId: comment.id_comments, type});
       const token = await getToken();
 
       const resp = await fetch(`${ServerIP}/auth/interactions`, {
@@ -162,7 +162,6 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
       <HStack className="items-center mb-2 gap-2">
         {/* User row */}
       <Pressable onPress={() => {
-        console.log("Avatar pressed, id_profiles:", comment.id_profiles);
         if (comment.id_profiles) {
           onNavigate?.();
           setTimeout(() => {
@@ -182,7 +181,6 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
 
         <VStack className="flex-1">
           <Pressable onPress={() => {
-            console.log("Display name pressed, id_profiles:", comment.id_profiles);
             if (comment.id_profiles) {
               onNavigate?.();
               setTimeout(() => {
@@ -190,9 +188,9 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
               }, 200);
             }
           }}>
-            <Text className="font-bold text-base text-white">{comment.display_name}</Text>
+            <Text className="font-bold text-base" style={{ color: c.text.primary }}>{comment.display_name}</Text>
           </Pressable>
-          <Text className="text-[#cb9090]">{comment.content}</Text>
+          <Text style={{ color: c.text.secondary }}>{comment.content}</Text>
 
           <HStack className="gap-4 mt-2 items-center">
             <Pressable
@@ -205,10 +203,10 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
                 <HStack className="items-center gap-1">
                   <ThumbsUp
                     size={16}
-                    color={interaction === "like" ? "#2563eb" : "#6b7280"}
+                    color={interaction === "like" ? "#2563eb" : c.text.tertiary}
                     fill={interaction === "like" ? "#2563eb" : "transparent"}
                   />
-                  <Text className="text-sm text-white">{likes}</Text>
+                  <Text className="text-sm" style={{ color: c.text.primary }}>{likes}</Text>
                 </HStack>
               </Animated.View>
             </Pressable>
@@ -223,10 +221,10 @@ export default function Comment({ comment, navigation: navigationProp, onNavigat
                 <HStack className="items-center gap-1">
                   <ThumbsDown
                     size={16}
-                    color={interaction === "dislike" ? "#dc2626" : "#6b7280"}
+                    color={interaction === "dislike" ? "#dc2626" : c.text.tertiary}
                     fill={interaction === "dislike" ? "#dc2626" : "transparent"}
                   />
-                  <Text className="text-sm text-white">{dislikes}</Text>
+                  <Text className="text-sm" style={{ color: c.text.primary }}>{dislikes}</Text>
                 </HStack>
               </Animated.View>
             </Pressable>

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, ActivityIndicator, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { Text } from '@/components/ui/text';
-import { colors } from '@/src/theme/colors';
+import { Pressable, View, ActivityIndicator, StyleSheet, Text, ViewStyle, TextStyle } from 'react-native';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
+import { actionHaptic, warningHaptic } from '@/src/utils/haptics';
 
 type Variant = 'primary' | 'ghost' | 'outline' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -19,25 +19,6 @@ interface SparrButtonProps {
   textStyle?: TextStyle;
   accessibilityLabel?: string;
 }
-
-const VARIANTS: Record<Variant, { bg: ViewStyle; text: TextStyle }> = {
-  primary: {
-    bg: { backgroundColor: colors.primary.main, borderWidth: 0 },
-    text: { color: '#ffffff', fontWeight: '700' },
-  },
-  ghost: {
-    bg: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.border.medium },
-    text: { color: colors.text.primary, fontWeight: '600' },
-  },
-  outline: {
-    bg: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.primary.main },
-    text: { color: colors.primary.main, fontWeight: '600' },
-  },
-  danger: {
-    bg: { backgroundColor: colors.glass.redSurface, borderWidth: 1, borderColor: colors.glass.redBorder },
-    text: { color: colors.error.main, fontWeight: '600' },
-  },
-};
 
 const SIZES: Record<Size, { container: ViewStyle; text: TextStyle }> = {
   sm: { container: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 10 }, text: { fontSize: 13 } },
@@ -58,32 +39,59 @@ export function SparrButton({
   textStyle,
   accessibilityLabel,
 }: SparrButtonProps) {
+  const c = useThemeColors();
+  const VARIANTS: Record<Variant, { bg: ViewStyle; text: TextStyle }> = {
+    primary: {
+      bg: { backgroundColor: c.primary.main, borderWidth: 0 },
+      text: { color: '#ffffff', fontWeight: '700' },
+    },
+    ghost: {
+      bg: { backgroundColor: 'transparent', borderWidth: 1, borderColor: c.border.medium },
+      text: { color: c.text.primary, fontWeight: '600' },
+    },
+    outline: {
+      bg: { backgroundColor: 'transparent', borderWidth: 1, borderColor: c.primary.main },
+      text: { color: c.primary.main, fontWeight: '600' },
+    },
+    danger: {
+      bg: { backgroundColor: c.glass.redSurface, borderWidth: 1, borderColor: c.glass.redBorder },
+      text: { color: c.error.main, fontWeight: '600' },
+    },
+  };
   const v = VARIANTS[variant];
   const s = SIZES[size];
   const isDisabled = disabled || loading;
 
+  const handlePress = () => {
+    if (variant === 'danger') {
+      void warningHaptic();
+    } else if (variant === 'primary') {
+      void actionHaptic();
+    }
+    onPress?.();
+  };
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isDisabled}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
-        styles.base,
-        v.bg,
-        s.container,
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator size="small" color={variant === 'primary' ? '#fff' : colors.primary.main} />
-      ) : (
-        <Text style={[v.text, s.text, textStyle]}>{label ?? children}</Text>
-      )}
+      <View style={[styles.base, v.bg, s.container]}>
+        {loading ? (
+          <ActivityIndicator size="small" color={variant === 'primary' ? '#fff' : c.primary.main} />
+        ) : (
+          <Text style={[v.text, s.text, textStyle]}>{label ?? children}</Text>
+        )}
+      </View>
     </Pressable>
   );
 }

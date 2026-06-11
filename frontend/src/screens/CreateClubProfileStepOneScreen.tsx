@@ -6,9 +6,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Text } from '@/components/ui/text';
 import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 export default function CreateClubProfileStepOneScreen() {
+  const c = useThemeColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
 
@@ -33,33 +34,33 @@ export default function CreateClubProfileStepOneScreen() {
   };
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 80 }}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: (insets.top || 0) + 4 }]}>
+        <View style={[styles.header, { paddingTop: (insets.top || 0) + 4, borderBottomColor: c.border.light }]}>
           <Pressable
             onPress={() => navigation.goBack()}
-            style={styles.iconBtn}
+            style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}
             accessibilityRole="button"
             accessibilityLabel="Back"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons name="chevron-back" size={20} color="#fff" />
           </Pressable>
-          <Text style={styles.headerTitle}>Create Club · Step 1/2</Text>
+          <Text style={[styles.headerTitle, { color: c.text.primary }]}>Create Club · Step 1/2</Text>
           <View style={{ width: 38 }} />
         </View>
 
         {/* Step indicator */}
         <View style={styles.stepBar}>
-          <View style={[styles.stepDot, styles.stepActive]} />
-          <View style={styles.stepLine} />
-          <View style={styles.stepDot} />
+          <View style={[styles.stepDot, styles.stepActive, { backgroundColor: c.primary.main, borderColor: c.primary.main }]} />
+          <View style={[styles.stepLine, { backgroundColor: c.glass.border }]} />
+          <View style={[styles.stepDot, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]} />
         </View>
 
         <View style={styles.body}>
-          <Text style={styles.pageTitle}>Club Basics</Text>
-          <Text style={styles.pageSub}>Set the key details first, then add avatar and finish.</Text>
+          <Text style={[styles.pageTitle, { color: c.text.primary }]}>Club Basics</Text>
+          <Text style={[styles.pageSub, { color: c.text.secondary }]}>Set the key details first, then add avatar and finish.</Text>
 
           {!!error && (
             <GlassCard variant="red" radius={10} padding={12}>
@@ -68,52 +69,60 @@ export default function CreateClubProfileStepOneScreen() {
           )}
 
           <GlassCard variant="medium" radius={14} padding={16}>
-            <Text style={styles.label}>Club Name *</Text>
+            <Text style={[styles.label, { color: c.text.secondary }]}>Club Name *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
               value={title}
               onChangeText={(t) => { setTitle(t); setError(null); }}
               placeholder="Club name"
-              placeholderTextColor={colors.text.tertiary}
+              placeholderTextColor={c.text.tertiary}
             />
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Location</Text>
+            <Text style={[styles.label, { marginTop: 14, color: c.text.secondary }]}>Location</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
               value={location}
               onChangeText={setLocation}
               placeholder="Location"
-              placeholderTextColor={colors.text.tertiary}
+              placeholderTextColor={c.text.tertiary}
             />
 
-            <Text style={[styles.label, { marginTop: 14 }]}>Bio</Text>
+            <Text style={[styles.label, { marginTop: 14, color: c.text.secondary }]}>Bio</Text>
             <TextInput
-              style={[styles.input, styles.inputMultiline]}
+              style={[styles.input, styles.inputMultiline, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
               value={bio}
               onChangeText={setBio}
               placeholder="Tell athletes about your club..."
-              placeholderTextColor={colors.text.tertiary}
+              placeholderTextColor={c.text.tertiary}
               multiline
               numberOfLines={3}
             />
           </GlassCard>
 
           <GlassCard variant="medium" radius={14} padding={16}>
-            <Text style={styles.label}>Join Policy</Text>
+            <Text style={[styles.label, { color: c.text.secondary }]}>Join Policy</Text>
             <View style={styles.policyRow}>
               <Pressable
-                style={[styles.policyBtn, joinPolicy === 'open' && styles.policyBtnActive]}
+                style={[
+                  styles.policyBtn,
+                  { borderColor: c.glass.border, backgroundColor: c.glass.surface },
+                  joinPolicy === 'open' && { borderColor: c.primary.main, backgroundColor: c.glass.redSurface },
+                ]}
                 onPress={() => setJoinPolicy('open')}
               >
-                <Ionicons name="people-outline" size={16} color={joinPolicy === 'open' ? colors.primary.main : colors.text.secondary} />
-                <Text style={[styles.policyText, joinPolicy === 'open' && styles.policyTextActive]}>Open</Text>
+                <Ionicons name="people-outline" size={16} color={joinPolicy === 'open' ? c.primary.main : c.text.secondary} />
+                <Text style={[styles.policyText, { color: c.text.secondary }, joinPolicy === 'open' && { color: c.primary.main }]}>Open</Text>
               </Pressable>
               <Pressable
-                style={[styles.policyBtn, joinPolicy === 'approval' && styles.policyBtnActive]}
+                style={[
+                  styles.policyBtn,
+                  { borderColor: c.glass.border, backgroundColor: c.glass.surface },
+                  joinPolicy === 'approval' && { borderColor: c.primary.main, backgroundColor: c.glass.redSurface },
+                ]}
                 onPress={() => setJoinPolicy('approval')}
               >
-                <Ionicons name="shield-checkmark-outline" size={16} color={joinPolicy === 'approval' ? colors.primary.main : colors.text.secondary} />
-                <Text style={[styles.policyText, joinPolicy === 'approval' && styles.policyTextActive]}>Approval</Text>
+                <Ionicons name="shield-checkmark-outline" size={16} color={joinPolicy === 'approval' ? c.primary.main : c.text.secondary} />
+                <Text style={[styles.policyText, { color: c.text.secondary }, joinPolicy === 'approval' && { color: c.primary.main }]}>Approval</Text>
               </Pressable>
             </View>
           </GlassCard>
@@ -126,16 +135,16 @@ export default function CreateClubProfileStepOneScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    borderBottomWidth: 1,
   },
-  headerTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  headerTitle: { fontSize: 16, fontWeight: '700' },
   iconBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   stepBar: {
@@ -144,18 +153,17 @@ const styles = StyleSheet.create({
   },
   stepDot: {
     width: 10, height: 10, borderRadius: 5,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
   },
-  stepActive: { backgroundColor: colors.primary.main, borderColor: colors.primary.main, width: 24 },
-  stepLine: { width: 32, height: 2, backgroundColor: colors.glass.border },
+  stepActive: { width: 24 },
+  stepLine: { width: 32, height: 2 },
   body: { padding: 16, gap: 14 },
-  pageTitle: { color: colors.text.primary, fontSize: 22, fontWeight: '800' },
-  pageSub: { color: colors.text.secondary, fontSize: 13, marginTop: -6 },
+  pageTitle: { fontSize: 22, fontWeight: '800' },
+  pageSub: { fontSize: 13, marginTop: -6 },
   errorText: { color: '#ffb3b3', fontSize: 13 },
-  label: { color: colors.text.secondary, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' },
+  label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase' },
   input: {
-    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border, color: colors.text.primary,
+    borderRadius: 10, borderWidth: 1,
     paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
   },
   inputMultiline: { height: 72, textAlignVertical: 'top', paddingTop: 10 },
@@ -163,13 +171,7 @@ const styles = StyleSheet.create({
   policyBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1, borderColor: colors.glass.border,
-    backgroundColor: colors.glass.surface,
+    borderWidth: 1,
   },
-  policyBtnActive: {
-    borderColor: colors.primary.main,
-    backgroundColor: colors.glass.redSurface,
-  },
-  policyText: { color: colors.text.secondary, fontWeight: '600', fontSize: 13 },
-  policyTextActive: { color: colors.primary.main },
+  policyText: { fontWeight: '600', fontSize: 13 },
 });

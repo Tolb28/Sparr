@@ -4,7 +4,7 @@ import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
 import { VStack } from '@/components/ui/vstack';
 import ItemCard from './ItemCard';
-import { colors } from '../theme';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { DifficultyLevel } from './DifficultyBadge';
 
 interface Item {
@@ -34,11 +34,13 @@ export default function CategorySection({
   favorites = new Set(),
   onFavoriteToggle,
 }: CategorySectionProps) {
+  const c = useThemeColors();
+
   return (
     <VStack className="mb-6">
       {/* Category Heading */}
-      <Box className="px-4 py-3" style={{ borderBottomColor: '#3a1d1d', borderBottomWidth: 1 }}>
-        <Text className="text-lg font-bold" style={{ color: '#ffffff' }}>
+      <Box className="px-4 py-3" style={{ borderBottomColor: c.border.light, borderBottomWidth: 1 }}>
+        <Text className="text-lg font-bold" style={{ color: c.text.primary }}>
           {categoryName}
         </Text>
       </Box>

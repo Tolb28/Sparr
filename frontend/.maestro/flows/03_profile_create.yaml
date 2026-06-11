@@ -1,0 +1,61 @@
+appId: host.exp.exponent
+name: "03 - Profile Create via Settings"
+# Tests the ProfileCreateScreen by triggering it through Settings → Create New Athlete Profile.
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+jsEngine: graaljs
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+# Navigate to Profile tab, then open Settings
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Settings"
+- assertVisible: "Settings"
+
+# Open the new athlete profile creation form
+- tapOn: "Create New Athlete Profile"
+- assertVisible: "Create Profile"
+- assertVisible: "Set up your athlete identity"
+
+# Generate a unique username to avoid conflicts on repeat runs
+- evalScript: ${output.username = 'mtest' + Date.now().toString().slice(-5)}
+
+# Fill required fields
+- tapOn: "Display name"
+- inputText: "Maestro Test 2"
+
+- tapOn: "Username"
+- inputText: ${output.username}
+
+- tapOn: "Location"
+- inputText: "Test City"
+
+- tapOn: "Bio"
+- inputText: "Second test profile created by Maestro."
+
+# Select experience level
+- hideKeyboard
+- tapOn: "— select experience level —"
+- assertVisible: "Select Experience Level"
+- tapOn: "Beginner"
+
+# Submit
+- hideKeyboard
+- tapOn: "Create Profile"
+- waitForAnimationToEnd:
+    timeout: 8000
+
+# Confirm we land back on main app
+- assertVisible: "Profile"

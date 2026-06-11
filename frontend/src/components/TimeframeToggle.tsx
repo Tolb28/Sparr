@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, ViewStyle, useWindowDimensions } from 'react-native';
 import { Motion, MotionComponentProps } from '@legendapp/motion';
 import { Button, ButtonText } from '@/components/ui/button';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import type { ProgressTimeframe } from '@/src/api/progress';
 
 interface TimeframeToggleProps {
@@ -28,6 +28,7 @@ const TimeframeToggleBase: React.FC<TimeframeToggleProps> = ({
   onTimeframeChange,
   disabled = false,
 }) => {
+  const c = useThemeColors();
   const { width } = useWindowDimensions();
   const isSmallScreen = width < 375;
 
@@ -60,7 +61,9 @@ const TimeframeToggleBase: React.FC<TimeframeToggleProps> = ({
               style={[
                 styles.button,
                 isSmallScreen && styles.buttonCompact,
-                isActive ? styles.buttonActive : styles.buttonInactive,
+                isActive
+                  ? { backgroundColor: c.primary.main, borderColor: c.primary.main }
+                  : { backgroundColor: c.glass.surface, borderColor: c.glass.border },
                 disabled && styles.buttonDisabled,
               ]}
             >
@@ -68,7 +71,9 @@ const TimeframeToggleBase: React.FC<TimeframeToggleProps> = ({
                 style={[
                   styles.buttonText,
                   isSmallScreen && styles.buttonTextCompact,
-                  isActive ? styles.textActive : styles.textInactive,
+                  isActive
+                    ? { color: '#fff', fontWeight: '700' }
+                    : { color: c.text.secondary, fontWeight: '600' },
                 ]}
               >
                 {option.label.toUpperCase()}
@@ -104,14 +109,6 @@ const styles = StyleSheet.create({
   buttonCompact: {
     paddingHorizontal: 12,
   },
-  buttonActive: {
-    backgroundColor: colors.primary.main,
-    borderColor: colors.primary.main,
-  },
-  buttonInactive: {
-    backgroundColor: colors.glass.surface,
-    borderColor: colors.glass.border,
-  },
   buttonDisabled: {
     opacity: 0.55,
   },
@@ -121,14 +118,6 @@ const styles = StyleSheet.create({
   },
   buttonTextCompact: {
     fontSize: 11,
-  },
-  textActive: {
-    color: colors.text.primary,
-    fontWeight: '700',
-  },
-  textInactive: {
-    color: colors.text.secondary,
-    fontWeight: '600',
   },
 });
 

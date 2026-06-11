@@ -5,7 +5,7 @@ import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar'
 import { GlassCard } from '@/components/ui/glass-card';
 import { Text } from '@/components/ui/text';
 import MembershipCTA from './MembershipCTA';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
@@ -24,6 +24,7 @@ interface ClubHeaderProps {
 export default function ClubHeader({ club, canManage, joining, leaving, sharing, onJoin, onLeave, onManage, onShare }: ClubHeaderProps) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
+  const c = useThemeColors();
 
   return (
     <>
@@ -35,7 +36,7 @@ export default function ClubHeader({ club, canManage, joining, leaving, sharing,
         >
           {!club?.cover_url && (
             <View style={styles.coverFallback}>
-              <View style={styles.coverFallbackInner} />
+              <View style={[styles.coverFallbackInner, { backgroundColor: c.glass.surface }]} />
             </View>
           )}
           <View style={styles.coverGradient} />
@@ -43,7 +44,7 @@ export default function ClubHeader({ club, canManage, joining, leaving, sharing,
           <View style={[styles.headerBar, { paddingTop: (insets.top || 0) + 4 }]}>
             <TouchableOpacity
               onPress={() => navigation.goBack()}
-              style={styles.iconBtn}
+              style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}
               accessibilityRole="button"
               accessibilityLabel="Back"
             >
@@ -53,13 +54,13 @@ export default function ClubHeader({ club, canManage, joining, leaving, sharing,
               {club?.can_manage && (
                 <TouchableOpacity
                   onPress={onManage}
-                  style={[styles.iconBtn, styles.manageIconBtn]}
+                  style={[styles.iconBtn, styles.manageIconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}
                 >
-                  <Ionicons name="settings-outline" size={18} color={colors.primary.main} />
+                  <Ionicons name="settings-outline" size={18} color={c.primary.main} />
                 </TouchableOpacity>
               )}
               <TouchableOpacity
-                style={[styles.iconBtn, sharing && { opacity: 0.65 }]}
+                style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }, sharing && { opacity: 0.65 }]}
                 onPress={onShare}
                 accessibilityLabel="Share club"
                 disabled={sharing}
@@ -79,7 +80,7 @@ export default function ClubHeader({ club, canManage, joining, leaving, sharing,
           </View>
           {club?.is_verified && (
             <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.primary.main} />
+              <Ionicons name="checkmark-circle" size={18} color={c.primary.main} />
             </View>
           )}
         </View>
@@ -87,16 +88,16 @@ export default function ClubHeader({ club, canManage, joining, leaving, sharing,
 
       <View style={styles.identityBlock}>
         <View style={styles.identityLeft}>
-          <Text style={styles.clubName}>{club?.title ?? 'Club'}</Text>
+          <Text style={[styles.clubName, { color: c.text.primary }]}>{club?.title ?? 'Club'}</Text>
           {!!club?.location && (
             <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={12} color={colors.text.tertiary} />
-              <Text style={styles.locationText}>{club.location}</Text>
+              <Ionicons name="location-outline" size={12} color={c.text.tertiary} />
+              <Text style={[styles.locationText, { color: c.text.tertiary }]}>{club.location}</Text>
             </View>
           )}
           {!!club?.join_policy && (
-            <View style={styles.policyChip}>
-              <Text style={styles.policyChipText}>
+            <View style={[styles.policyChip, { borderColor: c.glass.border, backgroundColor: c.glass.surface }]}>
+              <Text style={[styles.policyChipText, { color: c.text.tertiary }]}>
                 {club.join_policy === 'open' ? '🔓 Open' : '🔒 Approval'}
               </Text>
             </View>
@@ -112,9 +113,9 @@ export default function ClubHeader({ club, canManage, joining, leaving, sharing,
           { label: 'Posts',   value: club?.posts_count ?? 0 },
           { label: 'Plans',   value: club?.training_plans_count ?? 0 },
         ].map((stat, i) => (
-          <View key={stat.label} style={[styles.statItem, i === 1 && styles.statItemMiddle]}>
-            <Text style={styles.statValue}>{stat.value}</Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
+          <View key={stat.label} style={[styles.statItem, i === 1 && [styles.statItemMiddle, { borderColor: c.border.light }]]}>
+            <Text style={[styles.statValue, { color: c.text.primary }]}>{stat.value}</Text>
+            <Text style={[styles.statLabel, { color: c.text.tertiary }]}>{stat.label}</Text>
           </View>
         ))}
       </View>
@@ -139,10 +140,10 @@ const styles = StyleSheet.create({
   cover: { height: 200, width: '100%', justifyContent: 'flex-start' },
   coverImage: { resizeMode: 'cover' },
   coverFallback: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  coverFallbackInner: { height: 60, width: 120, backgroundColor: colors.glass.surface, borderRadius: 8 },
+  coverFallbackInner: { height: 60, width: 120, borderRadius: 8 },
   coverGradient: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: 'transparent' },
   headerBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 },
-  iconBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border, alignItems: 'center', justifyContent: 'center' },
+  iconBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   headerRight: { flexDirection: 'row', gap: 8 },
   manageIconBtn: { marginRight: 8 },
   avatarAnchor: { marginTop: -40, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -150,15 +151,15 @@ const styles = StyleSheet.create({
   verifiedBadge: { marginLeft: -12, marginTop: 56 },
   identityBlock: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 6, flexDirection: 'row', alignItems: 'center' },
   identityLeft: { flex: 1 },
-  clubName: { color: colors.text.primary, fontWeight: '800', fontSize: 18 },
+  clubName: { fontWeight: '800', fontSize: 18 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  locationText: { color: colors.text.tertiary, fontSize: 12 },
-  policyChip: { marginTop: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: colors.glass.border, backgroundColor: colors.glass.surface, alignSelf: 'flex-start' },
-  policyChipText: { color: colors.text.tertiary, fontSize: 12 },
+  locationText: { fontSize: 12 },
+  policyChip: { marginTop: 6, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1, alignSelf: 'flex-start' },
+  policyChipText: { fontSize: 12 },
   statsRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginTop: 8 },
   statItem: { flex: 1, alignItems: 'center' },
-  statItemMiddle: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.border.light },
-  statValue: { color: colors.text.primary, fontWeight: '800', fontSize: 18 },
-  statLabel: { color: colors.text.tertiary, fontSize: 12 },
+  statItemMiddle: { borderLeftWidth: 1, borderRightWidth: 1 },
+  statValue: { fontWeight: '800', fontSize: 18 },
+  statLabel: { fontSize: 12 },
   ctaRow: { paddingHorizontal: 16, marginTop: 10, marginBottom: 12 },
 });

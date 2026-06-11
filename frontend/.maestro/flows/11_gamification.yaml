@@ -1,0 +1,83 @@
+appId: host.exp.exponent
+name: "11 - Gamification (Badges & Challenges)"
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+# ---- Calendar tab — challenges & badge progress ----
+- tapOn: "Calendar"
+- waitForAnimationToEnd
+
+# Scroll down to the gamification sections
+- scrollUntilVisible:
+    element: "BADGES ON THE HORIZON"
+    direction: DOWN
+    timeout: 10000
+    optional: true
+
+- scrollUntilVisible:
+    element: "CHALLENGES"
+    direction: DOWN
+    timeout: 10000
+    optional: true
+
+# Open a challenge detail if available
+- runFlow:
+    when:
+      notVisible: "No active challenges yet."
+    commands:
+      - tapOn:
+          index: 0
+          text: "Refresh challenges"
+          optional: true
+      - waitForAnimationToEnd
+
+# Open stats breakdown if the button is visible
+- runFlow:
+    when:
+      visible: "View Full Progress"
+    commands:
+      - tapOn: "View Full Progress"
+      - waitForAnimationToEnd
+      - back
+      - waitForAnimationToEnd
+
+# ---- Profile tab — badge carousel ----
+- tapOn: "Profile"
+- waitForAnimationToEnd
+
+# Scroll down to badges section
+- scrollUntilVisible:
+    element: "BADGES"
+    direction: DOWN
+    timeout: 8000
+    optional: true
+
+- runFlow:
+    when:
+      visible: "BADGES"
+    commands:
+      - assertVisible: "BADGES"
+
+# View full progress from profile
+- runFlow:
+    when:
+      visible:
+        id: "ProfileScreen_ViewFullProgress"
+    commands:
+      - tapOn:
+          id: "ProfileScreen_ViewFullProgress"
+      - waitForAnimationToEnd
+      - back

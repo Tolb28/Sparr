@@ -1,0 +1,49 @@
+appId: host.exp.exponent
+name: "13 - Settings & Logout"
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+- tapOn: "Profile"
+- waitForAnimationToEnd
+- tapOn: "Settings"
+- waitForAnimationToEnd
+
+- assertVisible: "Settings"
+
+# Verify key settings sections
+- assertVisible: "Edit Athlete Profile"
+- assertVisible: "Create New Athlete Profile"
+- assertVisible: "Log Out"
+
+# Scroll to see Legal section
+- scrollUntilVisible:
+    element: "Terms of Use"
+    direction: DOWN
+    timeout: 5000
+    optional: true
+
+# Tap Log Out — triggers confirmation modal
+- tapOn: "Log Out"
+- waitForAnimationToEnd
+
+# Confirm the modal
+- assertVisible: "Are you sure you want to log out?"
+- tapOn: "Log out"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Should return to Login screen
+- assertVisible: "Welcome back"

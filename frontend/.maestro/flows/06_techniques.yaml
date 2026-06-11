@@ -1,0 +1,59 @@
+appId: host.exp.exponent
+name: "06 - Techniques Screen"
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+- tapOn: "Techniques"
+- waitForAnimationToEnd
+
+# --- Techniques sub-tab ---
+- assertVisible: "Techniques"
+- assertVisible: "Drills"
+- assertVisible: "Combos"
+
+# Scroll to see content
+- scroll
+- waitForAnimationToEnd
+
+# Tap first technique item if content has loaded
+- runFlow:
+    when:
+      notVisible: "Loading personalized content..."
+    commands:
+      - scrollUntilVisible:
+          element: "Tap to View →"
+          direction: DOWN
+          timeout: 5000
+          optional: true
+
+# --- Search ---
+- tapOn: "Search techniques, drills..."
+- inputText: "jab"
+- waitForAnimationToEnd:
+    timeout: 3000
+- eraseText: 3
+- waitForAnimationToEnd
+- hideKeyboard
+
+# --- Drills sub-tab ---
+- tapOn: "Drills"
+- waitForAnimationToEnd
+- scroll
+
+# --- Combos sub-tab ---
+- tapOn: "Combos"
+- waitForAnimationToEnd
+- scroll

@@ -343,3 +343,27 @@ export async function getProfileProgress(profileId: number, range: ProgressRange
     throw createError(500, 'Failed to fetch progress', 'DATABASE_ERROR');
   }
 }
+
+export async function getHoursBreakdown(
+  profileId: number,
+  range: ProgressRange
+): Promise<{ date: string; hours: number }[]> {
+  const rangeMap: Record<ProgressRange, number> = { week: 7, month: 30, year: 365, lifetime: 3650 };
+  const days = rangeMap[range] ?? 30;
+
+  const { rows } = await pool.query<{ date: string; total_seconds: string }>(
+    `SELECT DATE(completed_at)::text AS date,
+            COALESCE(SUM(duration_seconds), 0)::int AS total_seconds
+       FROM workout_completions
+      WHERE profile_id = $1
+        AND completed_at >= NOW() - ($2 || ' days')::interval
+      GROUP BY DATE(completed_at)
+      ORDER BY DATE(completed_at) ASC`,
+    [profileId, days]
+  );
+
+  return rows.map((r) => ({
+    date: r.date,
+    hours: Math.round((Number(r.total_seconds) / 3600) * 10) / 10,
+  }));
+}

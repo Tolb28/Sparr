@@ -27,6 +27,11 @@ type AuthResult = {
   needsProfileSetup: boolean;
 };
 
+type EmailVerificationPendingResult = {
+  requiresEmailVerification: true;
+  email: string;
+};
+
 type GoogleConflictResult = {
   decisionRequired: true;
   token: string;
@@ -132,7 +137,7 @@ export async function registerLocalUser(
   email: string,
   password: string,
   context: AuthEventContext = {}
-): Promise<AuthResult> {
+): Promise<AuthResult | EmailVerificationPendingResult> {
   const normalizedEmail = normalizeEmail(email);
   const { data, error } = await supabaseAuthClient.auth.signUp({
     email: normalizedEmail,
@@ -174,22 +179,23 @@ export async function registerLocalUser(
     googleSub: null,
   });
 
-  let token = data.session?.access_token ?? null;
-  if (!token) {
-    const signIn = await supabaseAuthClient.auth.signInWithPassword({
-      email: normalizedEmail,
-      password,
+  // When Supabase email confirmation is enabled, signUp returns session = null.
+  // Return a pending-verification result instead of a token.
+  if (!data.session) {
+    await logAuthEventSafe({
+      eventType: "register_success",
+      status: "info",
+      provider: "local",
+      userId: user.id,
+      requestId: context.requestId ?? null,
+      ipAddress: context.ipAddress ?? null,
+      userAgent: context.userAgent ?? null,
+      message: "Email verification required",
     });
-    if (signIn.error || !signIn.data.session?.access_token) {
-      throw new AuthServiceError(
-        400,
-        signIn.error?.message || "Registration succeeded but login failed",
-        "REGISTER_SIGNIN_FAILED"
-      );
-    }
-    token = signIn.data.session.access_token;
+    return { requiresEmailVerification: true, email: user.email };
   }
 
+  const token = data.session.access_token;
   const needsProfileSetup = await getNeedsProfileSetup(user.id);
   await logAuthEventSafe({
     eventType: "register_success",
@@ -206,6 +212,29 @@ export async function registerLocalUser(
     user: { id: user.id, email: user.email },
     needsProfileSetup,
   };
+}
+
+export async function resendVerificationEmail(
+  email: string,
+  context: AuthEventContext = {}
+): Promise<void> {
+  const { error } = await supabaseAuthClient.auth.resend({
+    type: "signup",
+    email: normalizeEmail(email),
+  });
+  if (error) {
+    throw new AuthServiceError(400, error.message, "RESEND_FAILED");
+  }
+}
+
+export async function getEmailVerificationStatus(
+  token: string
+): Promise<{ confirmed: boolean }> {
+  const { data, error } = await supabaseAuthClient.auth.getUser(token);
+  if (error || !data.user) {
+    return { confirmed: false };
+  }
+  return { confirmed: !!data.user.email_confirmed_at };
 }
 
 export async function loginLocalUser(

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 export type CalendarEvent = {
   color?: string;
@@ -19,6 +20,7 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
   events = {},
   onSelect = () => {},
 }) => {
+  const c = useThemeColors();
   const today = useMemo(() => new Date(), []);
   const centerDate = initialDate ?? today;
 
@@ -60,14 +62,14 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
               onPress={() => handlePress(d)}
               style={[
                 styles.dayCard,
-                isSelected ? styles.selectedCard : styles.unselectedCard,
+                isSelected ? styles.selectedCard : { backgroundColor: c.glass.surface },
               ]}
             >
-              <Text style={[styles.weekdayText, isSelected && styles.textWhite]}>
+              <Text style={[styles.weekdayText, { color: c.text.tertiary }, isSelected && styles.textWhite]}>
                 {d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
               </Text>
 
-              <Text style={[styles.dayNumber, isSelected && styles.textWhite]}>
+              <Text style={[styles.dayNumber, { color: c.text.secondary }, isSelected && styles.textWhite]}>
                 {d.getDate()}
               </Text>
 
@@ -78,13 +80,13 @@ const WeeklyCalendar: React.FC<WeeklyCalendarProps> = ({
                       key={di}
                       style={[
                         styles.dot,
-                        { backgroundColor: events[iso]?.color || '#06b6d4' },
+                        { backgroundColor: events[iso]?.color || c.info.main },
                         isSelected && { backgroundColor: '#ffffff' },
                       ]}
                     />
                   ))}
                   {(events[iso]?.count || 1) > 3 && (
-                    <Text style={[styles.dotPlus, isSelected && { color: '#ffffff' }]}>+</Text>
+                    <Text style={[styles.dotPlus, { color: c.info.main }, isSelected && { color: '#ffffff' }]}>+</Text>
                   )}
                 </View>
               )}
@@ -159,9 +161,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     height: 68,
   },
-  unselectedCard: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
   selectedCard: {
     backgroundColor: '#f20d0d',
     ...Platform.select({
@@ -176,14 +175,12 @@ const styles = StyleSheet.create({
   },
   weekdayText: {
     fontSize: 10,
-    color: '#8f6d6d',
     fontWeight: '700',
     marginBottom: 4,
   },
   dayNumber: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#cb9090',
   },
   textWhite: {
     color: '#ffffff',
@@ -202,7 +199,6 @@ const styles = StyleSheet.create({
   },
   dotPlus: {
     fontSize: 8,
-    color: '#06b6d4',
     fontWeight: '700',
     marginLeft: 1,
   },

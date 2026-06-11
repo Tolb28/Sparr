@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View, ScrollView, TextInput, Pressable, FlatList, Modal, Alert,
+  View, ScrollView, TextInput, Pressable, FlatList, Modal,
   ActivityIndicator, StyleSheet,
 } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -25,6 +25,7 @@ import WeekDayGrid, { DaySlot } from '../components/WeekDayGrid';
 import OrderSlotGroup, { OrderSlotData, OrderSlotTraining } from '../components/OrderSlotGroup';
 import DatePickerField from '../components/DatePickerField';
 import { showSuccessNotification } from '@/src/services/notificationService';
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 
 let _keyCounter = 0;
 const nextKey = () => `ek_${++_keyCounter}`;
@@ -33,6 +34,7 @@ export default function EditCalendarScreen() {
   const nav = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'EditCalendar'>>();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
   const { calendarId } = route.params;
 
   const [title, setTitle] = useState('');
@@ -47,6 +49,8 @@ export default function EditCalendarScreen() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmTypeChange, setConfirmTypeChange] = useState<'day' | 'order' | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [isOwner, setIsOwner] = useState(true);
 
   // Day-oriented state
@@ -291,22 +295,7 @@ export default function EditCalendarScreen() {
         : orderSlots.some((s) => s.trainings.length > 0);
 
     if (hasData) {
-      Alert.alert(
-        'Change Calendar Type',
-        'Changing the type will remove all training assignments. Continue?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Change',
-            style: 'destructive',
-            onPress: () => {
-              setCalendarType(type);
-              setDaySchedule({});
-              setOrderSlots([]);
-            },
-          },
-        ]
-      );
+      setConfirmTypeChange(type);
     } else {
       setCalendarType(type);
     }
@@ -402,45 +391,39 @@ export default function EditCalendarScreen() {
   };
 
   /* ---- Delete ---- */
-  const handleDelete = () => {
-    Alert.alert('Delete Calendar', 'This will permanently delete this calendar and remove it from all profiles.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setDeleting(true);
-          try {
-            await deleteCalendarApi(calendarId);
-            nav.goBack();
-          } catch {
-            setError('Failed to delete');
-            setDeleting(false);
-          }
-        },
-      },
-    ]);
+  const handleDelete = () => setConfirmDelete(true);
+
+  const doDelete = async () => {
+    setConfirmDelete(false);
+    setDeleting(true);
+    try {
+      await deleteCalendarApi(calendarId);
+      nav.goBack();
+    } catch {
+      setError('Failed to delete');
+      setDeleting(false);
+    }
   };
 
   if (loading) {
     return (
-      <View style={[styles.root, styles.center]}>
-        <ActivityIndicator size="large" color={colors.primary.main} />
+      <View style={[styles.root, styles.center, { backgroundColor: c.background.secondary }]}>
+        <ActivityIndicator size="large" color={c.text.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8 }]}>
-        <Pressable onPress={() => nav.goBack()} style={styles.iconBtn}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8, borderBottomColor: c.border.light }]}>
+        <Pressable onPress={() => nav.goBack()} style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+          <Ionicons name="chevron-back" size={20} color={c.text.primary} />
         </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Edit Calendar</Text>
+          <Text style={[styles.headerTitle, { color: c.text.primary }]}>Edit Calendar</Text>
         </View>
-        <Pressable onPress={handleDelete} style={[styles.iconBtn, !isOwner && { opacity: 0 }]} disabled={!isOwner}>
-          <Ionicons name="trash-outline" size={18} color={colors.primary.main} />
+        <Pressable onPress={handleDelete} style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }, !isOwner && { opacity: 0 }]} disabled={!isOwner}>
+          <Ionicons name="trash-outline" size={18} color={c.text.primary} />
         </Pressable>
       </View>
 
@@ -457,23 +440,23 @@ export default function EditCalendarScreen() {
 
         {/* Title & Privacy */}
         <GlassCard variant="medium" radius={14} padding={16}>
-          <Text style={styles.label}>Calendar Name</Text>
+          <Text style={[styles.label, { color: c.text.primary }]}>Calendar Name</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
             value={title}
             onChangeText={setTitle}
             placeholder="Calendar name"
-            placeholderTextColor={colors.text.tertiary}
+            placeholderTextColor={c.text.tertiary}
           />
-          <Text style={[styles.label, { marginTop: 12 }]}>Privacy</Text>
+          <Text style={[styles.label, { marginTop: 12, color: c.text.primary }]}>Privacy</Text>
           <View style={styles.privacyRow}>
             {(['private', 'public'] as const).map((p) => (
               <Pressable
                 key={p}
-                style={[styles.privacyBtn, privacy === p && styles.privacyBtnActive]}
+                style={[styles.privacyBtn, { borderColor: c.glass.border, backgroundColor: c.glass.surface }, privacy === p && { borderColor: c.primary.main, backgroundColor: c.glass.redSurface }]}
                 onPress={() => setPrivacy(p)}
               >
-                <Text style={[styles.privacyText, privacy === p && styles.privacyTextActive]}>
+                <Text style={[styles.privacyText, { color: c.text.secondary }, privacy === p && { color: c.primary.main }]}>
                   {p === 'private' ? '🔒 Private' : '🌐 Public'}
                 </Text>
               </Pressable>
@@ -489,24 +472,24 @@ export default function EditCalendarScreen() {
           <>
             {/* Num weeks stepper */}
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.label}>Rotation Length</Text>
+              <Text style={[styles.label, { color: c.text.primary }]}>Rotation Length</Text>
               <View style={styles.stepperRow}>
                 <Pressable
-                  style={[styles.stepperBtn, numWeeks <= 1 && styles.stepperBtnDisabled]}
+                  style={[styles.stepperBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }, numWeeks <= 1 && styles.stepperBtnDisabled]}
                   onPress={() => handleNumWeeksChange(-1)}
                   disabled={numWeeks <= 1}
                 >
-                  <Text style={styles.stepperBtnText}>−</Text>
+                  <Text style={[styles.stepperBtnText, { color: c.text.primary }]}>−</Text>
                 </Pressable>
-                <Text style={styles.stepperValue}>
+                <Text style={[styles.stepperValue, { color: c.text.primary }]}>
                   {numWeeks} week{numWeeks !== 1 ? 's' : ''}
                 </Text>
                 <Pressable
-                  style={[styles.stepperBtn, numWeeks >= 8 && styles.stepperBtnDisabled]}
+                  style={[styles.stepperBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }, numWeeks >= 8 && styles.stepperBtnDisabled]}
                   onPress={() => handleNumWeeksChange(1)}
                   disabled={numWeeks >= 8}
                 >
-                  <Text style={styles.stepperBtnText}>+</Text>
+                  <Text style={[styles.stepperBtnText, { color: c.text.primary }]}>+</Text>
                 </Pressable>
               </View>
             </GlassCard>
@@ -526,8 +509,8 @@ export default function EditCalendarScreen() {
           <>
             {/* Start date selector */}
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.label}>Cycle Start Date</Text>
-              <Text style={styles.hint}>When does the training order begin cycling from?</Text>
+              <Text style={[styles.label, { color: c.text.primary }]}>Cycle Start Date</Text>
+              <Text style={[styles.hint, { color: c.text.tertiary }]}>When does the training order begin cycling from?</Text>
               <View style={styles.startDateRow}>
                 {[
                   { key: 'today', label: 'Today' },
@@ -538,10 +521,10 @@ export default function EditCalendarScreen() {
                   return (
                     <Pressable
                       key={opt.key}
-                      style={[styles.startDateBtn, active && styles.startDateBtnActive]}
+                      style={[styles.startDateBtn, { borderColor: c.glass.border, backgroundColor: c.glass.surface }, active && { borderColor: c.primary.main, backgroundColor: c.glass.redSurface }]}
                       onPress={() => setOrderStartDate(opt.key)}
                     >
-                      <Text style={[styles.startDateText, active && styles.startDateTextActive]}>
+                      <Text style={[styles.startDateText, { color: c.text.secondary }, active && { color: c.primary.main }]}>
                         {opt.label}
                       </Text>
                     </Pressable>
@@ -557,30 +540,30 @@ export default function EditCalendarScreen() {
                   />
                 </View>
               )}
-              <Text style={styles.startDateInfo}>Start: {orderStartDate === 'custom' ? (customStartDate || '—') : orderStartDate === 'today' ? 'Today' : 'Start of Year'}</Text>
+              <Text style={[styles.startDateInfo, { color: c.text.tertiary }]}>Start: {orderStartDate === 'custom' ? (customStartDate || '—') : orderStartDate === 'today' ? 'Today' : 'Start of Year'}</Text>
             </GlassCard>
 
             {/* Order slots */}
             <GlassCard variant="medium" radius={14} padding={16}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.label}>Schedule ({orderSlots.length} days)</Text>
+                <Text style={[styles.label, { color: c.text.primary }]}>Schedule ({orderSlots.length} days)</Text>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
                   <Pressable style={styles.addBtn} onPress={() => openPickerForOrder()}>
                     <Ionicons name="add" size={16} color="#fff" />
                     <Text style={styles.addBtnText}>Add Training</Text>
                   </Pressable>
-                  <Pressable style={styles.restBtn} onPress={addOrderSlot}>
-                    <Ionicons name="bed-outline" size={16} color={colors.text.secondary} />
-                    <Text style={styles.restBtnText}>Rest Day</Text>
+                  <Pressable style={[styles.restBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]} onPress={addOrderSlot}>
+                    <Ionicons name="bed-outline" size={16} color={c.text.secondary} />
+                    <Text style={[styles.restBtnText, { color: c.text.secondary }]}>Rest Day</Text>
                   </Pressable>
                 </View>
               </View>
 
               {orderSlots.length === 0 ? (
                 <View style={styles.empty}>
-                  <Ionicons name="calendar-outline" size={32} color={colors.text.tertiary} />
-                  <Text style={styles.emptyTitle}>No days yet</Text>
-                  <Text style={styles.emptySub}>Tap "Add Day" to build your schedule</Text>
+                  <Ionicons name="calendar-outline" size={32} color={c.text.tertiary} />
+                  <Text style={[styles.emptyTitle, { color: c.text.secondary }]}>No days yet</Text>
+                  <Text style={[styles.emptySub, { color: c.text.tertiary }]}>Tap "Add Day" to build your schedule</Text>
                 </View>
               ) : (
                 orderSlots.map((slot, i) => (
@@ -628,15 +611,15 @@ export default function EditCalendarScreen() {
         onRequestClose={() => setPickerOpen(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setPickerOpen(false)}>
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Training</Text>
+          <View style={[styles.modalSheet, { backgroundColor: c.background.secondary, borderTopColor: c.border.light }]} onStartShouldSetResponder={() => true}>
+            <View style={[styles.modalHeader, { borderBottomColor: c.border.light }]}>
+              <Text style={[styles.modalTitle, { color: c.text.primary }]}>Select Training</Text>
               <Pressable onPress={() => setPickerOpen(false)}>
-                <Ionicons name="close" size={22} color={colors.text.secondary} />
+                <Ionicons name="close" size={22} color={c.text.secondary} />
               </Pressable>
             </View>
             {loadingTrainings ? (
-              <ActivityIndicator style={{ marginVertical: 24 }} color={colors.primary.main} />
+              <ActivityIndicator style={{ marginVertical: 24 }} color={c.primary.main} />
             ) : (
               <FlatList
                 data={trainings}
@@ -654,8 +637,8 @@ export default function EditCalendarScreen() {
                 )}
                 ListEmptyComponent={
                   <View style={styles.empty}>
-                    <Text style={styles.emptyTitle}>No trainings available</Text>
-                    <Text style={styles.emptySub}>Create a training first</Text>
+                    <Text style={[styles.emptyTitle, { color: c.text.secondary }]}>No trainings available</Text>
+                    <Text style={[styles.emptySub, { color: c.text.tertiary }]}>Create a training first</Text>
                   </View>
                 }
                 style={{ maxHeight: 400 }}
@@ -665,85 +648,104 @@ export default function EditCalendarScreen() {
           </View>
         </Pressable>
       </Modal>
+      <ConfirmationModal
+        visible={!!confirmTypeChange}
+        title="Change Calendar Type"
+        message="Changing the type will remove all training assignments. Continue?"
+        confirmText="Change"
+        destructive
+        onConfirm={() => {
+          if (confirmTypeChange) {
+            setCalendarType(confirmTypeChange);
+            setDaySchedule({});
+            setOrderSlots([]);
+          }
+          setConfirmTypeChange(null);
+        }}
+        onCancel={() => setConfirmTypeChange(null)}
+      />
+      <ConfirmationModal
+        visible={confirmDelete}
+        title="Delete Calendar"
+        message="This will permanently delete this calendar and remove it from all profiles."
+        confirmText="Delete"
+        destructive
+        onConfirm={doDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    borderBottomWidth: 1,
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { color: colors.text.primary, fontSize: 18, fontWeight: '800' },
+  headerTitle: { fontSize: 18, fontWeight: '800' },
   iconBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   scroll: { padding: 16, gap: 12, paddingBottom: 40 },
-  label: { color: colors.text.primary, fontSize: 13, fontWeight: '700', marginBottom: 6 },
-  hint: { color: colors.text.tertiary, fontSize: 12, marginBottom: 10 },
+  label: { fontSize: 13, fontWeight: '700', marginBottom: 6 },
+  hint: { fontSize: 12, marginBottom: 10 },
   input: {
-    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border, color: colors.text.primary,
+    borderRadius: 10, borderWidth: 1,
     paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
   },
   privacyRow: { flexDirection: 'row', gap: 10 },
   privacyBtn: {
     flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.glass.border, backgroundColor: colors.glass.surface,
+    borderWidth: 1,
   },
-  privacyBtnActive: { borderColor: colors.primary.main, backgroundColor: colors.glass.redSurface },
-  privacyText: { color: colors.text.secondary, fontWeight: '600', fontSize: 13 },
-  privacyTextActive: { color: colors.primary.main },
+  privacyText: { fontWeight: '600', fontSize: 13 },
   stepperRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 16 },
   stepperBtn: {
     width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
   },
   stepperBtnDisabled: { opacity: 0.3 },
-  stepperBtnText: { color: colors.text.primary, fontSize: 18, fontWeight: '700' },
-  stepperValue: { color: colors.text.primary, fontSize: 16, fontWeight: '700', minWidth: 80, textAlign: 'center' },
+  stepperBtnText: { fontSize: 18, fontWeight: '700' },
+  stepperValue: { fontSize: 16, fontWeight: '700', minWidth: 80, textAlign: 'center' },
   startDateRow: { flexDirection: 'row', gap: 8 },
   startDateBtn: {
     flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
-    borderWidth: 1, borderColor: colors.glass.border, backgroundColor: colors.glass.surface,
+    borderWidth: 1,
   },
-  startDateBtnActive: { borderColor: colors.primary.main, backgroundColor: colors.glass.redSurface },
-  startDateText: { color: colors.text.secondary, fontWeight: '600', fontSize: 13 },
-  startDateTextActive: { color: colors.primary.main },
-  startDateInfo: { color: colors.text.tertiary, fontSize: 11, marginTop: 8 },
+  startDateText: { fontWeight: '600', fontSize: 13 },
+  startDateInfo: { fontSize: 11, marginTop: 8 },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: colors.primary.main,
+    backgroundColor: '#c0392b',
   },
   addBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   restBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
   },
-  restBtnText: { color: colors.text.secondary, fontSize: 12, fontWeight: '600' },
+  restBtnText: { fontSize: 12, fontWeight: '600' },
   empty: { alignItems: 'center', paddingVertical: 24, gap: 4 },
-  emptyTitle: { color: colors.text.secondary, fontWeight: '600', fontSize: 14 },
-  emptySub: { color: colors.text.tertiary, fontSize: 12 },
+  emptyTitle: { fontWeight: '600', fontSize: 14 },
+  emptySub: { fontSize: 12 },
   errorText: { color: '#fecaca', fontWeight: '600', fontSize: 13 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: colors.background.secondary,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '65%', borderTopWidth: 1, borderTopColor: colors.border.light,
+    maxHeight: '65%', borderTopWidth: 1,
   },
   modalHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    padding: 16, borderBottomWidth: 1,
   },
-  modalTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  modalTitle: { fontSize: 16, fontWeight: '700' },
   pickerItem: { marginBottom: 2 },
 });
