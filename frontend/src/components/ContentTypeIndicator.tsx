@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 type ContentType = 'technique' | 'drill' | 'combination';
 
@@ -11,39 +11,31 @@ interface ContentTypeIndicatorProps {
   variant?: 'badge' | 'text' | 'compact';
 }
 
-const TYPE_CONFIG: Record<
-  ContentType,
-  {
-    label: string;
-    icon: string;
-    color: string;
-    bgColor: string;
-  }
-> = {
-  technique: {
-    label: 'Technique',
-    icon: 'hand-right-outline',
-    color: colors.primary.main,
-    bgColor: 'rgba(139, 92, 246, 0.1)',
-  },
-  drill: {
-    label: 'Drill',
-    icon: 'repeat-outline',
-    color: '#f59e0b',
-    bgColor: 'rgba(245, 158, 11, 0.1)',
-  },
-  combination: {
-    label: 'Combo',
-    icon: 'layers-outline',
-    color: '#10b981',
-    bgColor: 'rgba(16, 185, 129, 0.1)',
-  },
-};
-
 export const ContentTypeIndicator: React.FC<ContentTypeIndicatorProps> = ({
   type,
   variant = 'badge',
 }) => {
+  const c = useThemeColors();
+  const TYPE_CONFIG: Record<ContentType, { label: string; icon: string; color: string; bgColor: string }> = {
+    technique: {
+      label: 'Technique',
+      icon: 'hand-right-outline',
+      color: c.primary.main,
+      bgColor: 'rgba(139, 92, 246, 0.1)',
+    },
+    drill: {
+      label: 'Drill',
+      icon: 'repeat-outline',
+      color: '#f59e0b',
+      bgColor: 'rgba(245, 158, 11, 0.1)',
+    },
+    combination: {
+      label: 'Combo',
+      icon: 'layers-outline',
+      color: '#10b981',
+      bgColor: 'rgba(16, 185, 129, 0.1)',
+    },
+  };
   const config = TYPE_CONFIG[type];
 
   if (variant === 'text') {

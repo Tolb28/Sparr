@@ -3,7 +3,6 @@ import {
   View,
   ScrollView,
   StyleSheet,
-  Alert,
   TextInput,
   ActivityIndicator,
   Pressable as RNPressable,
@@ -16,7 +15,8 @@ import { VStack } from '@/components/ui/vstack';
 import { Pressable } from '@/components/ui/pressable';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 import {
   getConversationParticipants,
   leaveConversation,
@@ -31,6 +31,7 @@ interface Participant {
 }
 
 export default function ConversationInfoScreen() {
+  const c = useThemeColors();
   const route = useRoute<RouteProp<any, 'ConversationInfo'>>();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -41,6 +42,7 @@ export default function ConversationInfoScreen() {
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
   const [newTitle, setNewTitle] = useState(conversationTitle || '');
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   const loadParticipants = useCallback(async () => {
     if (!conversationId) return;
@@ -74,27 +76,19 @@ export default function ConversationInfoScreen() {
     }
   };
 
-  const handleLeaveConversation = async () => {
+  const handleLeaveConversation = () => {
     if (!conversationId) return;
-    Alert.alert(
-      'Leave Conversation',
-      isGroup ? 'Leave this group?' : 'Delete this conversation?',
-      [
-        { text: 'Cancel', onPress: () => {} },
-        {
-          text: isGroup ? 'Leave' : 'Delete',
-          onPress: async () => {
-            try {
-              await leaveConversation(conversationId);
-              navigation.goBack();
-            } catch (err: any) {
-              showErrorNotification(err?.message || 'Failed to leave conversation');
-            }
-          },
-          style: 'destructive',
-        },
-      ]
-    );
+    setConfirmLeave(true);
+  };
+
+  const doLeaveConversation = async () => {
+    setConfirmLeave(false);
+    try {
+      await leaveConversation(conversationId!);
+      navigation.goBack();
+    } catch (err: any) {
+      showErrorNotification(err?.message || 'Failed to leave conversation');
+    }
   };
 
   const getInitials = (name: string | undefined) => {
@@ -108,14 +102,14 @@ export default function ConversationInfoScreen() {
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View style={[styles.root, { paddingTop: insets.top, backgroundColor: c.background.secondary }]}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border.light }]}>
+      <View style={[styles.header, { borderBottomColor: c.border.light }]}>
         <HStack style={styles.headerRow}>
           <RNPressable onPress={() => navigation.goBack()} hitSlop={8}>
-            <Ionicons name="chevron-back" size={24} color={colors.text.primary} />
+            <Ionicons name="chevron-back" size={24} color={c.text.primary} />
           </RNPressable>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>
+          <Text style={[styles.headerTitle, { color: c.text.primary }]}>
             {isGroup ? 'Group Info' : 'Conversation Info'}
           </Text>
           <View style={{ width: 24 }} />
@@ -124,7 +118,7 @@ export default function ConversationInfoScreen() {
 
       {loading ? (
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={colors.primary.main} />
+          <ActivityIndicator size="large" color={c.primary.main} />
         </View>
       ) : (
         <ScrollView 
@@ -135,7 +129,7 @@ export default function ConversationInfoScreen() {
           {/* Group/Conversation Title Section */}
           {isGroup && (
             <VStack style={[styles.section, { paddingHorizontal: 16 }]}>
-              <Text style={[styles.sectionLabel, { color: colors.text.tertiary }]}>
+              <Text style={[styles.sectionLabel, { color: c.text.tertiary }]}>
                 GROUP NAME
               </Text>
               {editing ? (
@@ -144,13 +138,13 @@ export default function ConversationInfoScreen() {
                     style={[
                       styles.titleInput,
                       { 
-                        color: colors.text.primary,
-                        backgroundColor: colors.background.card,
-                        borderColor: colors.border.light,
+                        color: c.text.primary,
+                        backgroundColor: c.background.card,
+                        borderColor: c.border.light,
                       }
                     ]}
                     placeholder="Group name"
-                    placeholderTextColor={colors.text.tertiary}
+                    placeholderTextColor={c.text.tertiary}
                     value={newTitle}
                     onChangeText={setNewTitle}
                     autoFocus
@@ -163,14 +157,14 @@ export default function ConversationInfoScreen() {
                       }}
                       style={[
                         styles.editBtn,
-                        { backgroundColor: colors.background.card, borderColor: colors.border.light },
+                        { backgroundColor: c.background.card, borderColor: c.border.light },
                       ]}
                     >
-                      <Text style={[styles.editBtnText, { color: colors.text.secondary }]}>Cancel</Text>
+                      <Text style={[styles.editBtnText, { color: c.text.secondary }]}>Cancel</Text>
                     </Pressable>
                     <Pressable
                       onPress={handleRenameGroup}
-                      style={[styles.editBtn, { backgroundColor: colors.primary.main }]}
+                      style={[styles.editBtn, { backgroundColor: c.primary.main }]}
                     >
                       <Text style={[styles.editBtnText, { color: '#fff' }]}>Save</Text>
                     </Pressable>
@@ -181,13 +175,13 @@ export default function ConversationInfoScreen() {
                   onPress={() => setEditing(true)}
                   style={[
                     styles.titleSection,
-                    { backgroundColor: colors.background.tertiary, borderColor: colors.border.light },
+                    { backgroundColor: c.background.tertiary, borderColor: c.border.light },
                   ]}
                 >
-                  <Text style={[styles.titleText, { color: colors.text.primary }]}>
+                  <Text style={[styles.titleText, { color: c.text.primary }]}>
                     {conversationTitle}
                   </Text>
-                  <Ionicons name="pencil-outline" size={18} color={colors.text.tertiary} />
+                  <Ionicons name="pencil-outline" size={18} color={c.text.tertiary} />
                 </Pressable>
               )}
             </VStack>
@@ -195,13 +189,13 @@ export default function ConversationInfoScreen() {
 
           {/* Participants Section */}
           <VStack style={[styles.section, { paddingHorizontal: 16 }]}>
-            <Text style={[styles.sectionLabel, { color: colors.text.tertiary }]}>
+            <Text style={[styles.sectionLabel, { color: c.text.tertiary }]}>
               {isGroup ? `MEMBERS (${participants.length})` : 'PARTICIPANT'}
             </Text>
             <VStack
               style={[
                 styles.participantsList,
-                { backgroundColor: colors.background.tertiary, borderColor: colors.border.light },
+                { backgroundColor: c.background.tertiary, borderColor: c.border.light },
               ]}
             >
               {participants.map((participant, index) => (
@@ -227,20 +221,20 @@ export default function ConversationInfoScreen() {
                         )}
                       </Avatar>
                       <Text
-                        style={[styles.participantName, { color: colors.text.primary }]}
+                        style={[styles.participantName, { color: c.text.primary }]}
                       >
                         {participant.display_name}
                       </Text>
                       <Ionicons
                         name="chevron-forward"
                         size={18}
-                        color={colors.text.tertiary}
+                        color={c.text.tertiary}
                       />
                     </HStack>
                   </RNPressable>
                   {index < participants.length - 1 && (
                     <View
-                      style={[styles.divider, { backgroundColor: colors.border.light }]}
+                      style={[styles.divider, { backgroundColor: c.border.light }]}
                     />
                   )}
                 </View>
@@ -254,17 +248,26 @@ export default function ConversationInfoScreen() {
               onPress={handleLeaveConversation}
               style={[
                 styles.actionBtn,
-                { backgroundColor: colors.glass.redSurface, borderColor: colors.primary.main },
+                { backgroundColor: c.glass.redSurface, borderColor: c.primary.main },
               ]}
             >
-              <Ionicons name="exit-outline" size={18} color={colors.primary.main} />
-              <Text style={[styles.actionBtnText, { color: colors.primary.main }]}>
+              <Ionicons name="exit-outline" size={18} color={c.primary.main} />
+              <Text style={[styles.actionBtnText, { color: c.primary.main }]}>
                 {isGroup ? 'Leave Group' : 'Delete Conversation'}
               </Text>
             </Pressable>
           </VStack>
         </ScrollView>
       )}
+      <ConfirmationModal
+        visible={confirmLeave}
+        title="Leave Conversation"
+        message={isGroup ? 'Leave this group?' : 'Delete this conversation?'}
+        confirmText={isGroup ? 'Leave' : 'Delete'}
+        destructive
+        onConfirm={doLeaveConversation}
+        onCancel={() => setConfirmLeave(false)}
+      />
     </View>
   );
 }
@@ -272,7 +275,6 @@ export default function ConversationInfoScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
   },
   header: {
     paddingHorizontal: 16,

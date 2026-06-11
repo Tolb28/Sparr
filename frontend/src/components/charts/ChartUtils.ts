@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import Animated, { Easing, SharedValue, useSharedValue, withTiming } from 'react-native-reanimated';
-import { colors } from '@/src/theme/colors';
+
+type ThemeColors = ReturnType<typeof import('@/src/hooks/useThemeColors').useThemeColors>;
 
 export interface GridLine {
   y: number;
@@ -120,23 +121,22 @@ export function animatePathStroke(duration: number = 800): SharedValue<number> {
   return progress;
 }
 
-const metricColorMap: Record<string, string> = {
-  workouts_completed: colors.primary.main,
-  total_hours: colors.primary.light,
-  streak_days: colors.warning.main,
-  club_sessions: colors.info.main,
-  interactions_count: colors.info.light,
-  score: colors.success.main,
-  skill_level: colors.primary.dark,
-  intensity: colors.error.main,
-};
-
-export function getMetricColor(metricKey: string): string {
-  return metricColorMap[metricKey] ?? colors.primary.main;
+export function getMetricColor(metricKey: string, c: ThemeColors): string {
+  const metricColorMap: Record<string, string> = {
+    workouts_completed: c.primary.main,
+    total_hours: c.primary.light,
+    streak_days: c.warning.main,
+    club_sessions: c.info.main,
+    interactions_count: c.info.light,
+    score: c.success.main,
+    skill_level: c.primary.dark,
+    intensity: c.error.main,
+  };
+  return metricColorMap[metricKey] ?? c.primary.main;
 }
 
-export function getTrendColor(trend: 'up' | 'down' | 'flat'): string {
-  if (trend === 'up') return colors.success.main;
-  if (trend === 'down') return colors.error.main;
-  return colors.text.tertiary;
+export function getTrendColor(trend: 'up' | 'down' | 'flat', c: ThemeColors): string {
+  if (trend === 'up') return c.success.main;
+  if (trend === 'down') return c.error.main;
+  return c.text.tertiary;
 }

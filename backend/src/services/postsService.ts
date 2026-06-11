@@ -193,10 +193,21 @@ export const getPosts = async ({
   values.push(limit, offset);
 
   const { rows } = await pool.query(query, values);
-  
-  // Generate avatar URLs for each post
-  return rows.map(row => ({
+
+  const withUrls = rows.map(row => ({
     ...row,
-    avatar_url: row.avatar ? cloudinaryService.generateAvatarUrl(row.avatar, row.updated_at) : null
+    avatar_url: row.avatar ? cloudinaryService.generateAvatarUrl(row.avatar, row.updated_at) : null,
   }));
+
+  // Log posts with media to help debug image loading
+  const mediaPosts = withUrls.filter(p => p.source);
+  if (mediaPosts.length > 0) {
+    console.log(`[POSTS] ${mediaPosts.length} posts with media:`,
+      mediaPosts.map(p => ({ id: p.id_posts, source: p.source }))
+    );
+  } else {
+    console.log(`[POSTS] No posts with media found (${withUrls.length} total posts)`);
+  }
+
+  return withUrls;
 };

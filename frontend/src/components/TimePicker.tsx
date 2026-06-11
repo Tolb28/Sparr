@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, Pressable, Modal, StyleSheet, FlatList } from 'react-native';
 import { Text } from '@/components/ui/text';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { Ionicons } from '@expo/vector-icons';
 
 interface TimePickerProps {
@@ -21,6 +21,7 @@ function WheelColumn({ data, selected, onSelect, formatFn }: {
   onSelect: (v: number) => void;
   formatFn: (v: number) => string;
 }) {
+  const c = useThemeColors();
   const flatListRef = useRef<FlatList>(null);
   const initialIdx = data.indexOf(selected);
 
@@ -47,8 +48,12 @@ function WheelColumn({ data, selected, onSelect, formatFn }: {
         renderItem={({ item }) => {
           const isActive = item === selected;
           return (
-            <View style={[wheelStyles.item, isActive && wheelStyles.itemActive]}>
-              <Text style={[wheelStyles.itemText, isActive && wheelStyles.itemTextActive]}>
+            <View style={wheelStyles.item}>
+              <Text style={[
+                wheelStyles.itemText,
+                { color: isActive ? c.text.primary : c.text.tertiary },
+                isActive && wheelStyles.itemTextActive,
+              ]}>
                 {formatFn(item)}
               </Text>
             </View>
@@ -56,12 +61,22 @@ function WheelColumn({ data, selected, onSelect, formatFn }: {
         }}
       />
       {/* Selection highlight overlay */}
-      <View pointerEvents="none" style={wheelStyles.highlight} />
+      <View
+        pointerEvents="none"
+        style={[
+          wheelStyles.highlight,
+          {
+            borderColor: c.primary.main + '60',
+            backgroundColor: c.primary.main + '10',
+          },
+        ]}
+      />
     </View>
   );
 }
 
 export default function TimePicker({ value, onChange, label }: TimePickerProps) {
+  const c = useThemeColors();
   const [showPicker, setShowPicker] = useState(false);
   const [tempHour, setTempHour] = useState(() => value ? parseInt(value.split(':')[0], 10) : 12);
   const [tempMin, setTempMin] = useState(() => {
@@ -92,9 +107,18 @@ export default function TimePicker({ value, onChange, label }: TimePickerProps) 
 
   return (
     <>
-      <Pressable style={styles.trigger} onPress={openPicker}>
-        <Ionicons name="time-outline" size={14} color={value ? colors.primary.main : colors.text.tertiary} />
-        <Text style={[styles.triggerText, value && styles.triggerTextActive]}>
+      <Pressable
+        style={[
+          styles.trigger,
+          { backgroundColor: c.glass.surface, borderColor: c.glass.border },
+        ]}
+        onPress={openPicker}
+      >
+        <Ionicons name="time-outline" size={14} color={value ? c.primary.main : c.text.tertiary} />
+        <Text style={[
+          styles.triggerText,
+          { color: value ? c.primary.main : c.text.tertiary },
+        ]}>
           {label ? `${label}: ${display}` : display}
         </Text>
       </Pressable>
@@ -110,19 +134,25 @@ export default function TimePicker({ value, onChange, label }: TimePickerProps) 
       >
         <View style={styles.overlay}>
           <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowPicker(false)} />
-          <View style={styles.sheet}>
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>Select Time</Text>
+          <View style={[
+            styles.sheet,
+            { backgroundColor: c.background.secondary, borderTopColor: c.border.light },
+          ]}>
+            <View style={[styles.header, { borderBottomColor: c.border.light }]}>
+              <Text style={[styles.headerTitle, { color: c.text.primary }]}>Select Time</Text>
               <Pressable onPress={() => setShowPicker(false)}>
-                <Ionicons name="close" size={22} color={colors.text.secondary} />
+                <Ionicons name="close" size={22} color={c.text.secondary} />
               </Pressable>
             </View>
 
             <Pressable
-              style={styles.clearBtn}
+              style={[
+                styles.clearBtn,
+                { backgroundColor: c.glass.surface, borderColor: c.glass.border },
+              ]}
               onPress={() => { onChange(null); setShowPicker(false); }}
             >
-              <Text style={styles.clearText}>No specific time</Text>
+              <Text style={[styles.clearText, { color: c.text.secondary }]}>No specific time</Text>
             </Pressable>
 
             <View style={styles.wheelsRow}>
@@ -132,7 +162,7 @@ export default function TimePicker({ value, onChange, label }: TimePickerProps) 
                 onSelect={setTempHour}
                 formatFn={(v) => String(v).padStart(2, '0')}
               />
-              <Text style={styles.colonText}>:</Text>
+              <Text style={[styles.colonText, { color: c.text.primary }]}>:</Text>
               <WheelColumn
                 data={MINUTES}
                 selected={tempMin}
@@ -141,11 +171,14 @@ export default function TimePicker({ value, onChange, label }: TimePickerProps) 
               />
             </View>
 
-            <Text style={styles.previewText}>
+            <Text style={[styles.previewText, { color: c.primary.main }]}>
               {String(tempHour).padStart(2, '0')}:{String(tempMin).padStart(2, '0')}
             </Text>
 
-            <Pressable style={styles.confirmBtn} onPress={confirm}>
+            <Pressable
+              style={[styles.confirmBtn, { backgroundColor: c.primary.main }]}
+              onPress={confirm}
+            >
               <Text style={styles.confirmText}>Confirm</Text>
             </Pressable>
           </View>
@@ -160,9 +193,8 @@ const WHEEL_HEIGHT = ITEM_HEIGHT * VISIBLE_ITEMS;
 const wheelStyles = StyleSheet.create({
   column: { width: 70, height: WHEEL_HEIGHT, overflow: 'hidden' },
   item: { height: ITEM_HEIGHT, alignItems: 'center', justifyContent: 'center' },
-  itemActive: {},
-  itemText: { fontSize: 20, color: colors.text.tertiary, fontWeight: '500' },
-  itemTextActive: { color: colors.text.primary, fontWeight: '800', fontSize: 24 },
+  itemText: { fontSize: 20, fontWeight: '500' },
+  itemTextActive: { fontWeight: '800', fontSize: 24 },
   highlight: {
     position: 'absolute',
     top: ITEM_HEIGHT * 2,
@@ -171,8 +203,6 @@ const wheelStyles = StyleSheet.create({
     height: ITEM_HEIGHT,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: colors.primary.main + '60',
-    backgroundColor: colors.primary.main + '10',
     borderRadius: 8,
   },
 });
@@ -185,19 +215,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: colors.glass.surface,
     borderWidth: 1,
-    borderColor: colors.glass.border,
   },
-  triggerText: { color: colors.text.tertiary, fontSize: 11 },
-  triggerTextActive: { color: colors.primary.main },
+  triggerText: { fontSize: 11 },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.background.secondary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
     paddingBottom: 30,
   },
   header: {
@@ -206,20 +231,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
   },
-  headerTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  headerTitle: { fontSize: 16, fontWeight: '700' },
   clearBtn: {
     alignSelf: 'center',
     marginTop: 10,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: colors.glass.surface,
     borderWidth: 1,
-    borderColor: colors.glass.border,
   },
-  clearText: { color: colors.text.secondary, fontSize: 13, fontWeight: '600' },
+  clearText: { fontSize: 13, fontWeight: '600' },
   wheelsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -227,10 +249,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 8,
   },
-  colonText: { color: colors.text.primary, fontSize: 28, fontWeight: '800' },
+  colonText: { fontSize: 28, fontWeight: '800' },
   previewText: {
     textAlign: 'center',
-    color: colors.primary.main,
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 8,
@@ -240,7 +261,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: colors.primary.main,
     marginTop: 4,
   },
   confirmText: { color: '#fff', fontSize: 14, fontWeight: '700' },

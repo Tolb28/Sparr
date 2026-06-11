@@ -19,6 +19,7 @@ import { Avatar, AvatarFallbackText, AvatarImage } from '@/components/ui/avatar'
 import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { TabBar } from '@/components/ui/tab-bar';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import DayTimelineView, { TimelineTraining } from '../components/DayTimelineView';
 import TrainingCard from '../components/TrainingCard';
@@ -35,18 +36,16 @@ import {
   uploadClubCover,
 } from '../api/clubs';
 import { getTraining } from '../api/trainingCalendars';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
 
 type RouteType = RouteProp<RootStackParamList, 'ManageClub'>;
 const TABS = ['Overview', 'Members', 'Schedule', 'Settings'] as const;
 type Tab = typeof TABS[number];
 
-const ROLE_COLORS: Record<string, string> = {
-  owner:  '#f5c518',
-  admin:  colors.primary.main,
-  coach:  '#06b6d4',
-  member: colors.text.tertiary,
+const ROLE_COLORS_STATIC: Record<string, string | undefined> = {
+  owner: '#f5c518',
+  coach: '#06b6d4',
 };
 
 export default function ManageClubScreen() {
@@ -54,6 +53,7 @@ export default function ManageClubScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteType>();
   const { clubId } = route.params;
+  const c = useThemeColors();
 
   const [loading, setLoading]     = useState(true);
   const [saving, setSaving]       = useState(false);
@@ -348,50 +348,48 @@ export default function ManageClubScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.root, styles.center]}>
-        <ActivityIndicator size="large" color={colors.primary.main} />
+      <View style={[styles.root, { backgroundColor: c.background.secondary }, styles.center]}>
+        <ActivityIndicator size="large" color={c.primary.main} />
       </View>
     );
   }
 
   const pendingRequests = requests.filter((r) => r.status === 'pending');
+  const manageTabs = TABS.map((tab) => ({
+    key: tab,
+    label:
+      tab === 'Overview' && pendingRequests.length > 0
+        ? `Overview (${pendingRequests.length})`
+        : tab,
+  }));
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: (insets.top || 0) + 4 }]}>
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 4, borderBottomColor: c.border.light }]}>
         <Pressable
   onPress={() => navigation.goBack()}
-  style={styles.iconBtn}
+  style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}
   accessibilityRole="button"
   accessibilityLabel="Back"
   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 >
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+          <Ionicons name="chevron-back" size={20} color={c.text.primary} />
         </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Manage Club</Text>
-          {!!club?.title && <Text style={styles.headerSub}>{club.title}</Text>}
+          <Text style={[styles.headerTitle, { color: c.text.primary }]}>Manage Club</Text>
+          {!!club?.title && <Text style={[styles.headerSub, { color: c.text.tertiary }]}>{club.title}</Text>}
         </View>
         <View style={{ width: 38 }} />
       </View>
 
       {/* Tab bar */}
-      <View style={styles.tabBar}>
-        {TABS.map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>{tab}</Text>
-            {tab === 'Overview' && pendingRequests.length > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{pendingRequests.length}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
+      <View style={styles.tabBarWrapper}>
+        <TabBar
+          tabs={manageTabs}
+          activeTab={activeTab}
+          onTabChange={(tab) => setActiveTab(tab as Tab)}
+        />
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 100 }}>
@@ -406,15 +404,15 @@ export default function ManageClubScreen() {
                 { label: 'Plans', value: plans.length, icon: 'calendar-outline' as const },
               ].map((s) => (
                 <GlassCard key={s.label} variant="medium" radius={12} padding={12} style={styles.statCard}>
-                  <Ionicons name={s.icon} size={18} color={colors.primary.main} />
-                  <Text style={styles.statValue}>{s.value}</Text>
-                  <Text style={styles.statLabel}>{s.label}</Text>
+                  <Ionicons name={s.icon} size={18} color={c.primary.main} />
+                  <Text style={[styles.statValue, { color: c.text.primary }]}>{s.value}</Text>
+                  <Text style={[styles.statLabel, { color: c.text.tertiary }]}>{s.label}</Text>
                 </GlassCard>
               ))}
             </View>
 
             {/* Join requests */}
-            <Text style={styles.sectionTitle}>Join Requests</Text>
+            <Text style={[styles.sectionTitle, { color: c.text.primary }]}>Join Requests</Text>
             {pendingRequests.length === 0 ? (
               <EmptyState icon="checkmark-circle-outline" title="No pending requests" />
             ) : (
@@ -426,8 +424,8 @@ export default function ManageClubScreen() {
                       <AvatarImage source={r.avatar_url ? { uri: r.avatar_url } : undefined} />
                     </Avatar>
                     <View style={styles.flex1}>
-                      <Text style={styles.memberName}>{r.display_name || r.username}</Text>
-                      <Text style={styles.memberSub}>{new Date(r.created_at).toLocaleDateString()}</Text>
+                      <Text style={[styles.memberName, { color: c.text.primary }]}>{r.display_name || r.username}</Text>
+                      <Text style={[styles.memberSub, { color: c.text.tertiary }]}>{new Date(r.created_at).toLocaleDateString()}</Text>
                     </View>
                     <TouchableOpacity
                       style={[styles.actionBtn, styles.approveBtn]}
@@ -451,8 +449,8 @@ export default function ManageClubScreen() {
         {/* ── Members Tab ──────────────────────────────────────── */}
         {activeTab === 'Members' && (
           <>
-            <Text style={styles.sectionTitle}>{members.length} Members</Text>
-            <Text style={styles.sectionHint}>Open the members manager to change roles and remove members.</Text>
+            <Text style={[styles.sectionTitle, { color: c.text.primary }]}>{members.length} Members</Text>
+            <Text style={[styles.sectionHint, { color: c.text.tertiary }]}>Open the members manager to change roles and remove members.</Text>
             <SparrButton
               label="Open Members Manager"
               variant="outline"
@@ -465,7 +463,7 @@ export default function ManageClubScreen() {
             ) : (
               members.map((m) => {
                 const role = (m.role_title ?? 'member').toLowerCase();
-                const roleColor = ROLE_COLORS[role] ?? colors.text.tertiary;
+                const roleColor = ROLE_COLORS_STATIC[role] ?? (role === 'admin' ? c.primary.main : c.text.tertiary);
                 return (
                   <GlassCard key={String(m.id_profiles)} variant="default" radius={12} padding={0}>
                     <TouchableOpacity
@@ -477,13 +475,13 @@ export default function ManageClubScreen() {
                         <AvatarImage source={m.avatar_url ? { uri: m.avatar_url } : undefined} />
                       </Avatar>
                       <View style={styles.flex1}>
-                        <Text style={styles.memberName}>{m.display_name || m.username}</Text>
+                        <Text style={[styles.memberName, { color: c.text.primary }]}>{m.display_name || m.username}</Text>
                         <View style={[styles.roleBadge, { borderColor: roleColor + '55', backgroundColor: roleColor + '18' }]}>
                           <Text style={[styles.roleBadgeText, { color: roleColor }]}>{m.role_title}</Text>
                         </View>
                       </View>
-                      <View style={styles.memberActionBtn}>
-                        <Ionicons name="chevron-forward" size={16} color={colors.primary.main} />
+                      <View style={[styles.memberActionBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+                        <Ionicons name="chevron-forward" size={16} color={c.primary.main} />
                       </View>
                     </TouchableOpacity>
                   </GlassCard>
@@ -498,17 +496,17 @@ export default function ManageClubScreen() {
           <>
             {/* Current Calendar Section */}
             {calendarLoading ? (
-              <ActivityIndicator color={colors.primary.main} />
+              <ActivityIndicator color={c.primary.main} />
             ) : selectedCalendar ? (
               <>
                 <GlassCard variant="medium" radius={14} padding={16}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: colors.primary.main + '18', alignItems: 'center', justifyContent: 'center' }}>
-                      <Ionicons name="calendar" size={20} color={colors.primary.main} />
+                    <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: c.primary.main + '18', alignItems: 'center', justifyContent: 'center' }}>
+                      <Ionicons name="calendar" size={20} color={c.primary.main} />
                     </View>
                     <View style={styles.flex1}>
-                      <Text style={{ color: colors.text.primary, fontSize: 15, fontWeight: '700' }}>{selectedCalendar.title}</Text>
-                      <Text style={{ color: colors.text.tertiary, fontSize: 12 }}>
+                      <Text style={{ color: c.text.primary, fontSize: 15, fontWeight: '700' }}>{selectedCalendar.title}</Text>
+                      <Text style={{ color: c.text.tertiary, fontSize: 12 }}>
                         {selectedCalendar.calendar_type === 'order' ? 'Order-based' : 'Day-based'} · {calendarItems.length} sessions
                       </Text>
                     </View>
@@ -516,7 +514,7 @@ export default function ManageClubScreen() {
                       onPress={() => navigation.navigate('EditCalendar', { calendarId: selectedCalendar.id_training_calendar })}
                       style={{ padding: 8 }}
                     >
-                      <Ionicons name="create-outline" size={18} color={colors.text.secondary} />
+                      <Ionicons name="create-outline" size={18} color={c.text.secondary} />
                     </Pressable>
                   </View>
                 </GlassCard>
@@ -524,18 +522,18 @@ export default function ManageClubScreen() {
                 {/* Calendar header — matches CalendarScreen */}
                 <View style={manageSchedStyles.calendarHeader}>
                   <View>
-                    <Text style={manageSchedStyles.calendarTitle}>Schedule Preview</Text>
-                    <Text style={manageSchedStyles.calendarMonth}>
+                    <Text style={[manageSchedStyles.calendarTitle, { color: c.text.primary }]}>Schedule Preview</Text>
+                    <Text style={[manageSchedStyles.calendarMonth, { color: c.primary.main }]}>
                       {new Date(selectedDate).toLocaleString(undefined, { month: 'long', year: 'numeric' })}
                     </Text>
-                    <Text style={manageSchedStyles.calendarTypeBadge}>
+                    <Text style={[manageSchedStyles.calendarTypeBadge, { color: c.text.tertiary }]}>
                       {selectedCalendar.calendar_type === 'day' ? '📅 Day-based' : '🔁 Order-based'}
                       {selectedCalendar.calendar_type === 'day' && selectedCalendar.num_weeks > 1 && ` · ${selectedCalendar.num_weeks}wk rotation`}
                     </Text>
                   </View>
                   {selectedDate !== todayDate && (
-                    <Pressable style={manageSchedStyles.backToTodayBtn} onPress={() => setSelectedDate(todayDate)}>
-                      <Text style={manageSchedStyles.backToTodayText}>Today</Text>
+                    <Pressable style={[manageSchedStyles.backToTodayBtn, { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]} onPress={() => setSelectedDate(todayDate)}>
+                      <Text style={[manageSchedStyles.backToTodayText, { color: c.primary.main }]}>Today</Text>
                     </Pressable>
                   )}
                 </View>
@@ -556,13 +554,13 @@ export default function ManageClubScreen() {
                   {(dayTrainings.length === 0 || dayTrainings.every((it: any) => !it.id_trainings)) ? (
                     <GlassCard variant="medium" radius={14} padding={16}>
                       <View style={{ alignItems: 'center', gap: 6 }}>
-                        <Ionicons name="moon-outline" size={24} color={colors.text.tertiary} />
-                        <Text style={{ color: colors.text.tertiary, fontSize: 13 }}>Rest day — no training scheduled</Text>
+                        <Ionicons name="moon-outline" size={24} color={c.text.tertiary} />
+                        <Text style={{ color: c.text.tertiary, fontSize: 13 }}>Rest day — no training scheduled</Text>
                       </View>
                     </GlassCard>
                   ) : resolvedTrainings.length === 0 ? (
                     <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                      <ActivityIndicator color={colors.primary.main} size="small" />
+                      <ActivityIndicator color={c.primary.main} size="small" />
                     </View>
                   ) : resolvedTrainings.length === 1 ? (
                     <TrainingCard
@@ -601,21 +599,21 @@ export default function ManageClubScreen() {
             </View>
 
             {/* Existing plans list */}
-            <Text style={styles.sectionTitle}>Training Plans</Text>
+            <Text style={[styles.sectionTitle, { color: c.text.primary }]}>Training Plans</Text>
             {plans.length === 0 ? (
               <EmptyState icon="barbell-outline" title="No plans yet" subtitle="Create the first training plan for this club." />
             ) : (
               plans.map((plan) => (
                 <GlassCard key={String(plan.id_training_calendar)} variant="medium" radius={12} padding={14}>
                   <View style={styles.planRow}>
-                    <View style={styles.planIconWrap}>
-                      <Ionicons name="barbell-outline" size={18} color={colors.primary.main} />
+                    <View style={[styles.planIconWrap, { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]}>
+                      <Ionicons name="barbell-outline" size={18} color={c.primary.main} />
                     </View>
                     <View style={styles.flex1}>
-                      <Text style={styles.planTitle}>{plan.title}</Text>
-                      <Text style={styles.planSub}>{plan.trainings_count ?? 0} sessions</Text>
+                      <Text style={[styles.planTitle, { color: c.text.primary }]}>{plan.title}</Text>
+                      <Text style={[styles.planSub, { color: c.text.tertiary }]}>{plan.trainings_count ?? 0} sessions</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={14} color={colors.text.tertiary} />
+                    <Ionicons name="chevron-forward" size={14} color={c.text.tertiary} />
                   </View>
                 </GlassCard>
               ))
@@ -628,64 +626,64 @@ export default function ManageClubScreen() {
           <>
             {/* Avatar + Cover */}
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.sectionTitle}>Club Images</Text>
+              <Text style={[styles.sectionTitle, { color: c.text.primary }]}>Club Images</Text>
               <View style={styles.imageRow}>
                 <TouchableOpacity style={styles.imagePickerBtn} onPress={() => pickAndUpload('avatar')}>
                   {club?.avatar_url
                     ? <Avatar size="xl"><AvatarImage source={{ uri: club.avatar_url }} /></Avatar>
                     : <Avatar size="xl"><AvatarFallbackText>{club?.title?.[0] ?? 'C'}</AvatarFallbackText></Avatar>
                   }
-                  <View style={styles.imagePickerOverlay}>
+                  <View style={[styles.imagePickerOverlay, { backgroundColor: c.primary.main }]}>
                     <Ionicons name="camera" size={14} color="#fff" />
                   </View>
-                  <Text style={styles.imagePickerLabel}>Avatar</Text>
+                  <Text style={[styles.imagePickerLabel, { color: c.text.tertiary }]}>Avatar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.imagePickerBtn} onPress={() => pickAndUpload('cover')}>
-                  <View style={styles.coverThumb}>
+                  <View style={[styles.coverThumb, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
                     {club?.cover_url ? (
                       <Image source={{ uri: club.cover_url }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
                     ) : (
-                      <Ionicons name="image-outline" size={24} color={colors.text.tertiary} />
+                      <Ionicons name="image-outline" size={24} color={c.text.tertiary} />
                     )}
-                    <View style={styles.imagePickerOverlay}>
+                    <View style={[styles.imagePickerOverlay, { backgroundColor: c.primary.main }]}>
                       <Ionicons name="camera" size={14} color="#fff" />
                     </View>
                   </View>
-                  <Text style={styles.imagePickerLabel}>Cover Photo</Text>
+                  <Text style={[styles.imagePickerLabel, { color: c.text.tertiary }]}>Cover Photo</Text>
                 </TouchableOpacity>
               </View>
             </GlassCard>
 
             {/* Club details form */}
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.sectionTitle}>Club Info</Text>
+              <Text style={[styles.sectionTitle, { color: c.text.primary }]}>Club Info</Text>
               <FormField label="Club Name" value={title} onChangeText={setTitle} placeholder="Club name" />
               <FormField label="Location" value={location} onChangeText={setLocation} placeholder="City, Country" />
               <FormField label="Bio" value={bio} onChangeText={setBio} placeholder="Tell athletes about your club…" multiline />
             </GlassCard>
 
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.sectionTitle}>Social Links</Text>
+              <Text style={[styles.sectionTitle, { color: c.text.primary }]}>Social Links</Text>
               <FormField label="Instagram" value={instagram} onChangeText={setInstagram} placeholder="@yourclub or URL" icon="logo-instagram" />
               <FormField label="Website" value={website} onChangeText={setWebsite} placeholder="yourclub.com" icon="globe-outline" />
             </GlassCard>
 
             <GlassCard variant="medium" radius={14} padding={16}>
-              <Text style={styles.sectionTitle}>Join Policy</Text>
+              <Text style={[styles.sectionTitle, { color: c.text.primary }]}>Join Policy</Text>
               <View style={styles.policyRow}>
                 <Pressable
-                  style={[styles.policyBtn, joinPolicy === 'open' && styles.policyBtnActive]}
+                  style={[styles.policyBtn, { borderColor: c.glass.border, backgroundColor: c.glass.surface }, joinPolicy === 'open' && { borderColor: c.primary.main, backgroundColor: c.glass.redSurface }]}
                   onPress={() => setJoinPolicy('open')}
                 >
-                  <Ionicons name="people-outline" size={16} color={joinPolicy === 'open' ? colors.primary.main : colors.text.secondary} />
-                  <Text style={[styles.policyText, joinPolicy === 'open' && styles.policyTextActive]}>Open</Text>
+                  <Ionicons name="people-outline" size={16} color={joinPolicy === 'open' ? c.primary.main : c.text.secondary} />
+                  <Text style={[styles.policyText, { color: c.text.secondary }, joinPolicy === 'open' && { color: c.primary.main }]}>Open</Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.policyBtn, joinPolicy === 'approval' && styles.policyBtnActive]}
+                  style={[styles.policyBtn, { borderColor: c.glass.border, backgroundColor: c.glass.surface }, joinPolicy === 'approval' && { borderColor: c.primary.main, backgroundColor: c.glass.redSurface }]}
                   onPress={() => setJoinPolicy('approval')}
                 >
-                  <Ionicons name="shield-checkmark-outline" size={16} color={joinPolicy === 'approval' ? colors.primary.main : colors.text.secondary} />
-                  <Text style={[styles.policyText, joinPolicy === 'approval' && styles.policyTextActive]}>Approval</Text>
+                  <Ionicons name="shield-checkmark-outline" size={16} color={joinPolicy === 'approval' ? c.primary.main : c.text.secondary} />
+                  <Text style={[styles.policyText, { color: c.text.secondary }, joinPolicy === 'approval' && { color: c.primary.main }]}>Approval</Text>
                 </Pressable>
               </View>
             </GlassCard>
@@ -705,17 +703,18 @@ function FormField({ label, value, onChangeText, placeholder, multiline, icon }:
   label: string; value: string; onChangeText: (v: string) => void;
   placeholder?: string; multiline?: boolean; icon?: any;
 }) {
+  const c = useThemeColors();
   return (
     <View style={{ marginBottom: 12 }}>
-      <Text style={fStyles.label}>{label}</Text>
-      <View style={fStyles.inputWrap}>
-        {icon && <Ionicons name={icon} size={16} color={colors.text.tertiary} style={{ marginLeft: 10 }} />}
+      <Text style={[fStyles.label, { color: c.text.secondary }]}>{label}</Text>
+      <View style={[fStyles.inputWrap, { backgroundColor: c.input.background, borderColor: c.input.border }]}>
+        {icon && <Ionicons name={icon} size={16} color={c.text.tertiary} style={{ marginLeft: 10 }} />}
         <TextInput
-          style={[fStyles.input, multiline && fStyles.multiline, icon && fStyles.withIcon]}
+          style={[fStyles.input, { color: c.text.primary }, multiline && fStyles.multiline, icon && fStyles.withIcon]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={colors.text.tertiary}
+          placeholderTextColor={c.input.placeholder}
           multiline={multiline}
           numberOfLines={multiline ? 3 : 1}
         />
@@ -726,17 +725,16 @@ function FormField({ label, value, onChangeText, placeholder, multiline, icon }:
 
 const fStyles = StyleSheet.create({
   label: {
-    color: colors.text.secondary, fontSize: 11, fontWeight: '700',
+    fontSize: 11, fontWeight: '700',
     letterSpacing: 0.8, marginBottom: 6, textTransform: 'uppercase',
   },
   inputWrap: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: colors.glass.surface,
-    borderRadius: 10, borderWidth: 1, borderColor: colors.glass.border,
+    borderRadius: 10, borderWidth: 1,
     overflow: 'hidden',
   },
   input: {
-    flex: 1, color: colors.text.primary,
+    flex: 1,
     paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
   },
   withIcon: { paddingLeft: 8 },
@@ -747,53 +745,35 @@ const fStyles = StyleSheet.create({
 // Styles
 // ---------------------------------------------------------------------------
 const styles = StyleSheet.create({
-  root:   { flex: 1, backgroundColor: colors.background.secondary },
+  root:   { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    borderBottomWidth: 1,
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle:  { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
-  headerSub:    { color: colors.text.tertiary, fontSize: 11, marginTop: 2 },
+  headerTitle:  { fontSize: 16, fontWeight: '700' },
+  headerSub:    { fontSize: 11, marginTop: 2 },
   iconBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
 
   // Tabs
-  tabBar: {
-    flexDirection: 'row',
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
-    paddingHorizontal: 4,
-  },
-  tabItem: {
-    flex: 1, paddingVertical: 11, alignItems: 'center', justifyContent: 'center',
-    flexDirection: 'row', gap: 4,
-    borderBottomWidth: 2, borderBottomColor: 'transparent',
-  },
-  tabItemActive: { borderBottomColor: colors.primary.main },
-  tabLabel:      { color: colors.text.tertiary, fontSize: 13, fontWeight: '600' },
-  tabLabelActive:{ color: colors.text.primary, fontWeight: '700' },
-  badge: {
-    backgroundColor: colors.primary.main,
-    borderRadius: 8, minWidth: 16, height: 16,
-    alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3,
-  },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  tabBarWrapper: { paddingHorizontal: 4 },
 
   // Stats
   statsRow:   { flexDirection: 'row', gap: 10 },
   statCard:   { flex: 1, alignItems: 'center', gap: 4 },
-  statValue:  { color: colors.text.primary, fontSize: 20, fontWeight: '800' },
-  statLabel:  { color: colors.text.tertiary, fontSize: 11 },
+  statValue:  { fontSize: 20, fontWeight: '800' },
+  statLabel:  { fontSize: 11 },
 
   // Section
-  sectionTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700', marginBottom: 4 },
-  sectionHint: { color: colors.text.tertiary, fontSize: 12, marginBottom: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  sectionHint: { fontSize: 12, marginBottom: 8 },
 
   // Request
   requestRow:   { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -803,8 +783,8 @@ const styles = StyleSheet.create({
 
   // Members
   memberManageRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  memberName:      { color: colors.text.primary, fontWeight: '700', fontSize: 14, marginBottom: 4 },
-  memberSub:       { color: colors.text.tertiary, fontSize: 11 },
+  memberName:      { fontWeight: '700', fontSize: 14, marginBottom: 4 },
+  memberSub:       { fontSize: 11 },
   roleBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 7, paddingVertical: 2,
@@ -813,7 +793,7 @@ const styles = StyleSheet.create({
   roleBadgeText: { fontSize: 11, fontWeight: '700' },
   memberActionBtn: {
     width: 34, height: 34, borderRadius: 10,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   kickBtn: { borderColor: '#dc262644', backgroundColor: 'rgba(220,38,38,0.06)' },
@@ -822,12 +802,11 @@ const styles = StyleSheet.create({
   planRow:     { flexDirection: 'row', alignItems: 'center', gap: 10 },
   planIconWrap: {
     width: 36, height: 36, borderRadius: 10,
-    backgroundColor: colors.glass.redSurface,
-    borderWidth: 1, borderColor: colors.glass.redBorder,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
-  planTitle: { color: colors.text.primary, fontWeight: '700', fontSize: 14 },
-  planSub:   { color: colors.text.tertiary, fontSize: 12, marginTop: 2 },
+  planTitle: { fontWeight: '700', fontSize: 14 },
+  planSub:   { fontSize: 12, marginTop: 2 },
 
   // Settings
   imageRow:   { flexDirection: 'row', gap: 16, alignItems: 'flex-start' },
@@ -835,13 +814,12 @@ const styles = StyleSheet.create({
   imagePickerOverlay: {
     position: 'absolute', bottom: 24, right: -4,
     width: 24, height: 24, borderRadius: 12,
-    backgroundColor: colors.primary.main,
     alignItems: 'center', justifyContent: 'center',
   },
-  imagePickerLabel: { color: colors.text.tertiary, fontSize: 11 },
+  imagePickerLabel: { fontSize: 11 },
   coverThumb: {
     width: 100, height: 60, borderRadius: 10,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
 
@@ -849,25 +827,23 @@ const styles = StyleSheet.create({
   policyBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1, borderColor: colors.glass.border,
-    backgroundColor: colors.glass.surface,
+    borderWidth: 1,
   },
-  policyBtnActive:  { borderColor: colors.primary.main, backgroundColor: colors.glass.redSurface },
-  policyText:       { color: colors.text.secondary, fontWeight: '600', fontSize: 13 },
-  policyTextActive: { color: colors.primary.main },
+  policyBtnActive:  {},
+  policyText:       { fontWeight: '600', fontSize: 13 },
+  policyTextActive: {},
 
   flex1: { flex: 1 },
 });
 
 const manageSchedStyles = StyleSheet.create({
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
-  calendarTitle: { color: colors.text.primary, fontSize: 17, fontWeight: '800' },
-  calendarMonth: { color: colors.primary.main, fontSize: 13, fontWeight: '600' },
-  calendarTypeBadge: { color: colors.text.tertiary, fontSize: 11, fontWeight: '600', marginTop: 2 },
+  calendarTitle: { fontSize: 17, fontWeight: '800' },
+  calendarMonth: { fontSize: 13, fontWeight: '600' },
+  calendarTypeBadge: { fontSize: 11, fontWeight: '600', marginTop: 2 },
   backToTodayBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: colors.glass.redSurface, borderWidth: 1, borderColor: colors.glass.redBorder,
+    borderWidth: 1,
   },
-  backToTodayText: { color: colors.primary.main, fontSize: 12, fontWeight: '700' },
+  backToTodayText: { fontSize: 12, fontWeight: '700' },
 });
-

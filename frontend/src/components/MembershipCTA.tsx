@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { SparrButton } from '@/components/ui/sparr-button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Text } from '@/components/ui/text';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface MembershipCTAProps {
   club: any;
@@ -16,11 +16,12 @@ interface MembershipCTAProps {
 }
 
 export default function MembershipCTA({ club, canManage, joining, leaving, onJoin, onLeave }: MembershipCTAProps) {
+  const c = useThemeColors();
   if (canManage) {
     return (
       <GlassCard variant="medium" radius={12} padding={12}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ color: colors.text.primary, fontWeight: '700' }}>You manage this club</Text>
+          <Text style={{ color: c.text.primary, fontWeight: '700' }}>You manage this club</Text>
         </View>
       </GlassCard>
     );

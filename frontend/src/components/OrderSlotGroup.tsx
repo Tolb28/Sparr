@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import TrainingPreviewCard from './TrainingPreviewCard';
 import TimePicker from './TimePicker';
 
@@ -42,19 +42,20 @@ export default function OrderSlotGroup({
   onMoveSlot,
   onRemoveSlot,
 }: OrderSlotGroupProps) {
+  const c = useThemeColors();
   const isRest = slot.type === 'rest';
 
   return (
-    <View style={styles.container}>
-      <View style={styles.dayBadge}>
+    <View style={[styles.container, { borderBottomColor: c.glass.border }]}>
+      <View style={[styles.dayBadge, { backgroundColor: c.primary.main }]}>
         <Text style={styles.dayBadgeText}>{index + 1}</Text>
       </View>
 
       <View style={styles.content}>
         {isRest ? (
           <View style={styles.restSlot}>
-            <Ionicons name="bed-outline" size={16} color={colors.text.tertiary} />
-            <Text style={styles.restSlotText}>Rest Day</Text>
+            <Ionicons name="bed-outline" size={16} color={c.text.tertiary} />
+            <Text style={[styles.restSlotText, { color: c.text.tertiary }]}>Rest Day</Text>
           </View>
         ) : (
           <View style={styles.trainings}>
@@ -74,17 +75,17 @@ export default function OrderSlotGroup({
                 </View>
                 {slot.trainings.length > 1 && (
                   <Pressable
-                    style={styles.removeTrainingBtn}
+                    style={[styles.removeTrainingBtn, { backgroundColor: c.glass.redSurface }]}
                     onPress={() => onRemoveTraining(slot.order, tIdx)}
                   >
-                    <Ionicons name="close" size={12} color={colors.primary.main} />
+                    <Ionicons name="close" size={12} color={c.primary.main} />
                   </Pressable>
                 )}
               </View>
             ))}
             <Pressable style={styles.addMoreBtn} onPress={() => onAddTraining(slot.order)}>
-              <Ionicons name="add" size={14} color={colors.text.secondary} />
-              <Text style={styles.addMoreText}>Add another training</Text>
+              <Ionicons name="add" size={14} color={c.text.secondary} />
+              <Text style={[styles.addMoreText, { color: c.text.tertiary }]}>Add another training</Text>
             </Pressable>
           </View>
         )}
@@ -92,21 +93,21 @@ export default function OrderSlotGroup({
 
       <View style={styles.actions}>
         <Pressable
-          style={[styles.moveBtn, index === 0 && styles.moveBtnDisabled]}
+          style={[styles.moveBtn, { backgroundColor: c.glass.medium }, index === 0 && styles.moveBtnDisabled]}
           onPress={() => onMoveSlot(index, 'up')}
           disabled={index === 0}
         >
-          <Text style={styles.moveBtnText}>▲</Text>
+          <Text style={[styles.moveBtnText, { color: c.text.secondary }]}>▲</Text>
         </Pressable>
         <Pressable
-          style={[styles.moveBtn, index === total - 1 && styles.moveBtnDisabled]}
+          style={[styles.moveBtn, { backgroundColor: c.glass.medium }, index === total - 1 && styles.moveBtnDisabled]}
           onPress={() => onMoveSlot(index, 'down')}
           disabled={index === total - 1}
         >
-          <Text style={styles.moveBtnText}>▼</Text>
+          <Text style={[styles.moveBtnText, { color: c.text.secondary }]}>▼</Text>
         </Pressable>
-        <Pressable style={styles.removeBtnFull} onPress={() => onRemoveSlot(index)}>
-          <Ionicons name="close" size={14} color={colors.primary.main} />
+        <Pressable style={[styles.removeBtnFull, { backgroundColor: c.glass.redSurface }]} onPress={() => onRemoveSlot(index)}>
+          <Ionicons name="close" size={14} color={c.primary.main} />
         </Pressable>
       </View>
     </View>
@@ -120,13 +121,11 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: colors.glass.border,
   },
   dayBadge: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: colors.primary.main,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 4,
@@ -134,7 +133,7 @@ const styles = StyleSheet.create({
   dayBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   content: { flex: 1 },
   restSlot: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8 },
-  restSlotText: { color: colors.text.tertiary, fontSize: 13, fontStyle: 'italic' },
+  restSlotText: { fontSize: 13, fontStyle: 'italic' },
   trainings: { gap: 4 },
   trainingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   trainingInfo: { flex: 1, gap: 4 },
@@ -144,7 +143,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.glass.redSurface,
   },
   addMoreBtn: {
     flexDirection: 'row',
@@ -153,7 +151,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     alignSelf: 'flex-start',
   },
-  addMoreText: { color: colors.text.tertiary, fontSize: 11 },
+  addMoreText: { fontSize: 11 },
   actions: { gap: 3, paddingTop: 4 },
   moveBtn: {
     width: 24,
@@ -161,16 +159,14 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.glass.medium,
   },
   moveBtnDisabled: { opacity: 0.35 },
-  moveBtnText: { color: colors.text.secondary, fontSize: 10 },
+  moveBtnText: { fontSize: 10 },
   removeBtnFull: {
     width: 24,
     height: 24,
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.glass.redSurface,
   },
 });

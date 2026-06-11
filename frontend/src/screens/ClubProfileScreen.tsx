@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Linking,
   Pressable,
@@ -11,6 +10,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  Text as RNText,
 } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,8 +37,9 @@ import { getTraining } from '../api/trainingCalendars';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import TrainingCard from '../components/TrainingCard';
 import DayTimelineView, { TimelineTraining } from '../components/DayTimelineView';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { showSuccessNotification, showErrorNotification } from '@/src/services/notificationService';
+import ConfirmationModal from '@/src/components/ConfirmationModal';
 import ClubHeader from '../components/ClubHeader';
 import ClubUpcomingEvents from '../components/ClubUpcomingEvents';
 import ClubReviewsLocation from '../components/ClubReviewsLocation';
@@ -52,11 +53,9 @@ const TAB_INDICATOR_INSET = 8;
 const TABS = ['Posts', 'Schedule', 'Members', 'About'] as const;
 type Tab = typeof TABS[number];
 
-const ROLE_COLORS: Record<string, string> = {
-  owner:  '#f5c518',
-  admin:  colors.primary.main,
-  coach:  '#06b6d4',
-  member: colors.text.tertiary,
+const ROLE_COLORS_STATIC: Record<string, string | undefined> = {
+  owner: '#f5c518',
+  coach: '#06b6d4',
 };
 
 export default function ClubProfileScreen() {
@@ -64,12 +63,14 @@ export default function ClubProfileScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<ClubProfileRouteProp>();
   const { clubId } = route.params;
+  const c = useThemeColors();
 
   const [club, setClub]             = useState<any | null>(null);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [joining, setJoining]       = useState(false);
   const [leaving, setLeaving]       = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const [sharing, setSharing]       = useState(false);
   const [activeTab, setActiveTab]   = useState<Tab>('Posts');
 
@@ -202,26 +203,21 @@ export default function ClubProfileScreen() {
     }
   };
 
-  const handleLeave = () => {
-    Alert.alert('Leave Club', 'Are you sure you want to leave this club?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Leave', style: 'destructive',
-        onPress: async () => {
-          try {
-            setLeaving(true);
-            await leaveClub(clubId);
-            setClub((prev: any) => ({ ...prev, join_status: 'none' }));
-            await Promise.all([load(true), loadTabContent('Members', true)]);
-            showSuccessNotification(`You left ${club?.title ?? 'the club'}.`);
-          } catch (e: any) {
-            showErrorNotification(getErrorMessage(e, 'Unable to leave this club.'));
-          } finally {
-            setLeaving(false);
-          }
-        },
-      },
-    ]);
+  const handleLeave = () => setConfirmLeave(true);
+
+  const doLeave = async () => {
+    setConfirmLeave(false);
+    try {
+      setLeaving(true);
+      await leaveClub(clubId);
+      setClub((prev: any) => ({ ...prev, join_status: 'none' }));
+      await Promise.all([load(true), loadTabContent('Members', true)]);
+      showSuccessNotification(`You left ${club?.title ?? 'the club'}.`);
+    } catch (e: any) {
+      showErrorNotification(getErrorMessage(e, 'Unable to leave this club.'));
+    } finally {
+      setLeaving(false);
+    }
   };
 
   const handleCopyPlan = async (planId: number) => {
@@ -445,8 +441,8 @@ export default function ClubProfileScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.root, styles.center]}>
-        <ActivityIndicator color={colors.primary.main} size="large" />
+      <View style={[styles.root, { backgroundColor: c.background.secondary }, styles.center]}>
+        <ActivityIndicator color={c.primary.main} size="large" />
       </View>
     );
   }
@@ -455,7 +451,7 @@ export default function ClubProfileScreen() {
   const isMember = club?.join_status === 'member';
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -463,7 +459,7 @@ export default function ClubProfileScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={colors.primary.main}
+            tintColor={c.primary.main}
           />
         }
       >
@@ -489,7 +485,7 @@ export default function ClubProfileScreen() {
 
         {/* ── Tab bar ───────────────────────────────────────────── */}
         <View
-          style={styles.tabBar}
+          style={[styles.tabBar, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}
           onLayout={(e) => setTabBarWidth(e.nativeEvent.layout.width)}
         >
           <View
@@ -498,6 +494,7 @@ export default function ClubProfileScreen() {
               {
                 left: indicatorLeft,
                 width: indicatorWidth,
+                backgroundColor: c.primary.main,
               },
             ]}
           />
@@ -507,9 +504,15 @@ export default function ClubProfileScreen() {
               style={styles.tabItem}
               onPress={() => handleTabPress(tab)}
             >
-              <Text style={[styles.tabLabel, activeTab === tab && styles.tabLabelActive]}>
+              <RNText
+                style={{
+                  fontSize: 13,
+                  fontWeight: activeTab === tab ? '700' : '600',
+                  color: activeTab === tab ? c.text.primary : c.text.tertiary,
+                }}
+              >
                 {tab}
-              </Text>
+              </RNText>
             </Pressable>
           ))}
         </View>
@@ -561,11 +564,20 @@ export default function ClubProfileScreen() {
       {!!club?.can_manage && (
         <Pressable
           onPress={() => navigation.navigate('CreatePost', { clubId })}
-          style={styles.fab}
+          style={[styles.fab, { backgroundColor: c.primary.main }]}
         >
           <Ionicons name="add" size={26} color="#fff" />
         </Pressable>
       )}
+      <ConfirmationModal
+        visible={confirmLeave}
+        title="Leave Club"
+        message="Are you sure you want to leave this club?"
+        confirmText="Leave"
+        destructive
+        onConfirm={doLeave}
+        onCancel={() => setConfirmLeave(false)}
+      />
     </View>
   );
 }
@@ -639,6 +651,7 @@ function ScheduleTab({ plans, loading, isMember, copyingPlan, onCopy, calendar, 
   hasDayEntries: boolean; hasTrainingEntries: boolean; dayTrainingsLoading: boolean; dayTrainingsError: string | null;
   selectedDate: string; todayDate: string; onDateChange: (d: string) => void;
 }) {
+  const c = useThemeColors();
   if (loading) return <LoadingSpinner />;
 
   const handleDateSelect = (date: Date) => {
@@ -656,18 +669,18 @@ function ScheduleTab({ plans, loading, isMember, copyingPlan, onCopy, calendar, 
           {/* Calendar header — matches CalendarScreen */}
           <View style={schedStyles.calendarHeader}>
             <View>
-              <Text style={schedStyles.calendarTitle}>{calendar.title || 'Club Calendar'}</Text>
-              <Text style={schedStyles.calendarMonth}>
+              <Text style={[schedStyles.calendarTitle, { color: c.text.primary }]}>{calendar.title || 'Club Calendar'}</Text>
+              <Text style={[schedStyles.calendarMonth, { color: c.primary.main }]}>
                 {new Date(selectedDate).toLocaleString(undefined, { month: 'long', year: 'numeric' })}
               </Text>
-              <Text style={schedStyles.calendarTypeBadge}>
+              <Text style={[schedStyles.calendarTypeBadge, { color: c.text.tertiary }]}>
                 {calendar.calendar_type === 'day' ? '📅 Day-based' : '🔁 Order-based'}
                 {calendar.calendar_type === 'day' && calendar.num_weeks > 1 && ` · ${calendar.num_weeks}wk rotation`}
               </Text>
             </View>
             {selectedDate !== todayDate && (
-              <Pressable style={schedStyles.backToTodayBtn} onPress={() => onDateChange(todayDate)}>
-                <Text style={schedStyles.backToTodayText}>Today</Text>
+              <Pressable style={[schedStyles.backToTodayBtn, { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]} onPress={() => onDateChange(todayDate)}>
+                <Text style={[schedStyles.backToTodayText, { color: c.primary.main }]}>Today</Text>
               </Pressable>
             )}
           </View>
@@ -679,26 +692,26 @@ function ScheduleTab({ plans, loading, isMember, copyingPlan, onCopy, calendar, 
             {!hasDayEntries ? (
               <GlassCard variant="medium" radius={14} padding={16}>
                 <View style={{ alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="calendar-clear-outline" size={24} color={colors.text.tertiary} />
-                  <Text style={{ color: colors.text.tertiary, fontSize: 13 }}>No sessions scheduled for this date</Text>
+                  <Ionicons name="calendar-clear-outline" size={24} color={c.text.tertiary} />
+                  <Text style={{ color: c.text.tertiary, fontSize: 13 }}>No sessions scheduled for this date</Text>
                 </View>
               </GlassCard>
             ) : !hasTrainingEntries ? (
               <GlassCard variant="medium" radius={14} padding={16}>
                 <View style={{ alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="moon-outline" size={24} color={colors.text.tertiary} />
-                  <Text style={{ color: colors.text.tertiary, fontSize: 13 }}>Rest day — no training scheduled</Text>
+                  <Ionicons name="moon-outline" size={24} color={c.text.tertiary} />
+                  <Text style={{ color: c.text.tertiary, fontSize: 13 }}>Rest day — no training scheduled</Text>
                 </View>
               </GlassCard>
             ) : dayTrainingsLoading ? (
               <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                <ActivityIndicator color={colors.primary.main} size="small" />
+                <ActivityIndicator color={c.primary.main} size="small" />
               </View>
             ) : dayTrainingsError ? (
               <GlassCard variant="medium" radius={14} padding={16}>
                 <View style={{ alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="alert-circle-outline" size={24} color={colors.warning.main} />
-                  <Text style={{ color: colors.text.tertiary, fontSize: 13, textAlign: 'center' }}>{dayTrainingsError}</Text>
+                  <Ionicons name="alert-circle-outline" size={24} color={c.warning.main} />
+                  <Text style={{ color: c.text.tertiary, fontSize: 13, textAlign: 'center' }}>{dayTrainingsError}</Text>
                 </View>
               </GlassCard>
             ) : resolvedTrainings.length === 1 ? (
@@ -726,23 +739,23 @@ function ScheduleTab({ plans, loading, isMember, copyingPlan, onCopy, calendar, 
       )}
 
       {/* Training plans list */}
-      <Text style={styles.sectionTitle}>Training Plans</Text>
+      <Text style={[styles.sectionTitle, { color: c.text.secondary }]}>Training Plans</Text>
       {plans.length === 0 ? (
         <EmptyState icon="calendar-outline" title="No training plans" subtitle="This club hasn't published any plans yet." />
       ) : (
         plans.map((plan) => (
           <GlassCard key={String(plan.id_training_calendar)} variant="medium" radius={14} padding={14} style={styles.planCard}>
             <View style={styles.planRow}>
-              <View style={styles.planIconWrap}>
-                <Ionicons name="barbell-outline" size={20} color={colors.primary.main} />
+              <View style={[styles.planIconWrap, { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]}>
+                <Ionicons name="barbell-outline" size={20} color={c.primary.main} />
               </View>
               <View style={styles.flex1}>
-                <Text style={styles.planTitle}>{plan.title}</Text>
-                <Text style={styles.planSub}>{plan.trainings_count ?? 0} training sessions</Text>
+                <Text style={[styles.planTitle, { color: c.text.primary }]}>{plan.title}</Text>
+                <Text style={[styles.planSub, { color: c.text.tertiary }]}>{plan.trainings_count ?? 0} training sessions</Text>
               </View>
               {isMember && (
                 <TouchableOpacity
-                  style={styles.copyBtn}
+                  style={[styles.copyBtn, { backgroundColor: c.primary.main }]}
                   onPress={() => onCopy(Number(plan.id_training_calendar))}
                   disabled={copyingPlan === Number(plan.id_training_calendar)}
                 >
@@ -773,6 +786,7 @@ function MembersTab({
   canManage: boolean;
   clubId: number;
 }) {
+  const c = useThemeColors();
   if (loading) return <LoadingSpinner />;
   if (members.length === 0) return <EmptyState icon="people-outline" title="No members yet" subtitle="Be the first to join this club." />;
   return (
@@ -788,25 +802,25 @@ function MembersTab({
       )}
       {members.map((m) => {
         const role = (m.role_title ?? 'member').toLowerCase();
-        const roleColor = ROLE_COLORS[role] ?? colors.text.tertiary;
+        const roleColor = ROLE_COLORS_STATIC[role] ?? (role === 'admin' ? c.primary.main : c.text.tertiary);
         return (
           <TouchableOpacity
             key={String(m.id_profiles)}
             onPress={() => navigation.navigate('ForeignProfile', { foreign_profile_id: m.id_profiles })}
-            style={styles.memberRow}
+            style={[styles.memberRow, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}
           >
             <Avatar size="sm">
               <AvatarFallbackText>{m.display_name?.[0] ?? '?'}</AvatarFallbackText>
               <AvatarImage source={m.avatar_url ? { uri: m.avatar_url } : undefined} />
             </Avatar>
             <View style={styles.flex1}>
-              <Text style={styles.memberName}>{m.display_name || m.username}</Text>
-              {!!m.location && <Text style={styles.memberLocation}>{m.location}</Text>}
+              <Text style={[styles.memberName, { color: c.text.primary }]}>{m.display_name || m.username}</Text>
+              {!!m.location && <Text style={[styles.memberLocation, { color: c.text.tertiary }]}>{m.location}</Text>}
             </View>
             <View style={[styles.roleBadge, { borderColor: roleColor + '55', backgroundColor: roleColor + '18' }]}>
               <Text style={[styles.roleBadgeText, { color: roleColor }]}>{m.role_title ?? 'Member'}</Text>
             </View>
-            <Ionicons name="chevron-forward" size={14} color={colors.text.tertiary} style={{ marginLeft: 6 }} />
+            <Ionicons name="chevron-forward" size={14} color={c.text.tertiary} style={{ marginLeft: 6 }} />
           </TouchableOpacity>
         );
       })}
@@ -815,43 +829,44 @@ function MembersTab({
 }
 
 function AboutTab({ club }: { club: any }) {
+  const c = useThemeColors();
   if (!club) return null;
   return (
     <View style={styles.aboutBlock}>
       {!!club.bio && (
         <GlassCard variant="medium" radius={14} padding={16} style={styles.aboutCard}>
-          <Text style={styles.aboutSectionTitle}>About</Text>
-          <Text style={styles.aboutBio}>{club.bio}</Text>
+          <Text style={[styles.aboutSectionTitle, { color: c.text.secondary }]}>About</Text>
+          <Text style={[styles.aboutBio, { color: c.text.secondary }]}>{club.bio}</Text>
         </GlassCard>
       )}
       <GlassCard variant="medium" radius={14} padding={16} style={styles.aboutCard}>
-        <Text style={styles.aboutSectionTitle}>Details</Text>
+        <Text style={[styles.aboutSectionTitle, { color: c.text.secondary }]}>Details</Text>
         {!!club.location && (
           <View style={styles.aboutRow}>
-            <Ionicons name="location-outline" size={16} color={colors.text.secondary} />
-            <Text style={styles.aboutRowText}>{club.location}</Text>
+            <Ionicons name="location-outline" size={16} color={c.text.secondary} />
+            <Text style={[styles.aboutRowText, { color: c.text.secondary }]}>{club.location}</Text>
           </View>
         )}
         <View style={styles.aboutRow}>
-          <Ionicons name="people-outline" size={16} color={colors.text.secondary} />
-          <Text style={styles.aboutRowText}>{club.members_count ?? 0} members</Text>
+          <Ionicons name="people-outline" size={16} color={c.text.secondary} />
+          <Text style={[styles.aboutRowText, { color: c.text.secondary }]}>{club.members_count ?? 0} members</Text>
         </View>
         <View style={styles.aboutRow}>
-          <Ionicons name="lock-closed-outline" size={16} color={colors.text.secondary} />
-          <Text style={styles.aboutRowText}>{club.join_policy === 'open' ? 'Open membership' : 'Approval required'}</Text>
+          <Ionicons name="lock-closed-outline" size={16} color={c.text.secondary} />
+          <Text style={[styles.aboutRowText, { color: c.text.secondary }]}>{club.join_policy === 'open' ? 'Open membership' : 'Approval required'}</Text>
         </View>
       </GlassCard>
       {(club.instagram_url || club.website_url) && (
         <GlassCard variant="medium" radius={14} padding={16} style={styles.aboutCard}>
-          <Text style={styles.aboutSectionTitle}>Links</Text>
+          <Text style={[styles.aboutSectionTitle, { color: c.text.secondary }]}>Links</Text>
           {!!club.instagram_url && (
             <TouchableOpacity
               style={styles.aboutRow}
               onPress={() => Linking.openURL(club.instagram_url.startsWith('http') ? club.instagram_url : `https://instagram.com/${club.instagram_url.replace('@', '')}`)}
             >
               <Ionicons name="logo-instagram" size={16} color="#E1306C" />
-              <Text style={[styles.aboutRowText, styles.linkText]}>{club.instagram_url}</Text>
-              <Ionicons name="open-outline" size={12} color={colors.text.tertiary} />
+              <Text style={[styles.aboutRowText, styles.linkText, { color: c.info.main }]}>{club.instagram_url}</Text>
+              <Ionicons name="open-outline" size={12} color={c.text.tertiary} />
             </TouchableOpacity>
           )}
           {!!club.website_url && (
@@ -859,9 +874,9 @@ function AboutTab({ club }: { club: any }) {
               style={styles.aboutRow}
               onPress={() => Linking.openURL(club.website_url.startsWith('http') ? club.website_url : `https://${club.website_url}`)}
             >
-              <Ionicons name="globe-outline" size={16} color={colors.info.main} />
-              <Text style={[styles.aboutRowText, styles.linkText]}>{club.website_url}</Text>
-              <Ionicons name="open-outline" size={12} color={colors.text.tertiary} />
+              <Ionicons name="globe-outline" size={16} color={c.info.main} />
+              <Text style={[styles.aboutRowText, styles.linkText, { color: c.info.main }]}>{club.website_url}</Text>
+              <Ionicons name="open-outline" size={12} color={c.text.tertiary} />
             </TouchableOpacity>
           )}
         </GlassCard>
@@ -871,9 +886,10 @@ function AboutTab({ club }: { club: any }) {
 }
 
 function LoadingSpinner() {
+  const c = useThemeColors();
   return (
     <View style={styles.spinnerWrap}>
-      <ActivityIndicator color={colors.primary.main} />
+      <ActivityIndicator color={c.primary.main} />
     </View>
   );
 }
@@ -883,7 +899,7 @@ function LoadingSpinner() {
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
-  root:               { flex: 1, backgroundColor: colors.background.secondary },
+  root:               { flex: 1 },
   center:             { alignItems: 'center', justifyContent: 'center' },
 
   // Cover
@@ -891,11 +907,7 @@ const styles = StyleSheet.create({
   cover:              { width: '100%', height: COVER_HEIGHT },
   coverImage:         { resizeMode: 'cover' },
   coverFallback:      { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
-  coverFallbackInner: {
-    flex: 1,
-    backgroundColor: colors.background.tertiary,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
-  },
+  coverFallbackInner: { flex: 1 },
   coverGradient: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',
@@ -912,7 +924,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center', justifyContent: 'center',
   },
-  manageIconBtn:      { borderColor: colors.primary.main + '60', backgroundColor: colors.glass.redSurface },
+  manageIconBtn:      {},
 
   // Avatar
   avatarAnchor: {
@@ -923,13 +935,10 @@ const styles = StyleSheet.create({
   avatarRing: {
     borderRadius: (AVATAR_SIZE / 2) + 4,
     borderWidth: 3,
-    borderColor: colors.primary.main,
     padding: 2,
-    backgroundColor: colors.background.secondary,
   },
   verifiedBadge: {
     position: 'absolute', bottom: 2, right: -4,
-    backgroundColor: colors.background.secondary,
     borderRadius: 10, padding: 1,
   },
 
@@ -941,59 +950,53 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   identityLeft:       { flex: 1 },
-  clubName:           { color: colors.text.primary, fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
+  clubName:           { fontSize: 22, fontWeight: '800', letterSpacing: -0.3 },
   locationRow:        { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  locationText:       { color: colors.text.tertiary, fontSize: 12 },
+  locationText:       { fontSize: 12 },
   policyChip: {
     marginTop: 6, alignSelf: 'flex-start',
     paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border,
-    backgroundColor: colors.glass.surface,
   },
-  policyChipText:     { color: colors.text.tertiary, fontSize: 11, fontWeight: '600' },
+  policyChipText:     { fontSize: 11, fontWeight: '600' },
 
   // Stats
   statsRow: {
     flexDirection: 'row',
     marginHorizontal: 16, marginTop: 14,
-    borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     borderRadius: 14,
-    backgroundColor: colors.glass.surface,
     overflow: 'hidden',
   },
   statItem:           { flex: 1, alignItems: 'center', paddingVertical: 12 },
   statItemMiddle: {
     borderLeftWidth: 1, borderRightWidth: 1,
-    borderColor: colors.glass.border,
   },
-  statValue:          { color: colors.text.primary, fontSize: 18, fontWeight: '800' },
-  statLabel:          { color: colors.text.tertiary, fontSize: 11, marginTop: 2 },
+  statValue:          { fontSize: 18, fontWeight: '800' },
+  statLabel:          { fontSize: 11, marginTop: 2 },
 
   // CTA
   ctaRow:             { paddingHorizontal: 16, marginTop: 12 },
   manageHintRow:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  manageHintText:     { color: colors.text.secondary, fontSize: 13, fontWeight: '600' },
+  manageHintText:     { fontSize: 13, fontWeight: '600' },
 
   // Tab bar
   tabBar: {
     flexDirection: 'row',
     marginHorizontal: 16, marginTop: 16,
     borderRadius: 12,
-    backgroundColor: colors.glass.surface,
-    borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     overflow: 'hidden',
     position: 'relative',
     height: 44,
   },
   tabIndicator: {
     position: 'absolute', bottom: 0, height: 2,
-    backgroundColor: colors.primary.main,
     borderRadius: 2,
   },
   tabItem:            { flex: 1, height: 44, alignItems: 'center', justifyContent: 'center' },
-  tabLabel:           { color: colors.text.tertiary, fontSize: 13, fontWeight: '600' },
-  tabLabelActive:     { color: colors.text.primary, fontWeight: '700' },
+  tabLabel:           { fontSize: 13, fontWeight: '600' },
+  tabLabelActive:     { fontWeight: '700' },
 
   // Tab content
   tabContent:         { paddingHorizontal: 16, marginTop: 12, gap: 10 },
@@ -1001,17 +1004,17 @@ const styles = StyleSheet.create({
   // Posts
   postCard:           { marginBottom: 0 },
   postHeader:         { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  postAuthor:         { color: colors.text.primary, fontWeight: '700', fontSize: 14 },
-  postTime:           { color: colors.text.tertiary, fontSize: 11, marginTop: 2 },
-  postBody:           { color: colors.text.secondary, fontSize: 14, lineHeight: 20 },
+  postAuthor:         { fontWeight: '700', fontSize: 14 },
+  postTime:           { fontSize: 11, marginTop: 2 },
+  postBody:           { fontSize: 14, lineHeight: 20 },
   postStats:          { flexDirection: 'row', gap: 14, marginTop: 10 },
   postStat:           { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  postStatText:       { color: colors.text.tertiary, fontSize: 12 },
+  postStatText:       { fontSize: 12 },
 
   // FAB
   fab: {
     position: 'absolute', bottom: 24, right: 20, width: 52, height: 52,
-    borderRadius: 26, backgroundColor: colors.primary.main,
+    borderRadius: 26,
     alignItems: 'center', justifyContent: 'center',
     elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25, shadowRadius: 4,
@@ -1022,16 +1025,14 @@ const styles = StyleSheet.create({
   planRow:            { flexDirection: 'row', alignItems: 'center', gap: 12 },
   planIconWrap: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: colors.glass.redSurface,
-    borderWidth: 1, borderColor: colors.glass.redBorder,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
-  planTitle:          { color: colors.text.primary, fontWeight: '700', fontSize: 14 },
-  planSub:            { color: colors.text.tertiary, fontSize: 12, marginTop: 2 },
-  sectionTitle:       { color: colors.text.secondary, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4, marginTop: 8 },
+  planTitle:          { fontWeight: '700', fontSize: 14 },
+  planSub:            { fontSize: 12, marginTop: 2 },
+  sectionTitle:       { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 4, marginTop: 8 },
   copyBtn: {
     width: 36, height: 36, borderRadius: 10,
-    backgroundColor: colors.primary.main,
     alignItems: 'center', justifyContent: 'center',
   },
 
@@ -1040,12 +1041,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingVertical: 10, paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: colors.glass.surface,
-    borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     marginBottom: 0,
   },
-  memberName:         { color: colors.text.primary, fontWeight: '600', fontSize: 14 },
-  memberLocation:     { color: colors.text.tertiary, fontSize: 11, marginTop: 2 },
+  memberName:         { fontWeight: '600', fontSize: 14 },
+  memberLocation:     { fontSize: 11, marginTop: 2 },
   roleBadge: {
     paddingHorizontal: 8, paddingVertical: 3,
     borderRadius: 8, borderWidth: 1,
@@ -1055,11 +1055,11 @@ const styles = StyleSheet.create({
   // About
   aboutBlock:         { gap: 10 },
   aboutCard:          { marginBottom: 0 },
-  aboutSectionTitle:  { color: colors.text.secondary, fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10 },
-  aboutBio:           { color: colors.text.secondary, fontSize: 14, lineHeight: 21 },
+  aboutSectionTitle:  { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 10 },
+  aboutBio:           { fontSize: 14, lineHeight: 21 },
   aboutRow:           { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
-  aboutRowText:       { color: colors.text.secondary, fontSize: 14, flex: 1 },
-  linkText:           { color: colors.info.main },
+  aboutRowText:       { fontSize: 14, flex: 1 },
+  linkText:           {},
 
   // Misc
   flex1:              { flex: 1 },
@@ -1068,12 +1068,12 @@ const styles = StyleSheet.create({
 
 const schedStyles = StyleSheet.create({
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  calendarTitle: { color: colors.text.primary, fontSize: 17, fontWeight: '800' },
-  calendarMonth: { color: colors.primary.main, fontSize: 13, fontWeight: '600' },
-  calendarTypeBadge: { color: colors.text.tertiary, fontSize: 11, fontWeight: '600', marginTop: 2 },
+  calendarTitle: { fontSize: 17, fontWeight: '800' },
+  calendarMonth: { fontSize: 13, fontWeight: '600' },
+  calendarTypeBadge: { fontSize: 11, fontWeight: '600', marginTop: 2 },
   backToTodayBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: colors.glass.redSurface, borderWidth: 1, borderColor: colors.glass.redBorder,
+    borderWidth: 1,
   },
-  backToTodayText: { color: colors.primary.main, fontSize: 12, fontWeight: '700' },
+  backToTodayText: { fontSize: 12, fontWeight: '700' },
 });

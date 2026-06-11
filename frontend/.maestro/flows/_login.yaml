@@ -1,0 +1,16 @@
+# Reusable login subflow.
+# Precondition: app must be on the Login screen (clearState: true in parent flow).
+# Required env vars passed via runFlow: EMAIL, PASSWORD
+appId: host.exp.exponent
+---
+- assertVisible: "Welcome back"
+- tapOn: "your@email.com"
+- inputText: ${EMAIL}
+- hideKeyboard
+- tapOn: "********"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Log In"
+- waitForAnimationToEnd:
+    timeout: 8000
+- assertVisible: "Profile"

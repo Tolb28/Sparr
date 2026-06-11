@@ -19,7 +19,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import WeeklyCalendar from '../components/WeeklyCalendar';
 import { GlassCard } from '@/components/ui/glass-card';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { useProgress } from '@/src/context/ProgressContext';
 import ProgressHeaderCard from '../components/ProgressHeaderCard';
 import MetricCardsRow from '../components/MetricCardsRow';
@@ -81,6 +81,7 @@ function calculateDuration(components: any[]): string {
 }
 
 export default function CalendarScreen() {
+  const c = useThemeColors();
   const [menuOpen, setMenuOpen] = useState(false);
   const [expandedChart, setExpandedChart] = useState<string | null>(null);
 
@@ -269,7 +270,7 @@ export default function CalendarScreen() {
           showBadgeNotification({
             title: result.newly_awarded_badge.title,
             icon_name: result.newly_awarded_badge.icon_name || 'ribbon-outline',
-            color: result.newly_awarded_badge.color || colors.primary.main,
+            color: result.newly_awarded_badge.color || c.primary.main,
           });
         } else {
           showSuccessNotification('Challenge started.');
@@ -295,7 +296,7 @@ export default function CalendarScreen() {
           showBadgeNotification({
             title: result.newly_awarded_badge.title,
             icon_name: result.newly_awarded_badge.icon_name || 'ribbon-outline',
-            color: result.newly_awarded_badge.color || colors.primary.main,
+            color: result.newly_awarded_badge.color || c.primary.main,
           });
         } else {
           showSuccessNotification('Challenge progress updated.');
@@ -321,7 +322,7 @@ export default function CalendarScreen() {
           showBadgeNotification({
             title: result.newly_awarded_badge.title,
             icon_name: result.newly_awarded_badge.icon_name || 'ribbon-outline',
-            color: result.newly_awarded_badge.color || colors.primary.main,
+            color: result.newly_awarded_badge.color || c.primary.main,
           });
         } else {
           showSuccessNotification('Challenge completed.');
@@ -530,21 +531,21 @@ export default function CalendarScreen() {
   const CALENDAR_EVENT_COLORS = ['#22c55e', '#06b6d4', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6'];
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: 130 + (insets.bottom || 0) }}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: (insets?.top ?? 0) + 10 }]}>
+        <View style={[styles.header, { paddingTop: (insets?.top ?? 0) + 10, borderBottomColor: c.border.light }]}>
           <View style={styles.profileRow}>
             <Avatar size="md">
               <AvatarImage source={{ uri: profile?.avatar_url || 'https://i.pravatar.cc/100' }} />
             </Avatar>
             <View style={styles.profileText}>
-              <Text style={styles.profileWelcome}>Welcome back,</Text>
-              <Text style={styles.profileName}>{profile?.display_name || 'Champ'}</Text>
+              <Text style={[styles.profileWelcome, { color: c.text.tertiary }]}>Welcome back,</Text>
+              <Text style={[styles.profileName, { color: c.text.primary }]}>{profile?.display_name || 'Champ'}</Text>
             </View>
           </View>
-          <Pressable style={styles.menuBtn} onPress={() => setMenuOpen(true)}>
-            <Ionicons name="ellipsis-vertical" size={20} color="#fff" />
+          <Pressable style={[styles.menuBtn, { backgroundColor: c.glass.surface }]} onPress={() => setMenuOpen(true)}>
+            <Ionicons name="ellipsis-vertical" size={20} color={c.text.primary} />
           </Pressable>
         </View>
 
@@ -559,25 +560,25 @@ export default function CalendarScreen() {
           onRequestClose={() => setMenuOpen(false)}
         >
           <Pressable style={styles.modalOverlay} onPress={() => setMenuOpen(false)}>
-            <View style={[styles.menuCard, { top: (insets.top || 0) + 44 }]}>
+            <View style={[styles.menuCard, { top: (insets.top || 0) + 44, backgroundColor: c.background.primary, borderColor: c.border.light }]}>
               {calendar && (
                 <>
                   <Pressable
                     style={styles.menuItem}
                     onPress={() => { setMenuOpen(false); (navigation as any).navigate('EditCalendar', { calendarId: calendar.id_training_calendar }); }}
                   >
-                    <Text style={styles.menuItemText}>Edit Calendar</Text>
+                    <Text style={[styles.menuItemText, { color: c.text.primary }]}>Edit Calendar</Text>
                   </Pressable>
-                  <View style={styles.menuDivider} />
+                  <View style={[styles.menuDivider, { backgroundColor: c.border.light }]} />
                 </>
               )}
               <Pressable
                 style={styles.menuItem}
                 onPress={() => { setMenuOpen(false); (navigation as any).navigate('CreateCalendar'); }}
               >
-                <Text style={styles.menuItemText}>Create Calendar</Text>
+                <Text style={[styles.menuItemText, { color: c.text.primary }]}>Create Calendar</Text>
               </Pressable>
-              <View style={styles.menuDivider} />
+              <View style={[styles.menuDivider, { backgroundColor: c.border.light }]} />
               <Pressable
                 style={styles.menuItem}
                 onPress={() => {
@@ -587,7 +588,14 @@ export default function CalendarScreen() {
                   else (navigation as any).navigate('BrowseCalendars');
                 }}
               >
-                <Text style={styles.menuItemText}>Select Calendar</Text>
+                <Text style={[styles.menuItemText, { color: c.text.primary }]}>Select Calendar</Text>
+              </Pressable>
+              <View style={[styles.menuDivider, { backgroundColor: c.border.light }]} />
+              <Pressable
+                style={styles.menuItem}
+                onPress={() => { setMenuOpen(false); (navigation as any).navigate('CreateTraining'); }}
+              >
+                <Text style={[styles.menuItemText, { color: c.text.primary }]}>Create Training</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -598,24 +606,24 @@ export default function CalendarScreen() {
           <MetricCardsRow onMetricTap={handleMetricTap} />
           {progressError ? (
             <GlassCard variant="medium" radius={14} padding={12} style={styles.inlineErrorCard}>
-              <Text style={styles.inlineErrorText}>Failed to load progress data. Please try again.</Text>
+              <Text style={[styles.inlineErrorText, { color: c.text.secondary }]}>Failed to load progress data. Please try again.</Text>
               <Pressable
-                style={styles.inlineErrorButton}
+                style={[styles.inlineErrorButton, { borderColor: c.glass.redBorder, backgroundColor: c.glass.redSurface }]}
                 onPress={handleProgressRetry}
                 accessibilityRole="button"
                 accessibilityLabel="Retry loading progress data"
                 testID="CalendarScreen_ProgressRetry"
               >
-                <Ionicons name="reload" size={14} color={colors.primary.main} />
-                <Text style={styles.inlineErrorButtonText}>Retry</Text>
+                <Ionicons name="reload" size={14} color={c.primary.main} />
+                <Text style={[styles.inlineErrorButtonText, { color: c.primary.main }]}>Retry</Text>
               </Pressable>
             </GlassCard>
           ) : null}
           <View style={styles.badgeSection}>
-            <Text style={styles.badgeSectionTitle}>BADGES ON THE HORIZON</Text>
+            <Text style={[styles.badgeSectionTitle, { color: c.text.tertiary }]}>BADGES ON THE HORIZON</Text>
             {progressError ? (
               <GlassCard variant="medium" radius={14} padding={12}>
-                <Text style={styles.badgeEmptyText}>Badge progress unavailable right now.</Text>
+                <Text style={[styles.badgeEmptyText, { color: c.text.secondary }]}>Badge progress unavailable right now.</Text>
               </GlassCard>
             ) : progressLoading ? (
               <ScrollView
@@ -637,7 +645,7 @@ export default function CalendarScreen() {
               </ScrollView>
             ) : upcomingBadges.length === 0 ? (
               <GlassCard variant="medium" radius={14} padding={12}>
-                <Text style={styles.badgeEmptyText}>All badges unlocked! 🎉</Text>
+                <Text style={[styles.badgeEmptyText, { color: c.text.secondary }]}>All badges unlocked! 🎉</Text>
               </GlassCard>
             ) : (
               <ScrollView
@@ -658,14 +666,14 @@ export default function CalendarScreen() {
                 >
                   <GlassCard variant="medium" radius={14} padding={12} style={styles.viewAllCard}>
                     <View style={styles.viewAllHeader}>
-                      <View style={styles.viewAllIconWrap}>
-                        <Ionicons name="trophy-outline" size={16} color={colors.primary.main} />
+                      <View style={[styles.viewAllIconWrap, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+                        <Ionicons name="trophy-outline" size={16} color={c.primary.main} />
                       </View>
-                      <Text style={styles.viewAllText} numberOfLines={1}>
+                      <Text style={[styles.viewAllText, { color: c.text.primary }]} numberOfLines={1}>
                         View All
                       </Text>
                     </View>
-                    <Text style={styles.viewAllSubtext} numberOfLines={2}>
+                    <Text style={[styles.viewAllSubtext, { color: c.text.secondary }]} numberOfLines={2}>
                       See every badge on your profile.
                     </Text>
                   </GlassCard>
@@ -675,19 +683,19 @@ export default function CalendarScreen() {
           </View>
           <View style={styles.challengeSection} onLayout={handleChallengeSectionLayout}>
             <View style={styles.challengeSectionHeader}>
-              <Text style={styles.challengeSectionTitle}>CHALLENGES</Text>
+              <Text style={[styles.challengeSectionTitle, { color: c.text.tertiary }]}>CHALLENGES</Text>
               <Pressable
                 onPress={() => loadChallenges()}
                 accessibilityRole="button"
                 accessibilityLabel="Refresh challenges"
                 testID="CalendarScreen_RefreshChallenges"
               >
-                <Ionicons name="refresh" size={16} color={colors.text.tertiary} />
+                <Ionicons name="refresh" size={16} color={c.text.tertiary} />
               </Pressable>
             </View>
             {challengesError ? (
               <GlassCard variant="medium" radius={14} padding={12}>
-                <Text style={styles.challengeEmptyText}>Challenge data unavailable right now.</Text>
+                <Text style={[styles.challengeEmptyText, { color: c.text.secondary }]}>Challenge data unavailable right now.</Text>
               </GlassCard>
             ) : challengesLoading ? (
               <ScrollView
@@ -713,7 +721,7 @@ export default function CalendarScreen() {
               </ScrollView>
             ) : challenges.length === 0 ? (
               <GlassCard variant="medium" radius={14} padding={12}>
-                <Text style={styles.challengeEmptyText}>No active challenges yet.</Text>
+                <Text style={[styles.challengeEmptyText, { color: c.text.secondary }]}>No active challenges yet.</Text>
               </GlassCard>
             ) : (
               <ScrollView
@@ -743,12 +751,12 @@ export default function CalendarScreen() {
           {/* Calendar header */}
           <View style={styles.calendarHeader}>
             <View>
-              <Text style={styles.calendarTitle}>{calendar?.title ?? 'Training Schedule'}</Text>
-              <Text style={styles.calendarMonth}>
+              <Text style={[styles.calendarTitle, { color: c.text.primary }]}>{calendar?.title ?? 'Training Schedule'}</Text>
+              <Text style={[styles.calendarMonth, { color: c.primary.main }]}>
                 {new Date(selectedDate).toLocaleString(undefined, { month: 'long', year: 'numeric' })}
               </Text>
               {calendar && (
-                <Text style={styles.calendarTypeBadge}>
+                <Text style={[styles.calendarTypeBadge, { color: c.text.tertiary }]}>
                   {calendar.calendar_type === 'day' ? '📅 Day-based' : '🔁 Order-based'}
                   {calendar.calendar_type === 'day' && calendar.num_weeks > 1 && ` · ${calendar.num_weeks}wk rotation`}
                 </Text>
@@ -756,10 +764,10 @@ export default function CalendarScreen() {
             </View>
             {selectedDate !== formattedDate && (
               <Pressable
-                style={styles.backToTodayBtn}
+                style={[styles.backToTodayBtn, { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }]}
                 onPress={() => setSelectedDate(formattedDate)}
               >
-                <Text style={styles.backToTodayText}>Today</Text>
+                <Text style={[styles.backToTodayText, { color: c.primary.main }]}>Today</Text>
               </Pressable>
             )}
           </View>
@@ -784,21 +792,21 @@ export default function CalendarScreen() {
                 accessibilityLabel={`Weekly goal completion ${Math.min(100, Math.round(weekPercent || 0))}%`}
               />
               <View style={styles.progressInfo}>
-                <Text style={styles.progressTitle}>Weekly Goal</Text>
-                <Text style={styles.progressSub}>
+                <Text style={[styles.progressTitle, { color: c.text.primary }]}>Weekly Goal</Text>
+                <Text style={[styles.progressSub, { color: c.text.secondary }]}>
                   {weekScheduled > 0
                     ? `${weekCompleted} of ${weekScheduled} sessions completed`
                     : 'No sessions scheduled this week.'}
                 </Text>
                 <View style={styles.progressStats}>
                   <View style={styles.progressStat}>
-                    <Text style={styles.progressNum}>12</Text>
-                    <Text style={styles.progressLabel}>ROUNDS</Text>
+                    <Text style={[styles.progressNum, { color: c.text.primary }]}>12</Text>
+                    <Text style={[styles.progressLabel, { color: c.text.tertiary }]}>ROUNDS</Text>
                   </View>
-                  <View style={styles.progressDivider} />
+                  <View style={[styles.progressDivider, { backgroundColor: c.border.light }]} />
                   <View style={styles.progressStat}>
-                    <Text style={styles.progressNum}>840</Text>
-                    <Text style={styles.progressLabel}>KCAL</Text>
+                    <Text style={[styles.progressNum, { color: c.text.primary }]}>840</Text>
+                    <Text style={[styles.progressLabel, { color: c.text.tertiary }]}>KCAL</Text>
                   </View>
                 </View>
               </View>
@@ -808,31 +816,31 @@ export default function CalendarScreen() {
           {/* Training card / timeline or empty state */}
           {!calendar || items.length === 0 ? (
             <GlassCard variant="medium" radius={16} padding={24} style={{ alignItems: 'center', gap: 12 }}>
-              <Ionicons name="calendar-outline" size={40} color={colors.text.tertiary} />
-              <Text style={{ color: colors.text.primary, fontSize: 16, fontWeight: '700', textAlign: 'center' }}>
+              <Ionicons name="calendar-outline" size={40} color={c.text.tertiary} />
+              <Text style={{ color: c.text.primary, fontSize: 16, fontWeight: '700', textAlign: 'center' }}>
                 No calendar selected
               </Text>
-              <Text style={{ color: colors.text.tertiary, fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
+              <Text style={{ color: c.text.tertiary, fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
                 Create your own training program or browse public ones from the community.
               </Text>
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
                 <Pressable
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.primary.main }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: c.primary.main }}
                   onPress={() => (navigation as any).navigate('CreateCalendar')}
                 >
                   <Ionicons name="add" size={16} color="#fff" />
                   <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>Create</Text>
                 </Pressable>
                 <Pressable
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border }}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: c.glass.surface, borderWidth: 1, borderColor: c.glass.border }}
                   onPress={() => {
                     const rootNav = (navigation as any).getParent();
                     if (rootNav) rootNav.navigate('BrowseCalendars');
                     else (navigation as any).navigate('BrowseCalendars');
                   }}
                 >
-                  <Ionicons name="search" size={16} color={colors.text.secondary} />
-                  <Text style={{ color: colors.text.secondary, fontSize: 13, fontWeight: '600' }}>Browse</Text>
+                  <Ionicons name="search" size={16} color={c.text.secondary} />
+                  <Text style={{ color: c.text.secondary, fontSize: 13, fontWeight: '600' }}>Browse</Text>
                 </Pressable>
               </View>
             </GlassCard>
@@ -891,38 +899,36 @@ export default function CalendarScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 8,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    borderBottomWidth: 1,
   },
   profileRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   profileText: { gap: 2 },
-  profileWelcome: { color: colors.text.tertiary, fontSize: 11 },
-  profileName: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },
+  profileWelcome: { fontSize: 11 },
+  profileName: { fontSize: 14, fontWeight: '700' },
   menuBtn: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: colors.glass.surface, alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   modalOverlay: { flex: 1 },
   menuCard: {
     position: 'absolute', right: 16,
-    backgroundColor: colors.background.primary,
-    borderRadius: 14, borderWidth: 1, borderColor: colors.border.light,
+    borderRadius: 14, borderWidth: 1,
     minWidth: 180, elevation: 8,
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8,
   },
   menuItem: { paddingHorizontal: 20, paddingVertical: 14 },
-  menuItemText: { color: colors.text.primary, fontSize: 14, fontWeight: '500' },
-  menuDivider: { height: 1, backgroundColor: colors.border.light },
+  menuItemText: { fontSize: 14, fontWeight: '500' },
+  menuDivider: { height: 1 },
   body: { paddingHorizontal: 16, paddingVertical: 20, gap: 16 },
   bodyCompact: { paddingHorizontal: 12 },
   inlineErrorCard: {
     gap: 10,
   },
   inlineErrorText: {
-    color: colors.text.secondary,
     fontSize: 12,
   },
   inlineErrorButton: {
@@ -935,17 +941,13 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.glass.redBorder,
-    backgroundColor: colors.glass.redSurface,
   },
   inlineErrorButtonText: {
-    color: colors.primary.main,
     fontSize: 12,
     fontWeight: '700',
   },
   badgeSection: { gap: 10, minHeight: 150 },
   badgeSectionTitle: {
-    color: colors.text.tertiary,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -965,7 +967,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   badgeEmptyText: {
-    color: colors.text.secondary,
     fontSize: 12,
   },
   challengeSection: { gap: 10, minHeight: 170 },
@@ -975,7 +976,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   challengeSectionTitle: {
-    color: colors.text.tertiary,
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -990,7 +990,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   challengeEmptyText: {
-    color: colors.text.secondary,
     fontSize: 12,
   },
   viewAllCard: {
@@ -1017,38 +1016,34 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.glass.surface,
     borderWidth: 1,
-    borderColor: colors.glass.border,
   },
   viewAllText: {
-    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '700',
     flex: 1,
   },
   viewAllSubtext: {
-    color: colors.text.secondary,
     fontSize: 12,
     lineHeight: 16,
   },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  calendarTitle: { color: colors.text.primary, fontSize: 17, fontWeight: '800' },
-  calendarMonth: { color: colors.primary.main, fontSize: 13, fontWeight: '600' },
-  calendarTypeBadge: { color: colors.text.tertiary, fontSize: 11, fontWeight: '600', marginTop: 2 },
+  calendarTitle: { fontSize: 17, fontWeight: '800' },
+  calendarMonth: { fontSize: 13, fontWeight: '600' },
+  calendarTypeBadge: { fontSize: 11, fontWeight: '600', marginTop: 2 },
   backToTodayBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    backgroundColor: colors.glass.redSurface, borderWidth: 1, borderColor: colors.glass.redBorder,
+    borderWidth: 1,
   },
-  backToTodayText: { color: colors.primary.main, fontSize: 12, fontWeight: '700' },
+  backToTodayText: { fontSize: 12, fontWeight: '700' },
   progressCard: { marginVertical: 4 },
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   progressInfo: { flex: 1, gap: 4 },
-  progressTitle: { color: colors.text.primary, fontSize: 15, fontWeight: '700' },
-  progressSub: { color: colors.text.secondary, fontSize: 11, lineHeight: 16 },
+  progressTitle: { fontSize: 15, fontWeight: '700' },
+  progressSub: { fontSize: 11, lineHeight: 16 },
   progressStats: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 6 },
   progressStat: { alignItems: 'center' },
-  progressNum: { color: colors.text.primary, fontSize: 16, fontWeight: '800' },
-  progressLabel: { color: colors.text.tertiary, fontSize: 9, fontWeight: '700', letterSpacing: 0.6 },
-  progressDivider: { width: 1, height: 28, backgroundColor: colors.border.light },
+  progressNum: { fontSize: 16, fontWeight: '800' },
+  progressLabel: { fontSize: 9, fontWeight: '700', letterSpacing: 0.6 },
+  progressDivider: { width: 1, height: 28 },
 });

@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlassCard } from '@/components/ui/glass-card';
 import { TabBar } from '@/components/ui/tab-bar';
 import { EmptyState } from '@/components/ui/empty-state';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { DifficultyBadge, DifficultyLevel } from '../components/DifficultyBadge';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { ContentTypeIndicator } from '../components/ContentTypeIndicator';
@@ -40,6 +40,7 @@ type ScrollListItem =
 export default function TechniqueScreen() {
   const navigation = useNavigation<RootNavigationProp>();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
   const [activeTab, setActiveTab] = useState<'techniques' | 'drills' | 'combinations'>('techniques');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const sidebarAnim = React.useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
@@ -365,17 +366,17 @@ export default function TechniqueScreen() {
   const renderRecommendedSection = (data: RecommendedContentItem[]) => (
     <View style={{ marginHorizontal: 14, marginBottom: 12 }}>
       <View style={styles.recommendedHeader}>
-        <Ionicons name="sparkles-outline" size={16} color={colors.primary.main} />
-        <Text style={styles.recommendedTitle}>Recommended for you</Text>
+        <Ionicons name="sparkles-outline" size={16} color={c.primary.main} />
+        <Text style={[styles.recommendedTitle, { color: c.text.primary }]}>Recommended for you</Text>
       </View>
 
       {recommendationsLoading ? (
         <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
-          <Text style={styles.recommendedFallbackText}>Loading personalized content...</Text>
+          <Text style={[styles.recommendedFallbackText, { color: c.text.secondary }]}>Loading personalized content...</Text>
         </GlassCard>
       ) : data.length === 0 ? (
         <GlassCard variant="medium" radius={12} padding={12} style={styles.recommendedFallback}>
-          <Text style={styles.recommendedFallbackText}>
+          <Text style={[styles.recommendedFallbackText, { color: c.text.secondary }]}>
             Complete your profile (style, weight class, height, experience) for better recommendations.
           </Text>
         </GlassCard>
@@ -398,11 +399,11 @@ export default function TechniqueScreen() {
                 <GlassCard variant="medium" radius={14} padding={12} style={styles.recommendedCard}>
                   <View style={styles.recommendedCardHeader}>
                     <ContentTypeIndicator type={item.content_type as 'technique' | 'drill' | 'combination'} variant="text" />
-                    <Text style={styles.recommendedCardScore}>Score {item.score}</Text>
+                    <Text style={[styles.recommendedCardScore, { color: c.text.tertiary }]}>Score {item.score}</Text>
                   </View>
-                  <Text style={styles.recommendedCardTitle} numberOfLines={2}>{item.title}</Text>
+                  <Text style={[styles.recommendedCardTitle, { color: c.text.primary }]} numberOfLines={2}>{item.title}</Text>
                   {!!item.category_name && (
-                    <Text style={styles.recommendedCardCategory} numberOfLines={1}>
+                    <Text style={[styles.recommendedCardCategory, { color: c.text.secondary }]} numberOfLines={1}>
                       {item.category_name}
                     </Text>
                   )}
@@ -416,8 +417,8 @@ export default function TechniqueScreen() {
                   </View>
                   <View style={styles.reasonsRow}>
                     {item.reasons.slice(0, 2).map((reason) => (
-                      <View key={reason} style={styles.reasonChip}>
-                        <Text style={styles.reasonChipText}>{formatReason(reason)}</Text>
+                      <View key={reason} style={[styles.reasonChip, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+                        <Text style={[styles.reasonChipText, { color: c.text.secondary }]}>{formatReason(reason)}</Text>
                       </View>
                     ))}
                   </View>
@@ -431,11 +432,11 @@ export default function TechniqueScreen() {
   );
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
         {/* Header */}
-        <View style={[styles.header, { paddingTop: (insets.top || 0) + 6 }]}>
+        <View style={[styles.header, { paddingTop: (insets.top || 0) + 6, backgroundColor: c.background.secondary, borderBottomColor: c.border.light }]}>
           <View style={styles.headerRow}>
-            <Text style={styles.headerTitle}>Technique Library</Text>
+            <Text style={[styles.headerTitle, { color: c.text.primary }]}>Technique Library</Text>
             <Pressable onPress={() => openSidebar()} style={styles.iconBtn}>
               <Ionicons name="menu" size={24} color="#ffffff" />
             </Pressable>
@@ -443,24 +444,28 @@ export default function TechniqueScreen() {
 
           {/* Search + Filter Bar */}
           <View style={styles.searchFilterRow}>
-            <View style={styles.searchBar}>
-              <Ionicons name="search" size={18} color={colors.text.tertiary} />
+            <View style={[styles.searchBar, { backgroundColor: c.background.card, borderColor: c.border.light }]}>
+              <Ionicons name="search" size={18} color={c.text.tertiary} />
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Search techniques, drills..."
-                placeholderTextColor={colors.text.tertiary}
-                style={styles.searchInput}
+                placeholderTextColor={c.text.tertiary}
+                style={[styles.searchInput, { color: c.text.primary }]}
               />
             </View>
-            <Pressable 
-              onPress={() => setFilterModalOpen(true)} 
-              style={[styles.filterBtn, (filters.difficulties.length > 0 || filters.favoritesOnly) && styles.filterBtnActive]}
+            <Pressable
+              onPress={() => setFilterModalOpen(true)}
+              style={[
+                styles.filterBtn,
+                { backgroundColor: c.background.card, borderColor: c.border.light },
+                (filters.difficulties.length > 0 || filters.favoritesOnly) && [styles.filterBtnActive, { borderColor: c.primary.main }],
+              ]}
             >
-              <Ionicons 
-                name="options" 
-                size={20} 
-                color={(filters.difficulties.length > 0 || filters.favoritesOnly) ? colors.primary.main : colors.text.secondary} 
+              <Ionicons
+                name="options"
+                size={20}
+                color={(filters.difficulties.length > 0 || filters.favoritesOnly) ? c.primary.main : c.text.secondary}
               />
             </Pressable>
           </View>
@@ -512,8 +517,8 @@ export default function TechniqueScreen() {
                       <GlassCard variant="red" radius={14} padding={14}>
                         <View style={styles.featuredHeaderRow}>
                           <View>
-                            <Text style={styles.featuredLabel}>Featured Content</Text>
-                            <Text style={styles.featuredTitle} numberOfLines={2}>{item.item.title}</Text>
+                            <Text style={[styles.featuredLabel, { color: c.text.tertiary }]}>Featured Content</Text>
+                            <Text style={[styles.featuredTitle, { color: c.text.primary }]} numberOfLines={2}>{item.item.title}</Text>
                           </View>
                           <FavoriteButton
                             isFavorited={isFavorited}
@@ -525,7 +530,7 @@ export default function TechniqueScreen() {
                           <ContentTypeIndicator type={contentType} variant="badge" />
                           <DifficultyBadge difficulty={mockDifficulty} size="sm" />
                         </View>
-                        <Text style={styles.featuredCta}>Tap to View →</Text>
+                        <Text style={[styles.featuredCta, { color: c.primary.main }]}>Tap to View →</Text>
                       </GlassCard>
                     </Pressable>
                   );
@@ -542,7 +547,7 @@ export default function TechniqueScreen() {
                   />
                 );
               }}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={colors.primary.main} />}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={c.primary.main} />}
               contentContainerStyle={{ paddingBottom: 90, paddingTop: 6 }}
             />
           )}
@@ -559,31 +564,31 @@ export default function TechniqueScreen() {
         onRequestClose={closeSidebar}
       >
         <View style={{ flex: 1, flexDirection: 'row' }}>
-          <View style={styles.sidebarDrawer}>
+          <View style={[styles.sidebarDrawer, { backgroundColor: c.background.primary }]}>
             <View style={[styles.sidebarContent, { paddingTop: (insets.top || 0) + 20 }]}>
               <Pressable
                 onPress={() => { setSelectedCategory(null); closeSidebar(); }}
-                style={[styles.sidebarItem, selectedCategory === null && styles.sidebarItemActive]}
+                style={[styles.sidebarItem, selectedCategory === null && [styles.sidebarItemActive, { backgroundColor: c.background.card }]]}
               >
-                <Text style={[styles.sidebarItemText, selectedCategory === null && styles.sidebarItemTextActive]}>
+                <Text style={[styles.sidebarItemText, { color: c.text.secondary }, selectedCategory === null && [styles.sidebarItemTextActive, { color: c.primary.main }]]}>
                   All Categories
                 </Text>
               </Pressable>
-              <Text style={styles.sidebarSectionLabel}>CATEGORIES</Text>
+              <Text style={[styles.sidebarSectionLabel, { color: c.text.tertiary }]}>CATEGORIES</Text>
               {categories.length > 0 ? (
                 categories.map((category) => (
                   <Pressable
                     key={category}
                     onPress={() => { setSelectedCategory(category); closeSidebar(); }}
-                    style={[styles.sidebarItem, selectedCategory === category && styles.sidebarItemActive]}
+                    style={[styles.sidebarItem, selectedCategory === category && [styles.sidebarItemActive, { backgroundColor: c.background.card }]]}
                   >
-                    <Text style={[styles.sidebarItemText, selectedCategory === category && styles.sidebarItemTextActive]}>
+                    <Text style={[styles.sidebarItemText, { color: c.text.secondary }, selectedCategory === category && [styles.sidebarItemTextActive, { color: c.primary.main }]]}>
                       {category}
                     </Text>
                   </Pressable>
                 ))
               ) : (
-                <Text style={styles.sidebarItemText}>No categories</Text>
+                <Text style={[styles.sidebarItemText, { color: c.text.secondary }]}>No categories</Text>
               )}
             </View>
           </View>
@@ -610,74 +615,66 @@ export default function TechniqueScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   flex1: { flex: 1 },
   header: {
     paddingHorizontal: 16, paddingBottom: 10,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
-    backgroundColor: colors.background.secondary,
+    borderBottomWidth: 1,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 10 },
-  headerTitle: { color: colors.text.primary, fontSize: 18, fontWeight: '800' },
+  headerTitle: { fontSize: 18, fontWeight: '800' },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 10 },
   searchFilterRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   searchBar: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: colors.background.card, borderRadius: 12,
-    paddingHorizontal: 12, borderWidth: 1, borderColor: colors.border.light,
+    borderRadius: 12, paddingHorizontal: 12, borderWidth: 1,
   },
-  searchInput: { flex: 1, color: colors.text.primary, paddingVertical: 11, fontSize: 14 },
+  searchInput: { flex: 1, paddingVertical: 11, fontSize: 14 },
   filterBtn: {
     width: 44, height: 44, borderRadius: 12,
-    backgroundColor: colors.background.card,
-    borderWidth: 1, borderColor: colors.border.light,
+    borderWidth: 1,
     justifyContent: 'center', alignItems: 'center',
   },
   filterBtnActive: {
     backgroundColor: 'rgba(139, 92, 246, 0.1)',
-    borderColor: colors.primary.main,
   },
   tabs: { marginBottom: 0 },
   recommendedHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  recommendedTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },
+  recommendedTitle: { fontSize: 14, fontWeight: '700' },
   recommendedFallback: { marginBottom: 6 },
-  recommendedFallbackText: { color: colors.text.secondary, fontSize: 12 },
+  recommendedFallbackText: { fontSize: 12 },
   recommendedListContent: { gap: 10, paddingBottom: 4 },
   recommendedCardPressable: { marginRight: 2 },
   recommendedCard: { width: 220, minHeight: 118 },
   recommendedCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  recommendedCardType: { color: colors.primary.main, fontSize: 10, fontWeight: '700' },
-  recommendedCardScore: { color: colors.text.tertiary, fontSize: 10 },
-  recommendedCardTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '700', marginTop: 6 },
-  recommendedCardCategory: { color: colors.text.secondary, fontSize: 11, marginTop: 3 },
+  recommendedCardScore: { fontSize: 10 },
+  recommendedCardTitle: { fontSize: 14, fontWeight: '700', marginTop: 6 },
+  recommendedCardCategory: { fontSize: 11, marginTop: 3 },
   recommendedBadgesRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 9, marginBottom: 6 },
   reasonsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 0 },
   reasonChip: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: colors.glass.surface,
     borderWidth: 1,
-    borderColor: colors.glass.border,
   },
-  reasonChipText: { color: colors.text.secondary, fontSize: 10, fontWeight: '600' },
-  featuredLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
-  featuredTitle: { color: colors.text.primary, fontSize: 15, fontWeight: '700' },
+  reasonChipText: { fontSize: 10, fontWeight: '600' },
+  featuredLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, marginBottom: 6 },
+  featuredTitle: { fontSize: 15, fontWeight: '700' },
   featuredHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
   featuredBadgesRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  featuredCta: { color: colors.primary.main, fontSize: 12, fontWeight: '600', marginTop: 6 },
+  featuredCta: { fontSize: 12, fontWeight: '600', marginTop: 6 },
   centerContent: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyState: { paddingTop: 60 },
   sidebarDrawer: {
     width: SIDEBAR_WIDTH,
     height: '100%',
-    backgroundColor: colors.background.primary,
     elevation: 5,
   },
   sidebarContent: { paddingHorizontal: 14, flex: 1 },
   sidebarItem: { paddingVertical: 12, paddingHorizontal: 12, borderRadius: 10, marginBottom: 2 },
-  sidebarItemActive: { backgroundColor: colors.background.card },
-  sidebarItemText: { color: colors.text.secondary, fontSize: 14 },
-  sidebarItemTextActive: { color: colors.primary.main, fontWeight: '700' },
-  sidebarSectionLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 12, paddingVertical: 8 },
+  sidebarItemActive: {},
+  sidebarItemText: { fontSize: 14 },
+  sidebarItemTextActive: { fontWeight: '700' },
+  sidebarSectionLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, paddingHorizontal: 12, paddingVertical: 8 },
 });

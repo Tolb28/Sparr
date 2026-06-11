@@ -17,11 +17,12 @@ import { ConversationPreview } from '../types/chat';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SparrButton } from '@/components/ui/sparr-button';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 export default function ConversationsScreen() {
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
   const [conversations, setConversations] = useState<ConversationPreview[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -66,38 +67,38 @@ export default function ConversationsScreen() {
 
   if (loading && !refreshing) {
     return (
-      <View style={[styles.root, styles.center]}>
-        <ActivityIndicator size="large" color={colors.primary.main} />
+      <View style={[styles.root, styles.center, { backgroundColor: c.background.secondary }]}>
+        <ActivityIndicator size="large" color={c.primary.main} />
       </View>
     );
   }
 
   return (
-    <View style={styles.root}>
-      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8 }]}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8, borderBottomColor: c.border.light }]}>
         <View style={styles.headerRow}>
-          <Text style={[styles.headerTitle, { color: colors.text.primary }]}>Messages</Text>
+          <Text style={[styles.headerTitle, { color: c.text.primary }]}>Messages</Text>
           <Pressable
-            style={[styles.newBtn, { backgroundColor: colors.glass.surface, borderColor: colors.glass.border }]}
+            style={[styles.newBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}
             onPress={() => navigation.navigate('NewConversation' as never)}
             hitSlop={8}
           >
-            <Ionicons name="create-outline" size={20} color={colors.primary.main} />
+            <Ionicons name="create-outline" size={20} color={c.primary.main} />
           </Pressable>
         </View>
 
-        <View style={[styles.searchBar, { backgroundColor: colors.glass.surface, borderColor: colors.glass.border }]}>
-          <Ionicons name="search-outline" size={18} color={colors.text.tertiary} />
+        <View style={[styles.searchBar, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+          <Ionicons name="search-outline" size={18} color={c.text.tertiary} />
           <TextInput
             placeholder="Search messages..."
-            placeholderTextColor={colors.text.tertiary}
+            placeholderTextColor={c.text.tertiary}
             value={query}
             onChangeText={setQuery}
-            style={[styles.searchInput, { color: colors.text.primary }]}
+            style={[styles.searchInput, { color: c.text.primary }]}
           />
           {query && (
             <Pressable onPress={() => setQuery('')} hitSlop={8}>
-              <Ionicons name="close-circle" size={16} color={colors.text.tertiary} />
+              <Ionicons name="close-circle" size={16} color={c.text.tertiary} />
             </Pressable>
           )}
         </View>
@@ -124,7 +125,7 @@ export default function ConversationsScreen() {
           data={filtered}
           renderItem={({ item }) => <ChatListItem conversation={item} />}
           keyExtractor={(item) => item.id_conversations.toString()}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary.main} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.primary.main} />}
           contentContainerStyle={{ paddingBottom: 100 }}
           scrollIndicatorInsets={{ right: 1 }}
         />
@@ -134,35 +135,34 @@ export default function ConversationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    paddingHorizontal: 16, 
+    paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: 1, 
-    borderBottomColor: colors.border.light,
+    borderBottomWidth: 1,
   },
-  headerRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    marginBottom: 12 
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   headerTitle: { fontSize: 22, fontWeight: '800', letterSpacing: 0.3 },
   newBtn: {
-    width: 38, 
-    height: 38, 
+    width: 38,
+    height: 38,
     borderRadius: 10,
     borderWidth: 1,
-    alignItems: 'center', 
+    alignItems: 'center',
     justifyContent: 'center',
   },
   searchBar: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     borderRadius: 12,
-    paddingHorizontal: 12, 
+    paddingHorizontal: 12,
     borderWidth: 1,
   },
   searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, fontWeight: '500' },

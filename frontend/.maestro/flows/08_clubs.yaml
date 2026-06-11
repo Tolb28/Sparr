@@ -1,0 +1,62 @@
+appId: host.exp.exponent
+name: "08 - Clubs Discovery & Profile"
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+- tapOn: "Discovery"
+- waitForAnimationToEnd
+- tapOn: "Clubs"
+- waitForAnimationToEnd
+
+# Open the first available club
+- runFlow:
+    when:
+      notVisible: "No results"
+    commands:
+      - tapOn:
+          index: 0
+          text: "Open"
+          optional: true
+      - waitForAnimationToEnd
+
+# Verify club profile tabs
+- assertVisible: "Posts"
+- assertVisible: "Schedule"
+- assertVisible: "Members"
+- assertVisible: "About"
+
+# Posts tab
+- tapOn: "Posts"
+- waitForAnimationToEnd
+- scroll
+
+# Schedule tab
+- tapOn: "Schedule"
+- waitForAnimationToEnd
+- scroll
+
+# Members tab
+- tapOn: "Members"
+- waitForAnimationToEnd
+
+# About tab
+- tapOn: "About"
+- waitForAnimationToEnd
+
+# Go back to Discovery
+- back
+- waitForAnimationToEnd
+- assertVisible: "Clubs"

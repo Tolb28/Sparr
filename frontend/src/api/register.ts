@@ -6,12 +6,24 @@ interface RegisterResponse {
   needsProfileSetup?: boolean;
 }
 
-export async function register(email: string, password: string): Promise<RegisterResponse> {
+interface EmailVerificationRequiredResponse {
+  status: 'email_verification_required';
+  email: string;
+}
+
+export type RegisterResult = RegisterResponse | EmailVerificationRequiredResponse;
+
+export async function register(email: string, password: string): Promise<RegisterResult> {
   const response = await fetch(`${ServerIP}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   });
+
+  // 202 = email verification required
+  if (response.status === 202) {
+    return response.json() as Promise<EmailVerificationRequiredResponse>;
+  }
 
   if (!response.ok) {
     let errorData: any;
@@ -23,6 +35,6 @@ export async function register(email: string, password: string): Promise<Registe
     throw new Error(errorData?.error || "Registration failed");
   }
 
-  return response.json();
+  return response.json() as Promise<RegisterResponse>;
 }
 

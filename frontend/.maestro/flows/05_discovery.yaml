@@ -1,0 +1,86 @@
+appId: host.exp.exponent
+name: "05 - Discovery Screen"
+env:
+  EMAIL: "maestro_test@sparr.test"
+  PASSWORD: "MaestroTest123!"
+---
+- launchApp:
+    clearState: true
+- openLink: exp://10.0.2.2:8081
+- waitForAnimationToEnd:
+    timeout: 15000
+
+- runFlow:
+    file: "./_login.yaml"
+    env:
+      EMAIL: ${EMAIL}
+      PASSWORD: ${PASSWORD}
+
+- tapOn: "Discovery"
+- waitForAnimationToEnd
+
+# --- For You tab (default) ---
+- assertVisible: "For You"
+- scroll
+
+# --- Posts tab ---
+- tapOn: "Posts"
+- waitForAnimationToEnd
+
+# Open filter panel
+- tapOn:
+    text: "Filters ▼"
+    optional: true
+- runFlow:
+    when:
+      notVisible: "Filters ▼"
+    commands:
+      - tapOn: "Refine results with filters"
+- waitForAnimationToEnd
+
+# Apply style filter if panel opened
+- runFlow:
+    when:
+      visible: "Fighting Style"
+    commands:
+      - tapOn: "All"
+      - tapOn:
+          text: "Filters ▲"
+          optional: true
+
+# --- Clubs tab ---
+- tapOn: "Clubs"
+- waitForAnimationToEnd
+
+# Try filtering by join policy
+- tapOn: "All Clubs"
+- waitForAnimationToEnd
+- tapOn: "Open"
+- waitForAnimationToEnd
+- tapOn: "All Clubs"
+- waitForAnimationToEnd
+
+# Tap first club if any exist
+- runFlow:
+    when:
+      notVisible: "No results"
+    commands:
+      - tapOn:
+          index: 0
+          text: "Open"
+          optional: true
+      - waitForAnimationToEnd
+      - back
+
+# --- Boxers tab ---
+- tapOn: "Boxers"
+- waitForAnimationToEnd
+
+# Use search
+- tapOn: "Search boxers..."
+- inputText: "a"
+- waitForAnimationToEnd:
+    timeout: 3000
+- pressKey: backspace
+- pressKey: backspace
+- hideKeyboard

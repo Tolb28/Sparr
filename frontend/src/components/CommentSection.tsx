@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getCommentsForPost } from "../api/discovery";
 import { getToken, ServerIP } from "../api/tokenHandler";
 import { useNavigation } from "@react-navigation/native";
+import { useThemeColors } from "@/src/hooks/useThemeColors";
 
 import Comment, { Comment as CommentType } from "./Comment";
 
@@ -44,6 +45,7 @@ export default function CommentSection({
   onNavigateAway,
 }: CommentSectionProps) {
   const navigation = useNavigation();
+  const c = useThemeColors();
   const [comments, setComments] = useState<CommentType[]>([]);
   const [text, setText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -55,10 +57,8 @@ export default function CommentSection({
   const loadComments = async (): Promise<void> => {
     try {
       const data = (await getCommentsForPost(postId)) as CommentType[];
-      console.log("Fetched comments:", data);
       setComments(data);
     } catch (e) {
-      console.log("Comments error:", e);
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,6 @@ export default function CommentSection({
       // refresh to get authoritative data
       loadComments();
     } catch (e) {
-      console.log("Send comment failed:", e);
     }
   };
 
@@ -107,12 +106,12 @@ export default function CommentSection({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1 }}
     >
-      <Box className="flex-1" style={{ backgroundColor: '#221010' }}>
+      <Box className="flex-1" style={{ backgroundColor: c.background.primary }}>
         {/* Header */}
-        <HStack className="items-center justify-between p-4 border-b" style={{ borderBottomColor: '#3a1d1d' }}>
-          <Text className="font-bold text-lg text-white">Comments</Text>
+        <HStack className="items-center justify-between p-4 border-b" style={{ borderBottomColor: c.border.light }}>
+          <Text className="font-bold text-lg" style={{ color: c.text.primary }}>Comments</Text>
           <Pressable onPress={onClose}>
-            <Ionicons name="close" size={24} color="#cb9090" />
+            <Ionicons name="close" size={24} color={c.text.secondary} />
           </Pressable>
         </HStack>
 
@@ -130,14 +129,14 @@ export default function CommentSection({
         </View>
 
         {/* Input */}
-        <HStack className="items-center p-3 border-t" style={{ borderTopColor: '#3a1d1d' }}>
-          <Input className="flex-1 mr-2" style={{ borderColor: '#6d2e2e', backgroundColor: '#341818' }}>
+        <HStack className="items-center p-3 border-t" style={{ borderTopColor: c.border.light }}>
+          <Input className="flex-1 mr-2" style={{ borderColor: c.input.border, backgroundColor: c.input.background }}>
             <InputField
               placeholder="Add a comment..."
               value={text}
               onChangeText={setText}
-              placeholderTextColor="#8f6d6d"
-              style={{ color: '#fff' }}
+              placeholderTextColor={c.input.placeholder}
+              style={{ color: c.text.primary }}
             />
           </Input>
           <Pressable onPress={sendComment}>

@@ -16,6 +16,10 @@ export const getDiscoveryFeed = async (req: Request, res: Response) => {
 
     const posts = await getPosts({ limit, offset, profileId, ownerId, search, location, type });
 
+    const withAvatar = posts.filter((p: any) => p.avatar_url).length;
+    const withSource = posts.filter((p: any) => p.source).length;
+    console.log(`[DISCOVERY] Returning ${posts.length} posts: ${withSource} with media, ${withAvatar} with avatars`);
+
     res.json({
       success: true,
       posts,

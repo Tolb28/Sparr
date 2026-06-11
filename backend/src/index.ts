@@ -1,12 +1,9 @@
+import "./config/env"; // must be first — loads dotenv before any other imports
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import dns from "dns";
 dns.setDefaultResultOrder("ipv4first");
 import authRouter from "./routes/auth";
-// training routes are mounted on /api/auth via the auth router
-
-dotenv.config();
 
 // TESTING DATABASE CONNECTION
 

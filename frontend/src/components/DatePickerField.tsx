@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Pressable, Modal, StyleSheet, ScrollView } from 'react-native';
 import { Text } from '@/components/ui/text';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { Ionicons } from '@expo/vector-icons';
 
 interface DatePickerFieldProps {
@@ -37,6 +37,7 @@ function firstDayOfMonth(year: number, month: number): number {
 }
 
 export default function DatePickerField({ value, onChange, placeholder }: DatePickerFieldProps) {
+  const c = useThemeColors();
   const [open, setOpen] = useState(false);
   const parsed = parseDate(value);
   const now = new Date();
@@ -77,31 +78,46 @@ export default function DatePickerField({ value, onChange, placeholder }: DatePi
 
   return (
     <>
-      <Pressable style={styles.trigger} onPress={openPicker}>
-        <Ionicons name="calendar-outline" size={14} color={value ? colors.primary.main : colors.text.tertiary} />
-        <Text style={[styles.triggerText, value ? styles.triggerTextActive : null]}>
+      <Pressable
+        style={[
+          styles.trigger,
+          { backgroundColor: c.glass.surface, borderColor: c.glass.border },
+        ]}
+        onPress={openPicker}
+      >
+        <Ionicons name="calendar-outline" size={14} color={value ? c.primary.main : c.text.tertiary} />
+        <Text style={[
+          styles.triggerText,
+          { color: value ? c.text.primary : c.text.tertiary },
+        ]}>
           {displayText}
         </Text>
       </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable style={styles.overlay} onPress={() => setOpen(false)}>
-          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>Select Date</Text>
+          <View
+            style={[
+              styles.sheet,
+              { backgroundColor: c.background.secondary, borderTopColor: c.border.light },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={[styles.header, { borderBottomColor: c.border.light }]}>
+              <Text style={[styles.headerTitle, { color: c.text.primary }]}>Select Date</Text>
               <Pressable onPress={() => setOpen(false)}>
-                <Ionicons name="close" size={22} color={colors.text.secondary} />
+                <Ionicons name="close" size={22} color={c.text.secondary} />
               </Pressable>
             </View>
 
             {/* Month nav */}
             <View style={styles.monthNav}>
-              <Pressable onPress={() => goMonth(-1)} style={styles.navBtn}>
-                <Ionicons name="chevron-back" size={18} color={colors.text.secondary} />
+              <Pressable onPress={() => goMonth(-1)} style={[styles.navBtn, { backgroundColor: c.glass.surface }]}>
+                <Ionicons name="chevron-back" size={18} color={c.text.secondary} />
               </Pressable>
-              <Text style={styles.monthLabel}>{MONTH_LABELS[viewMonth - 1]} {viewYear}</Text>
-              <Pressable onPress={() => goMonth(1)} style={styles.navBtn}>
-                <Ionicons name="chevron-forward" size={18} color={colors.text.secondary} />
+              <Text style={[styles.monthLabel, { color: c.text.primary }]}>{MONTH_LABELS[viewMonth - 1]} {viewYear}</Text>
+              <Pressable onPress={() => goMonth(1)} style={[styles.navBtn, { backgroundColor: c.glass.surface }]}>
+                <Ionicons name="chevron-forward" size={18} color={c.text.secondary} />
               </Pressable>
             </View>
 
@@ -109,7 +125,7 @@ export default function DatePickerField({ value, onChange, placeholder }: DatePi
             <View style={styles.dayHeaderRow}>
               {DAY_LABELS.map((d) => (
                 <View key={d} style={styles.dayHeaderCell}>
-                  <Text style={styles.dayHeaderText}>{d}</Text>
+                  <Text style={[styles.dayHeaderText, { color: c.text.tertiary }]}>{d}</Text>
                 </View>
               ))}
             </View>
@@ -126,10 +142,19 @@ export default function DatePickerField({ value, onChange, placeholder }: DatePi
                 return (
                   <Pressable
                     key={dateStr}
-                    style={[styles.dayCell, isSelected && styles.dayCellSelected, isToday && !isSelected && styles.dayCellToday]}
+                    style={[
+                      styles.dayCell,
+                      isSelected && { backgroundColor: c.primary.main },
+                      isToday && !isSelected && { borderWidth: 1, borderColor: c.primary.main },
+                    ]}
                     onPress={() => { onChange(dateStr); setOpen(false); }}
                   >
-                    <Text style={[styles.dayText, isSelected && styles.dayTextSelected, isToday && !isSelected && styles.dayTextToday]}>
+                    <Text style={[
+                      styles.dayText,
+                      { color: c.text.secondary },
+                      isSelected && { color: '#fff', fontWeight: '700' },
+                      isToday && !isSelected && { color: c.primary.main, fontWeight: '700' },
+                    ]}>
                       {day}
                     </Text>
                   </Pressable>
@@ -153,19 +178,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
-    backgroundColor: colors.glass.surface,
     borderWidth: 1,
-    borderColor: colors.glass.border,
   },
-  triggerText: { color: colors.text.tertiary, fontSize: 14 },
-  triggerTextActive: { color: colors.text.primary },
+  triggerText: { fontSize: 14 },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: colors.background.secondary,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     borderTopWidth: 1,
-    borderTopColor: colors.border.light,
     paddingBottom: 30,
   },
   header: {
@@ -174,9 +194,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
   },
-  headerTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  headerTitle: { fontSize: 16, fontWeight: '700' },
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -190,12 +209,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.glass.surface,
   },
-  monthLabel: { color: colors.text.primary, fontSize: 15, fontWeight: '700' },
+  monthLabel: { fontSize: 15, fontWeight: '700' },
   dayHeaderRow: { flexDirection: 'row', paddingHorizontal: 12, marginBottom: 4 },
   dayHeaderCell: { flex: 1, alignItems: 'center', paddingVertical: 4 },
-  dayHeaderText: { color: colors.text.tertiary, fontSize: 12, fontWeight: '600' },
+  dayHeaderText: { fontSize: 12, fontWeight: '600' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, paddingBottom: 8 },
   dayCell: {
     width: `${100 / 7}%`,
@@ -205,9 +223,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 20,
   },
-  dayCellSelected: { backgroundColor: colors.primary.main },
-  dayCellToday: { borderWidth: 1, borderColor: colors.primary.main },
-  dayText: { color: colors.text.secondary, fontSize: 14, fontWeight: '500' },
-  dayTextSelected: { color: '#fff', fontWeight: '700' },
-  dayTextToday: { color: colors.primary.main, fontWeight: '700' },
+  dayText: { fontSize: 14, fontWeight: '500' },
 });

@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, ScrollView, TextInput, Pressable, FlatList, Modal, Alert,
-  ActivityIndicator, StyleSheet,
+  ActivityIndicator, StyleSheet, Text as RNText,
 } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { GlassCard } from '@/components/ui/glass-card';
 import { SparrButton } from '@/components/ui/sparr-button';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import {
@@ -39,6 +39,7 @@ const TAB_META: Record<Tab, { label: string; icon: string; color: string }> = {
 export default function CreateTrainingScreen() {
   const nav = useNavigation();
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -60,10 +61,10 @@ export default function CreateTrainingScreen() {
     if (catalog.drills.length > 0) return;
     setLoadingCatalog(true);
     try {
-      const [d, c, t] = await Promise.all([listDrills(), listCombinations(), listTechniques()]);
+      const [d, co, t] = await Promise.all([listDrills(), listCombinations(), listTechniques()]);
       setCatalog({
         drills: d?.drills || d || [],
-        combinations: c?.combinations || c || [],
+        combinations: co?.combinations || co || [],
         techniques: t?.techniques || t || [],
       });
     } catch { /* silent */ }
@@ -97,12 +98,12 @@ export default function CreateTrainingScreen() {
 
   // Update field
   const updateComp = (key: string, field: keyof LocalComponent, value: number) => {
-    setComponents(prev => prev.map(c => c.key === key ? { ...c, [field]: value } : c));
+    setComponents(prev => prev.map(comp => comp.key === key ? { ...comp, [field]: value } : comp));
   };
 
   // Remove
   const removeComp = (key: string) => {
-    setComponents(prev => prev.filter(c => c.key !== key));
+    setComponents(prev => prev.filter(comp => comp.key !== key));
   };
 
   // Move
@@ -117,9 +118,9 @@ export default function CreateTrainingScreen() {
   };
 
   // Estimate duration
-  const totalDuration = components.reduce((acc, c) => {
-    if (c.length > 0) return acc + c.length * (c.sets || 1);
-    if (c.reps > 0) return acc + (c.sets || 1) * c.reps * 3;
+  const totalDuration = components.reduce((acc, comp) => {
+    if (comp.length > 0) return acc + comp.length * (comp.sets || 1);
+    if (comp.reps > 0) return acc + (comp.sets || 1) * comp.reps * 3;
     return acc;
   }, 0);
 
@@ -161,15 +162,15 @@ export default function CreateTrainingScreen() {
   };
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: c.background.secondary }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8 }]}>
-        <Pressable onPress={() => nav.goBack()} style={styles.iconBtn}>
-          <Ionicons name="chevron-back" size={20} color="#fff" />
+      <View style={[styles.header, { paddingTop: (insets.top || 0) + 8, borderBottomColor: c.border.light }]}>
+        <Pressable onPress={() => nav.goBack()} style={[styles.iconBtn, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+          <Ionicons name="chevron-back" size={20} color={c.text.primary} />
         </Pressable>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>New Training</Text>
-          <Text style={styles.headerSub}>Build your workout</Text>
+          <Text style={[styles.headerTitle, { color: c.text.primary }]}>New Training</Text>
+          <Text style={[styles.headerSub, { color: c.text.tertiary }]}>Build your workout</Text>
         </View>
         <View style={{ width: 38 }} />
       </View>
@@ -177,21 +178,21 @@ export default function CreateTrainingScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Title & Description */}
         <GlassCard variant="medium" radius={14} padding={16}>
-          <Text style={styles.label}>Training Name</Text>
+          <Text style={[styles.label, { color: c.text.primary }]}>Training Name</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
             value={title}
             onChangeText={setTitle}
             placeholder="e.g., Heavy Bag Burnout"
-            placeholderTextColor={colors.text.tertiary}
+            placeholderTextColor={c.text.tertiary}
           />
-          <Text style={[styles.label, { marginTop: 12 }]}>Description</Text>
+          <Text style={[styles.label, { marginTop: 12, color: c.text.primary }]}>Description</Text>
           <TextInput
-            style={[styles.input, { height: 64, textAlignVertical: 'top' }]}
+            style={[styles.input, { height: 64, textAlignVertical: 'top', backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
             value={description}
             onChangeText={setDescription}
             placeholder="Optional description…"
-            placeholderTextColor={colors.text.tertiary}
+            placeholderTextColor={c.text.tertiary}
             multiline
           />
         </GlassCard>
@@ -199,15 +200,15 @@ export default function CreateTrainingScreen() {
         {/* Duration estimate */}
         <GlassCard variant="medium" radius={14} padding={14}>
           <View style={styles.durationRow}>
-            <View style={styles.durationIconWrap}>
-              <Ionicons name="time-outline" size={18} color={colors.primary.main} />
+            <View style={[styles.durationIconWrap, { backgroundColor: c.glass.redSurface }]}>
+              <Ionicons name="time-outline" size={18} color={c.text.primary} />
             </View>
             <View>
-              <Text style={styles.durationLabel}>Estimated Duration</Text>
-              <Text style={styles.durationValue}>{formatDur(totalDuration)}</Text>
+              <Text style={[styles.durationLabel, { color: c.text.tertiary }]}>Estimated Duration</Text>
+              <Text style={[styles.durationValue, { color: c.text.primary }]}>{formatDur(totalDuration)}</Text>
             </View>
-            <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>{components.length} exercises</Text>
+            <View style={[styles.countBadge, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+              <Text style={[styles.countBadgeText, { color: c.text.secondary }]}>{components.length} exercises</Text>
             </View>
           </View>
         </GlassCard>
@@ -215,7 +216,7 @@ export default function CreateTrainingScreen() {
         {/* Components list */}
         <GlassCard variant="medium" radius={14} padding={16}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.label}>Exercises</Text>
+            <Text style={[styles.label, { color: c.text.primary }]}>Exercises</Text>
             <Pressable style={styles.addBtn} onPress={openPicker}>
               <Ionicons name="add" size={16} color="#fff" />
               <Text style={styles.addBtnText}>Add</Text>
@@ -224,69 +225,69 @@ export default function CreateTrainingScreen() {
 
           {components.length === 0 ? (
             <View style={styles.emptyExercises}>
-              <Ionicons name="barbell-outline" size={32} color={colors.text.tertiary} />
-              <Text style={styles.emptyTitle}>No exercises yet</Text>
-              <Text style={styles.emptySub}>Tap "Add" to pick drills, combos, or techniques</Text>
+              <Ionicons name="barbell-outline" size={32} color={c.text.tertiary} />
+              <Text style={[styles.emptyTitle, { color: c.text.secondary }]}>No exercises yet</Text>
+              <Text style={[styles.emptySub, { color: c.text.tertiary }]}>Tap "Add" to pick drills, combos, or techniques</Text>
             </View>
           ) : (
             components.map((comp, i) => (
-              <View key={comp.key} style={styles.compItem}>
+              <View key={comp.key} style={[styles.compItem, { borderBottomColor: c.glass.border }]}>
                 <View style={styles.compHeader}>
                   <View style={[styles.compTypeDot, { backgroundColor: TAB_META[comp.type].color }]} />
-                  <Text style={styles.compTitle} numberOfLines={1}>{comp.title}</Text>
+                  <Text style={[styles.compTitle, { color: c.text.primary }]} numberOfLines={1}>{comp.title}</Text>
                   <View style={styles.compActions}>
                     <Pressable
                       onPress={() => moveComp(i, 'up')}
                       disabled={i === 0}
-                      style={[styles.miniBtn, i === 0 && styles.miniBtnDisabled]}
+                      style={[styles.miniBtn, { backgroundColor: c.glass.surface }, i === 0 && styles.miniBtnDisabled]}
                     >
-                      <Text style={styles.miniBtnText}>▲</Text>
+                      <Text style={[styles.miniBtnText, { color: c.text.secondary }]}>▲</Text>
                     </Pressable>
                     <Pressable
                       onPress={() => moveComp(i, 'down')}
                       disabled={i === components.length - 1}
-                      style={[styles.miniBtn, i === components.length - 1 && styles.miniBtnDisabled]}
+                      style={[styles.miniBtn, { backgroundColor: c.glass.surface }, i === components.length - 1 && styles.miniBtnDisabled]}
                     >
-                      <Text style={styles.miniBtnText}>▼</Text>
+                      <Text style={[styles.miniBtnText, { color: c.text.secondary }]}>▼</Text>
                     </Pressable>
-                    <Pressable onPress={() => removeComp(comp.key)} style={styles.removeBtn}>
-                      <Ionicons name="close" size={14} color={colors.primary.main} />
+                    <Pressable onPress={() => removeComp(comp.key)} style={[styles.removeBtn, { backgroundColor: c.glass.redSurface }]}>
+                      <Ionicons name="close" size={14} color={c.text.primary} />
                     </Pressable>
                   </View>
                 </View>
                 {/* Inline editors */}
                 <View style={styles.compFields}>
                   <View style={styles.fieldGroup}>
-                    <Text style={styles.fieldLabel}>Sets</Text>
+                    <Text style={[styles.fieldLabel, { color: c.text.tertiary }]}>Sets</Text>
                     <TextInput
-                      style={styles.fieldInput}
+                      style={[styles.fieldInput, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
                       value={String(comp.sets || '')}
                       onChangeText={v => updateComp(comp.key, 'sets', parseInt(v) || 0)}
                       keyboardType="number-pad"
                       placeholder="1"
-                      placeholderTextColor={colors.text.tertiary}
+                      placeholderTextColor={c.text.tertiary}
                     />
                   </View>
                   <View style={styles.fieldGroup}>
-                    <Text style={styles.fieldLabel}>Reps</Text>
+                    <Text style={[styles.fieldLabel, { color: c.text.tertiary }]}>Reps</Text>
                     <TextInput
-                      style={styles.fieldInput}
+                      style={[styles.fieldInput, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
                       value={String(comp.reps || '')}
                       onChangeText={v => updateComp(comp.key, 'reps', parseInt(v) || 0)}
                       keyboardType="number-pad"
                       placeholder="—"
-                      placeholderTextColor={colors.text.tertiary}
+                      placeholderTextColor={c.text.tertiary}
                     />
                   </View>
                   <View style={styles.fieldGroup}>
-                    <Text style={styles.fieldLabel}>Sec</Text>
+                    <Text style={[styles.fieldLabel, { color: c.text.tertiary }]}>Sec</Text>
                     <TextInput
-                      style={styles.fieldInput}
+                      style={[styles.fieldInput, { backgroundColor: c.glass.surface, borderColor: c.glass.border, color: c.text.primary }]}
                       value={String(comp.length || '')}
                       onChangeText={v => updateComp(comp.key, 'length', parseInt(v) || 0)}
                       keyboardType="number-pad"
                       placeholder="—"
-                      placeholderTextColor={colors.text.tertiary}
+                      placeholderTextColor={c.text.tertiary}
                     />
                   </View>
                 </View>
@@ -329,11 +330,11 @@ export default function CreateTrainingScreen() {
         onRequestClose={() => setPickerOpen(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setPickerOpen(false)}>
-          <View style={styles.modalSheet} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Exercise</Text>
+          <View style={[styles.modalSheet, { backgroundColor: c.background.secondary, borderTopColor: c.border.light }]} onStartShouldSetResponder={() => true}>
+            <View style={[styles.modalHeader, { borderBottomColor: c.border.light }]}>
+              <Text style={[styles.modalTitle, { color: c.text.primary }]}>Add Exercise</Text>
               <Pressable onPress={() => setPickerOpen(false)}>
-                <Ionicons name="close" size={22} color={colors.text.secondary} />
+                <Ionicons name="close" size={22} color={c.text.secondary} />
               </Pressable>
             </View>
 
@@ -342,36 +343,46 @@ export default function CreateTrainingScreen() {
               {(Object.keys(TAB_META) as Tab[]).map(tab => (
                 <Pressable
                   key={tab}
-                  style={[styles.tab, activeTab === tab && styles.tabActive]}
+                  style={[
+                    styles.tab,
+                    { backgroundColor: c.glass.surface, borderColor: c.glass.border },
+                    activeTab === tab && { borderColor: c.glass.redBorder, backgroundColor: c.glass.redSurface },
+                  ]}
                   onPress={() => setActiveTab(tab)}
                 >
                   <Ionicons
                     name={TAB_META[tab].icon as any}
                     size={16}
-                    color={activeTab === tab ? TAB_META[tab].color : colors.text.tertiary}
+                    color={activeTab === tab ? TAB_META[tab].color : c.text.tertiary}
                   />
-                  <Text style={[styles.tabText, activeTab === tab && { color: TAB_META[tab].color }]}>
+                  <RNText
+                    style={{
+                      fontSize: 13,
+                      fontWeight: activeTab === tab ? '700' : '600',
+                      color: activeTab === tab ? TAB_META[tab].color : c.text.tertiary,
+                    }}
+                  >
                     {TAB_META[tab].label}
-                  </Text>
+                  </RNText>
                 </Pressable>
               ))}
             </View>
 
             {/* Search */}
-            <View style={styles.searchWrap}>
-              <Ionicons name="search" size={16} color={colors.text.tertiary} />
+            <View style={[styles.searchWrap, { backgroundColor: c.glass.surface, borderColor: c.glass.border }]}>
+              <Ionicons name="search" size={16} color={c.text.tertiary} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: c.text.primary }]}
                 value={search}
                 onChangeText={setSearch}
                 placeholder={`Search ${TAB_META[activeTab].label.toLowerCase()}…`}
-                placeholderTextColor={colors.text.tertiary}
+                placeholderTextColor={c.text.tertiary}
               />
             </View>
 
             {/* Items */}
             {loadingCatalog ? (
-              <ActivityIndicator style={{ marginTop: 24 }} color={colors.primary.main} />
+              <ActivityIndicator style={{ marginTop: 24 }} color={c.text.primary} />
             ) : (
               <FlatList
                 data={filteredItems}
@@ -379,19 +390,19 @@ export default function CreateTrainingScreen() {
                   String(item.id_drills || item.id_combinations || item.id_techniques)
                 }
                 renderItem={({ item }) => (
-                  <Pressable style={styles.pickerItem} onPress={() => addFromPicker(item)}>
+                  <Pressable style={[styles.pickerItem, { borderBottomColor: c.glass.border }]} onPress={() => addFromPicker(item)}>
                     <View style={[styles.pickerDot, { backgroundColor: TAB_META[activeTab].color }]} />
                     <View style={styles.pickerInfo}>
-                      <Text style={styles.pickerTitle}>{item.title}</Text>
+                      <Text style={[styles.pickerTitle, { color: c.text.primary }]}>{item.title}</Text>
                       {item.description ? (
-                        <Text style={styles.pickerDesc} numberOfLines={1}>{item.description}</Text>
+                        <Text style={[styles.pickerDesc, { color: c.text.tertiary }]} numberOfLines={1}>{item.description}</Text>
                       ) : null}
                     </View>
-                    <Ionicons name="add-circle-outline" size={20} color={colors.primary.main} />
+                    <Ionicons name="add-circle-outline" size={20} color={c.text.primary} />
                   </Pressable>
                 )}
                 ListEmptyComponent={
-                  <Text style={styles.pickerEmpty}>No {TAB_META[activeTab].label.toLowerCase()} found</Text>
+                  <Text style={[styles.pickerEmpty, { color: c.text.tertiary }]}>No {TAB_META[activeTab].label.toLowerCase()} found</Text>
                 }
                 style={{ maxHeight: 300 }}
               />
@@ -404,114 +415,108 @@ export default function CreateTrainingScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background.secondary },
+  root: { flex: 1 },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    borderBottomWidth: 1,
   },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { color: colors.text.primary, fontSize: 18, fontWeight: '800' },
-  headerSub: { color: colors.text.tertiary, fontSize: 12, marginTop: 2 },
+  headerTitle: { fontSize: 18, fontWeight: '800' },
+  headerSub: { fontSize: 12, marginTop: 2 },
   iconBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
     alignItems: 'center', justifyContent: 'center',
   },
   scroll: { padding: 16, gap: 12 },
-  label: { color: colors.text.primary, fontSize: 13, fontWeight: '700', marginBottom: 6 },
+  label: { fontSize: 13, fontWeight: '700', marginBottom: 6 },
   input: {
-    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border, color: colors.text.primary,
+    borderRadius: 10, borderWidth: 1,
     paddingHorizontal: 12, paddingVertical: 10, fontSize: 14,
   },
   durationRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   durationIconWrap: {
     width: 36, height: 36, borderRadius: 10,
-    backgroundColor: colors.glass.redSurface, alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
-  durationLabel: { color: colors.text.tertiary, fontSize: 11 },
-  durationValue: { color: colors.text.primary, fontSize: 16, fontWeight: '800' },
+  durationLabel: { fontSize: 11 },
+  durationValue: { fontSize: 16, fontWeight: '800' },
   countBadge: {
     marginLeft: 'auto',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
   },
-  countBadgeText: { color: colors.text.secondary, fontSize: 11, fontWeight: '600' },
+  countBadgeText: { fontSize: 11, fontWeight: '600' },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   addBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: colors.primary.main,
+    backgroundColor: '#c0392b',
   },
   addBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   emptyExercises: { alignItems: 'center', paddingVertical: 24, gap: 4 },
-  emptyTitle: { color: colors.text.secondary, fontWeight: '600', fontSize: 14 },
-  emptySub: { color: colors.text.tertiary, fontSize: 12 },
+  emptyTitle: { fontWeight: '600', fontSize: 14 },
+  emptySub: { fontSize: 12 },
   compItem: {
-    borderBottomWidth: 1, borderBottomColor: colors.glass.border,
+    borderBottomWidth: 1,
     paddingVertical: 10,
   },
   compHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   compTypeDot: { width: 8, height: 8, borderRadius: 4 },
-  compTitle: { flex: 1, color: colors.text.primary, fontSize: 13, fontWeight: '600' },
+  compTitle: { flex: 1, fontSize: 13, fontWeight: '600' },
   compActions: { flexDirection: 'row', gap: 4 },
   miniBtn: {
     width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.glass.medium,
   },
   miniBtnDisabled: { opacity: 0.3 },
-  miniBtnText: { color: colors.text.secondary, fontSize: 10 },
+  miniBtnText: { fontSize: 10 },
   removeBtn: {
     width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: colors.glass.redSurface,
   },
   compFields: { flexDirection: 'row', gap: 8, marginTop: 8 },
   fieldGroup: { flex: 1 },
-  fieldLabel: { color: colors.text.tertiary, fontSize: 10, fontWeight: '700', marginBottom: 3 },
+  fieldLabel: { fontSize: 10, fontWeight: '700', marginBottom: 3 },
   fieldInput: {
-    backgroundColor: colors.glass.surface, borderRadius: 8, borderWidth: 1,
-    borderColor: colors.glass.border, color: colors.text.primary,
+    borderRadius: 8, borderWidth: 1,
     paddingHorizontal: 8, paddingVertical: 6, fontSize: 13, textAlign: 'center',
   },
   errorText: { color: '#fecaca', fontWeight: '600', fontSize: 13 },
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: colors.background.secondary,
     borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    maxHeight: '75%', borderTopWidth: 1, borderTopColor: colors.border.light,
+    maxHeight: '75%', borderTopWidth: 1,
   },
   modalHeader: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border.light,
+    padding: 16, borderBottomWidth: 1,
   },
-  modalTitle: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
+  modalTitle: { fontSize: 16, fontWeight: '700' },
   tabRow: {
     flexDirection: 'row', paddingHorizontal: 12, paddingTop: 10, gap: 6,
   },
   tab: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4,
     paddingVertical: 8, borderRadius: 10,
-    backgroundColor: colors.glass.surface, borderWidth: 1, borderColor: colors.glass.border,
+    borderWidth: 1,
   },
-  tabActive: { borderColor: colors.primary.main, backgroundColor: colors.glass.redSurface },
-  tabText: { color: colors.text.tertiary, fontSize: 12, fontWeight: '600' },
+  tabText: { fontSize: 12, fontWeight: '600' },
   searchWrap: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     marginHorizontal: 16, marginTop: 10, marginBottom: 6,
-    backgroundColor: colors.glass.surface, borderRadius: 10, borderWidth: 1,
-    borderColor: colors.glass.border, paddingHorizontal: 10, paddingVertical: 8,
+    borderRadius: 10, borderWidth: 1,
+    paddingHorizontal: 10, paddingVertical: 8,
   },
-  searchInput: { flex: 1, color: colors.text.primary, fontSize: 13 },
+  searchInput: { flex: 1, fontSize: 13 },
   pickerItem: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: colors.glass.border,
+    borderBottomWidth: 1,
   },
   pickerDot: { width: 8, height: 8, borderRadius: 4 },
   pickerInfo: { flex: 1 },
-  pickerTitle: { color: colors.text.primary, fontSize: 14, fontWeight: '600' },
-  pickerDesc: { color: colors.text.tertiary, fontSize: 11, marginTop: 2 },
-  pickerEmpty: { color: colors.text.tertiary, fontSize: 13, textAlign: 'center', paddingVertical: 24 },
+  pickerTitle: { fontSize: 14, fontWeight: '600' },
+  pickerDesc: { fontSize: 11, marginTop: 2 },
+  pickerEmpty: { fontSize: 13, textAlign: 'center', paddingVertical: 24 },
 });

@@ -7,6 +7,8 @@ import {
   updateUser,
   googleLogin,
   resolveGoogleConflictDecision,
+  resendVerification,
+  checkVerificationStatus,
 } from "../controllers/userController";
 import { authenticate } from "../middleware/authMiddleware";
 import { createProfile, updateProfile, deleteProfile, getProfile, getProfilePosts, getForeignProfile, getMyProfiles } from "../controllers/profileController";
@@ -33,6 +35,8 @@ const uploadFields = upload.fields([
 ]);
 
 router.post("/register", register);
+router.post("/email-verification/resend", resendVerification);
+router.get("/email-verification/status", checkVerificationStatus);
 router.post("/login", login);
 router.post("/google/login", googleLogin);
 router.post("/google/conflict-decision", authenticate, resolveGoogleConflictDecision);
