@@ -212,10 +212,11 @@ function findMockChallenge(challengeId: number) {
 }
 
 async function authFetch(path: string, opts: RequestInit = {}) {
+  const { headers: _ignored, ...restOpts } = opts;
   const response = await fetch(`${ServerIP}${path}`, {
     method: opts.method || 'GET',
+    ...restOpts,
     headers: await buildAuthHeaders({ 'Content-Type': 'application/json' }),
-    ...opts,
   });
 
   if (!response.ok) {

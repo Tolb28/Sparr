@@ -449,17 +449,19 @@ export async function getWeeklyStats(profileId: number, dateStr: string) {
         [calendarId]
       );
       
+      const scheduledTrainingIds: number[] = [];
+
       // Count days in the week that have scheduled trainings
       for (let d = 0; d < 7; d++) {
         const dayDate = new Date(weekStart);
         dayDate.setDate(weekStart.getDate() + d);
         const checkDateStr = formatDate(dayDate);
-        
-        let hasTraining = false;
-        
+
+        let matchingItems: any[] = [];
+
         if (calType === 'day') {
           const numWeeks = calendar.num_weeks || 1;
-          const createdAt = calendar.created_at 
+          const createdAt = calendar.created_at
             ? calendar.created_at.substring(0, 10)
             : checkDateStr;
           const dow = ((dayDate.getDay() + 6) % 7); // 0 = Monday
@@ -467,8 +469,8 @@ export async function getWeeklyStats(profileId: number, dateStr: string) {
           const weekInRotation = totalDays >= 0
             ? (Math.floor(totalDays / 7) % numWeeks) + 1
             : ((numWeeks - (Math.floor(Math.abs(totalDays) / 7) % numWeeks)) % numWeeks) + 1;
-          
-          hasTraining = itemRows.some(
+
+          matchingItems = itemRows.filter(
             (it: any) => Number(it.day_of_week) === dow && Number(it.week_number) === weekInRotation
           );
         } else {
@@ -479,20 +481,38 @@ export async function getWeeklyStats(profileId: number, dateStr: string) {
           const totalDays = daysBetween(startDate, checkDateStr);
           const cycleIdx = totalDays >= 0 ? totalDays % n : ((n - (Math.abs(totalDays) % n)) % n);
           const targetOrder = uniqueOrders[cycleIdx];
-          
-          hasTraining = itemRows.some(
+
+          matchingItems = itemRows.filter(
             (it: any) => Number(it.order) === targetOrder && it.id_trainings
           );
         }
-        
-        if (hasTraining) scheduled++;
+
+        if (matchingItems.length > 0) {
+          scheduled++;
+          matchingItems.forEach((it: any) => {
+            if (it.id_trainings) scheduledTrainingIds.push(Number(it.id_trainings));
+          });
+        }
       }
+
+      // Count total training components for all scheduled sessions this week
+      let totalItems = 0;
+      if (scheduledTrainingIds.length > 0) {
+        const { rows: compRows } = await pool.query(
+          `SELECT COUNT(*)::int AS count FROM trainings_components WHERE id_trainings = ANY($1::int[])`,
+          [scheduledTrainingIds]
+        );
+        totalItems = compRows[0]?.count ?? 0;
+      }
+
+      const percent = scheduled > 0 ? (completed / scheduled) * 100 : 0;
+      return { completed, scheduled, percent, totalItems };
     }
   }
-  
+
   const percent = scheduled > 0 ? (completed / scheduled) * 100 : 0;
-  
-  return { completed, scheduled, percent };
+
+  return { completed, scheduled, percent, totalItems: 0 };
 }
 
 // Helper: Format date to YYYY-MM-DD string

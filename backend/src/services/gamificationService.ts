@@ -1,5 +1,6 @@
 import { pool } from '../config/db';
 import { METRICS } from '../metrics';
+import { EFFECTIVE_DURATION_SECONDS } from '../metrics/sql';
 import { AllowedRange, MetricComputationContext, validateProfileId, validateRange } from '../metrics/types';
 import { cacheService } from './cacheService';
 import { createError, logError } from './errorService';
@@ -101,8 +102,12 @@ export async function logWorkoutCompletion(
     logError(error, { profileId, endpoint: 'logWorkoutCompletion' });
   }
 
-  // Auto-recalculate gamification after logging
-  await recalculateProfileGamification(profileId);
+  // Auto-recalculate gamification after logging (non-fatal — completion is still recorded if this fails)
+  try {
+    await recalculateProfileGamification(profileId);
+  } catch (error) {
+    logError(error, { profileId, endpoint: 'logWorkoutCompletion-recalc' });
+  }
 
   return rows[0];
 }
@@ -306,8 +311,6 @@ export async function getProfileProgress(profileId: number, range: ProgressRange
     );
   }
 
-  const metrics = await computeProfileMetrics(profileId);
-
   const daysMap: Record<ProgressRange, number | null> = {
     week: 7,
     month: 30,
@@ -315,6 +318,31 @@ export async function getProfileProgress(profileId: number, range: ProgressRange
     lifetime: null,
   };
   const days = daysMap[range];
+
+  // Compute workouts_completed and total_hours filtered to the requested range.
+  // streak_days and all other metrics stay as lifetime values (streak is always "current streak").
+  const dateClause = days === null
+    ? ''
+    : `AND completed_at >= NOW() - ($2 || ' days')::interval`;
+  const qParams: (string | number)[] = days === null ? [profileId] : [profileId, String(days)];
+
+  const [{ rows: wcRows }, { rows: thRows }, lifetimeMetrics] = await Promise.all([
+    pool.query(
+      `SELECT COUNT(*)::int AS count FROM workout_completions WHERE profile_id = $1 ${dateClause}`,
+      qParams
+    ),
+    pool.query(
+      `SELECT COALESCE(SUM(${EFFECTIVE_DURATION_SECONDS}), 0) AS total_seconds FROM workout_completions wc WHERE wc.profile_id = $1 ${dateClause}`,
+      qParams
+    ),
+    computeProfileMetrics(profileId),
+  ]);
+
+  const metrics = {
+    ...lifetimeMetrics,
+    workouts_completed: wcRows[0]?.count ?? 0,
+    total_hours: Math.round(Number(thRows[0]?.total_seconds ?? 0) / 360) / 10,
+  };
 
   const baseQuery = `SELECT snapshot_date,
                             workouts_completed,
@@ -352,13 +380,14 @@ export async function getHoursBreakdown(
   const days = rangeMap[range] ?? 30;
 
   const { rows } = await pool.query<{ date: string; total_seconds: string }>(
-    `SELECT DATE(completed_at)::text AS date,
-            COALESCE(SUM(duration_seconds), 0)::int AS total_seconds
-       FROM workout_completions
-      WHERE profile_id = $1
-        AND completed_at >= NOW() - ($2 || ' days')::interval
-      GROUP BY DATE(completed_at)
-      ORDER BY DATE(completed_at) ASC`,
+    `SELECT DATE(wc.completed_at)::text AS date,
+            COALESCE(SUM(${EFFECTIVE_DURATION_SECONDS}), 0)::bigint AS total_seconds
+       FROM workout_completions wc
+      WHERE wc.profile_id = $1
+        AND wc.completed_at >= CURRENT_DATE - ($2::int - 1)
+        AND wc.completed_at <  CURRENT_DATE + 1
+      GROUP BY DATE(wc.completed_at)
+      ORDER BY DATE(wc.completed_at) ASC`,
     [profileId, days]
   );
 
@@ -381,8 +410,8 @@ export async function getSessionsBreakdown(
             COUNT(*)::int AS count
        FROM workout_completions
       WHERE profile_id = $1
-        AND completed_at >= NOW() - (($2 + $3) || ' days')::interval
-        AND completed_at <  NOW() - ($3 || ' days')::interval
+        AND completed_at >= CURRENT_DATE - ($2::int - 1 + $3::int)
+        AND completed_at <  CURRENT_DATE + 1 - $3::int
       GROUP BY DATE(completed_at)
       ORDER BY DATE(completed_at) ASC`,
     [profileId, days, offsetDays]

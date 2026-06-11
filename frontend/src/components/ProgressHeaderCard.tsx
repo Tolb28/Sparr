@@ -123,7 +123,7 @@ const ProgressHeaderCardBase: React.FC<ProgressHeaderCardProps> = ({ onRefresh }
             </View>
           ) : (
             <Text style={[styles.metricsLine, { color: c.text.secondary }, isSmallScreen && styles.metricsLineSmall]}>
-              <Text style={[styles.metricsKey, { color: c.text.primary }]}>Streak:</Text> {streakValue} days
+              <Text style={[styles.metricsKey, { color: c.text.primary }]}>Streak:</Text> {streakValue} {streakValue === 1 ? 'day' : 'days'}
               <Text style={[styles.metricsSeparator, { color: c.text.tertiary }]}> | </Text>
               <Text style={[styles.metricsKey, { color: c.text.primary }]}>Workouts:</Text> {workoutValue}
               <Text style={[styles.metricsSeparator, { color: c.text.tertiary }]}> | </Text>

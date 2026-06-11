@@ -3,7 +3,8 @@ import { Modal, View, StyleSheet, Pressable } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, colorUtils } from '@/src/theme/colors';
+import { colorUtils } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import Svg, { Circle } from 'react-native-svg';
 
 export interface Badge {
@@ -32,10 +33,11 @@ const ICON_SIZE = 48;
 
 export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetailModalProps) {
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
 
   if (!badge) return null;
 
-  const badgeColor = badge.color || colors.primary.main;
+  const badgeColor = badge.color || c.primary.main;
   const earned = !!badge.earned;
   const progress = badge.progress ?? 0;
 
@@ -43,7 +45,6 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
   const circ = 2 * Math.PI * radius;
   const offset = circ - progress * circ;
 
-  // Format the unlock date nicely
   const formatDate = (isoDate: string): string => {
     const date = new Date(isoDate);
     return date.toLocaleDateString(undefined, {
@@ -53,7 +54,6 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
     });
   };
 
-  // Calculate remaining for unearned badges
   const remaining = badge.threshold && badge.current_value != null
     ? badge.threshold - badge.current_value
     : null;
@@ -68,14 +68,14 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
       navigationBarTranslucent
       onRequestClose={onClose}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
+      <Pressable style={[styles.backdrop, { backgroundColor: c.overlay.dark }]} onPress={onClose}>
         <Pressable
-          style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}
+          style={[styles.sheet, { paddingBottom: insets.bottom + 24, backgroundColor: c.background.secondary }]}
           onPress={(e) => e.stopPropagation()}
         >
           {/* Close button */}
           <Pressable style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color={colors.text.secondary} />
+            <Ionicons name="close" size={24} color={c.text.secondary} />
           </Pressable>
 
           {/* Large badge icon */}
@@ -87,7 +87,7 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
                   cx={LARGE_BADGE_SIZE / 2}
                   cy={LARGE_BADGE_SIZE / 2}
                   r={radius}
-                  stroke={earned ? badgeColor : colors.border.light}
+                  stroke={earned ? badgeColor : c.border.light}
                   strokeWidth={RING_STROKE}
                   fill="transparent"
                 />
@@ -114,18 +114,18 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
                   styles.inner,
                   earned
                     ? { backgroundColor: colorUtils.hexToRgba(badgeColor, 0.2) }
-                    : { backgroundColor: colors.glass.surface },
+                    : { backgroundColor: c.glass.surface },
                 ]}
               >
                 <Ionicons
                   name={(badge.icon_name as any) || 'ribbon-outline'}
                   size={ICON_SIZE}
-                  color={earned ? badgeColor : colors.text.tertiary}
+                  color={earned ? badgeColor : c.text.tertiary}
                 />
                 {/* Lock overlay for unearned */}
                 {!earned && (
-                  <View style={styles.lockOverlay}>
-                    <Ionicons name="lock-closed" size={16} color={colors.text.tertiary} />
+                  <View style={[styles.lockOverlay, { backgroundColor: c.background.primary }]}>
+                    <Ionicons name="lock-closed" size={16} color={c.text.tertiary} />
                   </View>
                 )}
               </View>
@@ -133,17 +133,17 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>{badge.title}</Text>
+          <Text style={[styles.title, { color: c.text.primary }]}>{badge.title}</Text>
 
           {/* Description */}
           {badge.description && (
-            <Text style={styles.description}>{badge.description}</Text>
+            <Text style={[styles.description, { color: c.text.secondary }]}>{badge.description}</Text>
           )}
 
           {/* Progress bar */}
           {badge.threshold != null && badge.current_value != null && (
             <View style={styles.progressSection}>
-              <View style={styles.progressBar}>
+              <View style={[styles.progressBar, { backgroundColor: c.glass.surfaceMedium }]}>
                 <View
                   style={[
                     styles.progressFill,
@@ -154,7 +154,7 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
                   ]}
                 />
               </View>
-              <Text style={styles.progressText}>
+              <Text style={[styles.progressText, { color: c.text.secondary }]}>
                 {badge.current_value} / {badge.threshold}
               </Text>
             </View>
@@ -163,15 +163,15 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
           {/* Earned status */}
           {earned ? (
             <View style={styles.earnedRow}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success.main} />
-              <Text style={styles.earnedText}>
+              <Ionicons name="checkmark-circle" size={20} color={c.success.main} />
+              <Text style={[styles.earnedText, { color: c.success.main }]}>
                 Unlocked{badge.awarded_at ? ` on ${formatDate(badge.awarded_at)}` : ''}
               </Text>
             </View>
           ) : remaining != null && remaining > 0 ? (
             <View style={styles.encouragementRow}>
-              <Ionicons name="flash" size={20} color={colors.warning.main} />
-              <Text style={styles.encouragementText}>
+              <Ionicons name="flash" size={20} color={c.warning.main} />
+              <Text style={[styles.encouragementText, { color: c.warning.main }]}>
                 Keep going! {remaining} more to unlock
               </Text>
             </View>
@@ -179,7 +179,7 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
 
           {/* Awarded reason if available */}
           {badge.awarded_reason && (
-            <Text style={styles.reason}>{badge.awarded_reason}</Text>
+            <Text style={[styles.reason, { color: c.text.tertiary }]}>{badge.awarded_reason}</Text>
           )}
         </Pressable>
       </Pressable>
@@ -190,11 +190,9 @@ export default function BadgeDetailModal({ badge, visible, onClose }: BadgeDetai
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: colors.overlay.dark,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: colors.background.secondary,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 24,
@@ -229,19 +227,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 4,
     right: 4,
-    backgroundColor: colors.background.primary,
     borderRadius: 10,
     padding: 2,
   },
   title: {
-    color: colors.text.primary,
     fontSize: 22,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 8,
   },
   description: {
-    color: colors.text.secondary,
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
@@ -254,7 +249,6 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 8,
-    backgroundColor: colors.glass.surfaceMedium,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 8,
@@ -264,7 +258,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   progressText: {
-    color: colors.text.secondary,
     fontSize: 13,
     textAlign: 'center',
   },
@@ -275,7 +268,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   earnedText: {
-    color: colors.success.main,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -286,12 +278,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   encouragementText: {
-    color: colors.warning.main,
     fontSize: 15,
     fontWeight: '500',
   },
   reason: {
-    color: colors.text.tertiary,
     fontSize: 13,
     textAlign: 'center',
     marginTop: 12,

@@ -307,7 +307,7 @@ export default function TrainingScreen() {
           {/* Timer */}
           {hasTime && timeRemaining !== null && (
             <GlassCard variant="medium" radius={16} padding={20}>
-              <Text style={[styles.timerDisplay, { color: c.text.primary }, timeRemaining <= 5 && styles.timerUrgent]}>
+              <Text style={[styles.timerDisplay, { color: c.text.primary, fontFamily: 'Barlow_700Bold', fontWeight: '700' }, timeRemaining <= 5 && styles.timerUrgent]}>
                 {formatTime(timeRemaining)}
               </Text>
               <View style={styles.timerControls}>
@@ -332,7 +332,7 @@ export default function TrainingScreen() {
             <GlassCard variant="medium" radius={16} padding={20}>
               <View style={styles.repsBlock}>
                 <Text style={[styles.repsLabel, { color: c.text.secondary }]}>Complete all reps</Text>
-                <Text style={[styles.repsCount, { color: c.primary.main }]}>{currentComponent.reps} Reps</Text>
+                <Text style={[styles.repsCount, { color: c.primary.main, fontFamily: 'Barlow_700Bold', fontWeight: '700' }]}>{currentComponent.reps} Reps</Text>
               </View>
               <View style={styles.navBtns}>
                 {currentComponentIndex > 0 || currentSetIndex > 0 ? (
@@ -451,12 +451,12 @@ const styles = StyleSheet.create({
   titleBlock: { alignItems: 'center', paddingVertical: 8 },
   componentName: { fontSize: 26, fontWeight: '800', textAlign: 'center' },
   setLabel: { fontSize: 14, marginTop: 4 },
-  timerDisplay: { fontSize: 60, fontWeight: '800', textAlign: 'center', fontVariant: ['tabular-nums'] },
+  timerDisplay: { fontSize: 60, fontWeight: '700', fontFamily: 'Barlow_700Bold', textAlign: 'center', lineHeight: 76 },
   timerUrgent: { color: '#ef4444' },
   timerControls: { flexDirection: 'row', gap: 10, marginTop: 16 },
   repsBlock: { alignItems: 'center', gap: 6, marginBottom: 16 },
   repsLabel: { fontSize: 14 },
-  repsCount: { fontSize: 36, fontWeight: '800', lineHeight: 44 },
+  repsCount: { fontSize: 36, fontWeight: '700', fontFamily: 'Barlow_700Bold', lineHeight: 44 },
   navBtns: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 24 },
   navBtn: { padding: 4 },
   navBtnPlaceholder: { width: 56, height: 56 },

@@ -268,37 +268,6 @@ export default function ProfileScreen() {
                 <Ionicons name="arrow-forward" size={14} color={c.text.primary} />
               </Pressable>
             </GlassCard>
-            {/* Progress */}
-            <GlassCard variant="medium" radius={16} padding={16} style={styles.contentCard}>
-              <Text style={[styles.sectionLabel, { color: c.text.tertiary }]}>WEEKLY PROGRESS</Text>
-              {progressLoading ? (
-                <View style={styles.progressSkeleton}>
-                  <SkeletonLoader width={70} height={18} borderRadius={8} />
-                  <SkeletonLoader width={70} height={18} borderRadius={8} />
-                  <SkeletonLoader width={70} height={18} borderRadius={8} />
-                </View>
-              ) : progressError ? (
-                <Text style={[styles.progressFallback, { color: c.text.secondary }]}>Failed to load progress data.</Text>
-              ) : (
-                <View style={styles.progressStats}>
-                  <View style={styles.progressStat}>
-                    <Text style={[styles.progressNum, { color: c.text.primary }]}>{metrics?.workouts_completed ?? 0}</Text>
-                    <Text style={[styles.progressStatLabel, { color: c.text.tertiary }]}>Workouts</Text>
-                  </View>
-                  <View style={[styles.progressDivider, { backgroundColor: c.border.light }]} />
-                  <View style={styles.progressStat}>
-                    <Text style={[styles.progressNum, { color: c.text.primary }]}>{metrics?.club_sessions ?? 0}</Text>
-                    <Text style={[styles.progressStatLabel, { color: c.text.tertiary }]}>Club</Text>
-                  </View>
-                  <View style={[styles.progressDivider, { backgroundColor: c.border.light }]} />
-                  <View style={styles.progressStat}>
-                    <Text style={[styles.progressNum, { color: c.text.primary }]}>{metrics?.streak_days ?? 0}</Text>
-                    <Text style={[styles.progressStatLabel, { color: c.text.tertiary }]}>Streak</Text>
-                  </View>
-                </View>
-              )}
-            </GlassCard>
-
             {/* Badges */}
             <GlassCard variant="medium" radius={16} padding={16} style={styles.contentCard}>
               <Text style={[styles.sectionLabel, { color: c.text.tertiary }]}>BADGES</Text>

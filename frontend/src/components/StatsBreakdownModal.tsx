@@ -15,8 +15,10 @@ import { useThemeColors } from '@/src/hooks/useThemeColors';
 import { useProgress } from '@/src/context/ProgressContext';
 import type { ProgressTimeframe, Snapshot } from '@/src/api/progress';
 import {
+  buildDailySeries,
   fetchHoursBreakdown,
   fetchSessionsBreakdown,
+  type DailySeriesPoint,
   type HoursBreakdownEntry,
   type SessionsBreakdownEntry,
 } from '@/src/api/progress';
@@ -55,16 +57,11 @@ const SNAPSHOT_KEYS: SnapshotMetricKey[] = [
 const isSnapshotMetricKey = (key: string): key is SnapshotMetricKey =>
   SNAPSHOT_KEYS.includes(key as SnapshotMetricKey);
 
-const formatSnapshotLabel = (dateStr: string, timeframe: ProgressTimeframe) => {
-  const date = new Date(dateStr);
-  if (Number.isNaN(date.getTime())) return '';
-  if (timeframe === 'week') {
-    return date.toLocaleDateString(undefined, { weekday: 'short' });
-  }
-  if (timeframe === 'month') {
-    return date.toLocaleDateString(undefined, { day: 'numeric' });
-  }
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const COMPARE_SHIFT_DAYS: Record<ProgressTimeframe, number> = {
+  week: 7,
+  month: 30,
+  year: 365,
+  lifetime: 3650,
 };
 
 const getComparisonLabel = (timeframe: ProgressTimeframe) => {
@@ -155,41 +152,54 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
   }, [isSessionsMetric, compareEnabled, timeframe]);
 
   const snapshotMetricKey = isSnapshotMetricKey(metricKey) ? metricKey : null;
-  const data = useMemo(
-    () => (snapshotMetricKey && !isSessionsMetric
-      ? snapshots.map((snapshot) => Number(snapshot[snapshotMetricKey] ?? 0))
-      : []),
-    [snapshotMetricKey, isSessionsMetric, snapshots]
-  );
-  const labels = useMemo(
-    () => snapshots.map((snapshot) => formatSnapshotLabel(snapshot.snapshot_date, timeframe)),
-    [snapshots, timeframe]
-  );
 
-  // For workouts_completed: use per-day counts from sessions breakdown (not cumulative snapshots)
-  const chartData = isSessionsMetric
-    ? sessionsBreakdown.map((e) => e.count)
-    : isHoursMetric
-      ? hoursBreakdown.map((e) => e.hours)
-      : data;
-  const chartLabels = isSessionsMetric
-    ? sessionsBreakdown.map((e) => formatSnapshotLabel(e.date, timeframe))
-    : isHoursMetric
-      ? hoursBreakdown.map((e) => formatSnapshotLabel(e.date, timeframe))
-      : snapshotMetricKey ? labels : [];
-  const compareChartData = compareEnabled && isSessionsMetric && prevSessionsBreakdown.length > 0
-    ? prevSessionsBreakdown.map((e) => e.count)
-    : undefined;
+  // Build a continuous, zero-filled series for the selected timeframe so the chart and
+  // breakdown have a gap-free axis. Sessions/hours sum per bucket; snapshot "level"
+  // metrics (streak/score/…) take the latest value in each bucket.
+  const series = useMemo<DailySeriesPoint[]>(() => {
+    if (isSessionsMetric) {
+      return buildDailySeries(timeframe, sessionsBreakdown, (e) => e.date, (e) => e.count, 'sum');
+    }
+    if (isHoursMetric) {
+      return buildDailySeries(timeframe, hoursBreakdown, (e) => e.date, (e) => e.hours, 'sum');
+    }
+    if (snapshotMetricKey) {
+      return buildDailySeries(
+        timeframe,
+        snapshots,
+        (s) => s.snapshot_date,
+        (s) => Number(s[snapshotMetricKey] ?? 0),
+        'last'
+      );
+    }
+    return [];
+  }, [isSessionsMetric, isHoursMetric, snapshotMetricKey, timeframe, sessionsBreakdown, hoursBreakdown, snapshots]);
+
+  const chartData = useMemo(() => series.map((p) => p.value), [series]);
+  const chartLabels = useMemo(() => series.map((p) => p.label), [series]);
+
+  // Align the previous window onto the same axis by anchoring the series one window back.
+  const compareChartData = useMemo(() => {
+    if (!(compareEnabled && isSessionsMetric && prevSessionsBreakdown.length > 0)) return undefined;
+    const anchor = new Date();
+    anchor.setDate(anchor.getDate() - (COMPARE_SHIFT_DAYS[timeframe] ?? 7));
+    return buildDailySeries(
+      timeframe,
+      prevSessionsBreakdown,
+      (e) => e.date,
+      (e) => e.count,
+      'sum',
+      anchor
+    ).map((p) => p.value);
+  }, [compareEnabled, isSessionsMetric, prevSessionsBreakdown, timeframe]);
 
   const prevTotal = useMemo(
     () => prevSessionsBreakdown.reduce((sum, e) => sum + e.count, 0),
     [prevSessionsBreakdown]
   );
 
-  // Use the authoritative per-timeframe metric value (same as the card), not a sum of
-  // cumulative snapshots (which would multiply-count a running total).
-  // For hours: metrics.total_hours is always all-time (no timeframe filter on the backend),
-  // so we surface it as "All Time" rather than pretending it's scoped to the selected period.
+  // Use the authoritative per-timeframe metric value (same as the card). The backend now
+  // scopes workouts/hours to the selected timeframe, so this matches the chart total.
   const current = isHoursMetric
     ? Math.round((metrics?.total_hours ?? 0) * 10) / 10
     : isSessionsMetric
@@ -203,14 +213,16 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
     [chartData, peakValue]
   );
   const netChange = useMemo(() => {
-    if (isSessionsMetric && compareEnabled) {
-      return current - prevTotal;
-    }
-    return chartData.length >= 2 ? chartData[chartData.length - 1] - chartData[0] : 0;
+    const raw = isSessionsMetric && compareEnabled
+      ? current - prevTotal
+      : chartData.length >= 2 ? chartData[chartData.length - 1] - chartData[0] : 0;
+    // Round to avoid floating-point noise (e.g. 0.8 - 0.7 = 0.10000000000000009).
+    return Math.round(raw * 10) / 10;
   }, [isSessionsMetric, compareEnabled, current, prevTotal, chartData]);
   const todayHours = useMemo(() => {
     if (!isHoursMetric) return null;
-    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     return hoursBreakdown.find((e) => e.date === todayStr)?.hours ?? 0;
   }, [isHoursMetric, hoursBreakdown]);
 
@@ -371,7 +383,7 @@ export const StatsBreakdownModal: React.FC<StatsBreakdownModalProps> = ({
               <Text style={[styles.sectionTitle, { color: c.text.tertiary }]}>SUMMARY</Text>
               <View style={styles.summaryRow}>
                 <GlassCard variant="default" radius={14} padding={14} style={styles.summaryCard}>
-                  <Text style={[styles.summaryLabel, { color: c.text.tertiary }]}>{isHoursMetric ? 'All Time' : 'Total'}</Text>
+                  <Text style={[styles.summaryLabel, { color: c.text.tertiary }]}>Total</Text>
                   <Text style={[styles.summaryValue, { color: c.text.primary }]}>{current}</Text>
                 </GlassCard>
                 <GlassCard variant="default" radius={14} padding={14} style={styles.summaryCard}>

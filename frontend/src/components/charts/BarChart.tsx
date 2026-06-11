@@ -1,15 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Svg, { Line, Rect, Text as SvgText } from 'react-native-svg';
-import Animated, {
-  Easing,
-  Extrapolate,
-  SharedValue,
-  interpolate,
-  useAnimatedProps,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
 import { Text } from '@/components/ui/text';
 import { useThemeColors } from '@/src/hooks/useThemeColors';
@@ -31,63 +22,6 @@ interface BarChartProps {
   emptyMessage?: string;
 }
 
-const AnimatedRect = Animated.createAnimatedComponent(Rect);
-
-interface BarItemProps {
-  index: number;
-  total: number;
-  baseX: number;
-  baseWidth: number;
-  baseHeight: number;
-  bottomY: number;
-  radius: number;
-  color: string;
-  animation: SharedValue<number>;
-  activeIndex: SharedValue<number>;
-  onPress?: (index: number) => void;
-}
-
-const BarItem: React.FC<BarItemProps> = ({
-  index,
-  total,
-  baseX,
-  baseWidth,
-  baseHeight,
-  bottomY,
-  radius,
-  color,
-  animation,
-  activeIndex,
-  onPress,
-}) => {
-  const animatedProps = useAnimatedProps(() => {
-    const start = total > 1 ? index / total : 0;
-    const end = total > 1 ? (index + 1) / total : 1;
-    const barProgress = interpolate(animation.value, [start, end], [0, 1], Extrapolate.CLAMP);
-    const scale = withTiming(activeIndex.value === index ? 1.05 : 1, { duration: 160 });
-    const height = baseHeight * barProgress * scale;
-    const width = baseWidth * scale;
-    const x = baseX - (width - baseWidth) / 2;
-    const y = bottomY - height;
-    return {
-      x,
-      y,
-      width,
-      height,
-      rx: radius,
-      ry: radius,
-    };
-  });
-
-  return (
-    <AnimatedRect
-      fill={color}
-      animatedProps={animatedProps}
-      onPress={() => onPress?.(index)}
-    />
-  );
-};
-
 const BarChartBase: React.FC<BarChartProps> = ({
   data,
   labels,
@@ -96,7 +30,6 @@ const BarChartBase: React.FC<BarChartProps> = ({
   padding = 40,
   barColor,
   barRadius = 4,
-  animateDuration = 800,
   showValues = false,
   onBarTap,
   showGrid = true,
@@ -107,30 +40,27 @@ const BarChartBase: React.FC<BarChartProps> = ({
   const resolvedBarColor = barColor ?? c.primary.main;
   const safeData = useMemo(() => data.map((val) => (Number.isFinite(val) ? val : 0)), [data]);
   const maxValue = useMemo(() => (safeData.length ? Math.max(...safeData) : 0), [safeData]);
-  const normalized = useMemo(() => normalizeData(safeData, 0, maxValue), [safeData, maxValue]);
   const gridLines = useMemo(
     () => (showGrid ? generateGridLines(maxValue, 5) : []),
     [maxValue, showGrid]
   );
+  // Bars and gridlines must share the same scale, otherwise bars overshoot/undershoot the
+  // axis labels. Use the "nice" grid max as the scale max when a grid is shown.
+  const gridMax = gridLines.length ? gridLines[gridLines.length - 1]?.y ?? maxValue : maxValue;
+  const scaleMax = gridMax || maxValue;
+  const normalized = useMemo(() => normalizeData(safeData, 0, scaleMax), [safeData, scaleMax]);
   const labelStep = useMemo(
     () => Math.max(1, labels.length > 10 ? Math.ceil(labels.length / 8) : 1),
     [labels.length]
   );
-  const gridMax = gridLines.length ? gridLines[gridLines.length - 1]?.y ?? maxValue : maxValue;
 
-  const animation = useSharedValue(0);
-  const activeIndex = useSharedValue(-1);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; value: number; label: string } | null>(null);
 
+  // Reset the tooltip when the data actually changes (keyed on values, not the array ref).
+  const dataKey = safeData.join('|');
   useEffect(() => {
-    animation.value = 0;
-    animation.value = withTiming(1, { duration: animateDuration, easing: Easing.out(Easing.cubic) });
-  }, [animateDuration, data, animation]);
-
-  useEffect(() => {
-    activeIndex.value = -1;
     setTooltip(null);
-  }, [data, activeIndex]);
+  }, [dataKey]);
 
   const chartWidth = width - padding * 2;
   const chartHeight = height - padding * 2;
@@ -166,7 +96,6 @@ const BarChartBase: React.FC<BarChartProps> = ({
     const label = labels[index] ?? '';
     const x = padding + index * (barWidth + gap) + barWidth / 2;
     const y = padding + chartHeight - normalized[index] * chartHeight;
-    activeIndex.value = index;
     setTooltip({ x, y, value, label });
     onBarTap?.(index);
   };
@@ -188,21 +117,19 @@ const BarChartBase: React.FC<BarChartProps> = ({
 
         {normalized.map((value, index) => {
           const x = padding + index * (barWidth + gap);
-          const baseHeight = value * chartHeight;
+          // Keep small but non-zero values visible (a 0.3h bar shouldn't vanish).
+          const baseHeight = value > 0 ? Math.max(value * chartHeight, 3) : 0;
           return (
             <React.Fragment key={`bar-${index}`}>
-              <BarItem
-                index={index}
-                total={count}
-                baseX={x}
-                baseWidth={barWidth}
-                baseHeight={baseHeight}
-                bottomY={padding + chartHeight}
-                radius={barRadius}
-                color={resolvedBarColor}
-                animation={animation}
-                activeIndex={activeIndex}
-                onPress={handleBarPress}
+              <Rect
+                x={x}
+                y={padding + chartHeight - baseHeight}
+                width={barWidth}
+                height={baseHeight}
+                rx={barRadius}
+                ry={barRadius}
+                fill={resolvedBarColor}
+                onPress={() => handleBarPress(index)}
               />
               {showValues && (
                 <SvgText

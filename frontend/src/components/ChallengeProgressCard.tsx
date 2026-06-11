@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Text } from '@/components/ui/text';
 import { ChallengeSummary } from '@/src/api/challenges';
-import { colors, colorUtils } from '@/src/theme/colors';
+import { colorUtils } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface ChallengeProgressCardProps {
   challenge: ChallengeSummary;
@@ -19,19 +20,21 @@ const STATUS_LABELS: Record<string, string> = {
   completed: 'Completed',
 };
 
-const DIFFICULTY_COLORS: Record<string, string> = {
-  beginner: colors.success.main,
-  intermediate: colors.info.main,
-  advanced: colors.warning.main,
-  elite: colors.error.main,
-};
-
 export default function ChallengeProgressCard({ challenge, onPress, onStart, cardWidth }: ChallengeProgressCardProps) {
-  const badgeColor = challenge.badge?.color || colors.primary.main;
+  const c = useThemeColors();
+
+  const DIFFICULTY_COLORS: Record<string, string> = {
+    beginner: c.success.main,
+    intermediate: c.info.main,
+    advanced: c.warning.main,
+    elite: c.error.main,
+  };
+
+  const badgeColor = challenge.badge?.color || c.primary.main;
   const progress = Math.max(0, Math.min(1, Number(challenge.progress || 0)));
   const percent = Math.round(progress * 100);
-  const difficultyColor = DIFFICULTY_COLORS[String(challenge.difficulty || '').toLowerCase()] || colors.text.tertiary;
-  const remainingRequirements = challenge.requirements.filter((item) => !item.is_complete).length;
+  const difficultyColor = DIFFICULTY_COLORS[String(challenge.difficulty || '').toLowerCase()] || c.text.tertiary;
+  const remainingRequirements = (challenge.requirements || []).filter((item) => !item.is_complete).length;
 
   return (
     <Pressable
@@ -56,7 +59,7 @@ export default function ChallengeProgressCard({ challenge, onPress, onStart, car
             />
           </View>
           <View style={styles.titleWrap}>
-            <Text style={styles.title} numberOfLines={1}>
+            <Text style={[styles.title, { color: c.text.primary }]} numberOfLines={1}>
               {challenge.title}
             </Text>
             <Text style={[styles.difficulty, { color: difficultyColor }]}>
@@ -67,37 +70,37 @@ export default function ChallengeProgressCard({ challenge, onPress, onStart, car
             style={[
               styles.statusChip,
               challenge.status === 'completed'
-                ? styles.statusCompleted
+                ? { backgroundColor: colorUtils.hexToRgba(c.success.main, 0.18), borderColor: colorUtils.hexToRgba(c.success.main, 0.35) }
                 : challenge.status === 'in_progress'
-                  ? styles.statusInProgress
-                  : styles.statusNotStarted,
+                  ? { backgroundColor: c.glass.redSurface, borderColor: c.glass.redBorder }
+                  : { backgroundColor: c.glass.surface, borderColor: c.glass.border },
             ]}
           >
-            <Text style={styles.statusText}>{STATUS_LABELS[challenge.status] || challenge.status}</Text>
+            <Text style={[styles.statusText, { color: c.text.primary }]}>{STATUS_LABELS[challenge.status] || challenge.status}</Text>
           </View>
         </View>
 
-        <Text style={styles.description} numberOfLines={2}>
+        <Text style={[styles.description, { color: c.text.secondary }]} numberOfLines={2}>
           {challenge.description}
         </Text>
 
         <View style={styles.progressBlock}>
           <View style={styles.progressHeader}>
-            <Text style={styles.progressLabel}>Progress</Text>
-            <Text style={styles.progressPercent}>{percent}%</Text>
+            <Text style={[styles.progressLabel, { color: c.text.tertiary }]}>Progress</Text>
+            <Text style={[styles.progressPercent, { color: c.text.primary }]}>{percent}%</Text>
           </View>
-          <View style={styles.progressTrack}>
+          <View style={[styles.progressTrack, { borderColor: c.glass.border, backgroundColor: c.glass.surface }]}>
             <View
               style={[
                 styles.progressFill,
                 {
                   width: `${percent}%`,
-                  backgroundColor: challenge.status === 'completed' ? colors.success.main : badgeColor,
+                  backgroundColor: challenge.status === 'completed' ? c.success.main : badgeColor,
                 },
               ]}
             />
           </View>
-          <Text style={styles.progressHint}>
+          <Text style={[styles.progressHint, { color: c.text.tertiary }]}>
             {challenge.status === 'completed'
               ? 'Badge unlocked'
               : `${remainingRequirements} requirement${remainingRequirements === 1 ? '' : 's'} left`}
@@ -105,12 +108,12 @@ export default function ChallengeProgressCard({ challenge, onPress, onStart, car
         </View>
 
         <View style={styles.footerRow}>
-          <Text style={styles.badgeTitle} numberOfLines={1}>
+          <Text style={[styles.badgeTitle, { color: c.text.secondary }]} numberOfLines={1}>
             {challenge.badge?.title || 'Challenge badge'}
           </Text>
           {challenge.status === 'not_started' && onStart ? (
             <Pressable
-              style={styles.startButton}
+              style={[styles.startButton, { borderColor: c.glass.redBorder, backgroundColor: c.glass.redSurface }]}
               onPress={(event) => {
                 event.stopPropagation();
                 onStart();
@@ -119,7 +122,7 @@ export default function ChallengeProgressCard({ challenge, onPress, onStart, car
               accessibilityLabel={`Start ${challenge.title}`}
               testID={`ChallengeStart_${challenge.id_challenges}`}
             >
-              <Text style={styles.startButtonText}>Start</Text>
+              <Text style={[styles.startButtonText, { color: c.primary.main }]}>Start</Text>
             </Pressable>
           ) : null}
         </View>
@@ -160,7 +163,6 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
-    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -175,26 +177,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderWidth: 1,
   },
-  statusNotStarted: {
-    backgroundColor: colors.glass.surface,
-    borderColor: colors.glass.border,
-  },
-  statusInProgress: {
-    backgroundColor: colors.glass.redSurface,
-    borderColor: colors.glass.redBorder,
-  },
-  statusCompleted: {
-    backgroundColor: colorUtils.hexToRgba(colors.success.main, 0.18),
-    borderColor: colorUtils.hexToRgba(colors.success.main, 0.35),
-  },
   statusText: {
-    color: colors.text.primary,
     fontSize: 10,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
   description: {
-    color: colors.text.secondary,
     fontSize: 12,
     lineHeight: 17,
   },
@@ -207,12 +195,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressLabel: {
-    color: colors.text.tertiary,
     fontSize: 11,
     fontWeight: '600',
   },
   progressPercent: {
-    color: colors.text.primary,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -220,8 +206,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.glass.border,
-    backgroundColor: colors.glass.surface,
     overflow: 'hidden',
   },
   progressFill: {
@@ -229,7 +213,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   progressHint: {
-    color: colors.text.tertiary,
     fontSize: 11,
   },
   footerRow: {
@@ -241,20 +224,16 @@ const styles = StyleSheet.create({
   },
   badgeTitle: {
     flex: 1,
-    color: colors.text.secondary,
     fontSize: 12,
     fontWeight: '600',
   },
   startButton: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.glass.redBorder,
-    backgroundColor: colors.glass.redSurface,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   startButtonText: {
-    color: colors.primary.main,
     fontSize: 12,
     fontWeight: '700',
   },

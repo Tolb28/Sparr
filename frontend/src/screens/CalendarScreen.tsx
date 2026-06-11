@@ -94,6 +94,7 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState<string>(() => formattedDate);
   const [calendar, setCalendar] = useState<any | null>(null);
   const [items, setItems] = useState<any[]>([]);
+  const [calendarError, setCalendarError] = useState<boolean>(false);
 
   // Multiple trainings for timeline view
   const [dayTrainings, setDayTrainings] = useState<TimelineTraining[]>([]);
@@ -135,6 +136,7 @@ export default function CalendarScreen() {
   const [weekPercent, setWeekPercent] = useState<number>(0);
   const [weekCompleted, setWeekCompleted] = useState<number>(0);
   const [weekScheduled, setWeekScheduled] = useState<number>(0);
+  const [weekItems, setWeekItems] = useState<number>(0);
   const [challenges, setChallenges] = useState<ChallengeSummary[]>([]);
   const [challengesLoading, setChallengesLoading] = useState(false);
   const [challengesError, setChallengesError] = useState<string | null>(null);
@@ -177,6 +179,22 @@ export default function CalendarScreen() {
     }
   }, []);
 
+  const loadWeeklyStats = useCallback(async () => {
+    if (!selectedDate) return;
+    try {
+      const stats = await getWeeklyStats(selectedDate);
+      setWeekScheduled(stats?.scheduled ?? 0);
+      setWeekCompleted(stats?.completed ?? 0);
+      setWeekPercent(stats?.percent ?? 0);
+      setWeekItems(stats?.totalItems ?? 0);
+    } catch {
+      setWeekScheduled(0);
+      setWeekCompleted(0);
+      setWeekPercent(0);
+      setWeekItems(0);
+    }
+  }, [selectedDate]);
+
   const getMetricLabel = (metricKey: string) => {
     switch (metricKey) {
       case 'workouts_completed':
@@ -213,9 +231,11 @@ export default function CalendarScreen() {
     (async () => {
       try {
         const selected = await getSelectedCalendarForProfile();
+        setCalendarError(false);
         setCalendar(selected.calendar);
         setItems(selected.items || []);
       } catch {
+        setCalendarError(true);
         setCalendar(null);
         setItems([]);
       }
@@ -231,23 +251,26 @@ export default function CalendarScreen() {
         try {
           const selected = await getSelectedCalendarForProfile();
           if (!mounted) return;
+          setCalendarError(false);
           setCalendar(selected.calendar);
           setItems(selected.items || []);
         } catch {
           if (mounted) {
+            setCalendarError(true);
             setCalendar(null);
             setItems([]);
           }
         }
         if (mounted) {
           await loadChallenges();
+          await loadWeeklyStats();
         }
       })();
       loadProfile();
       return () => {
         mounted = false;
       };
-    }, [loadChallenges])
+    }, [loadChallenges, loadWeeklyStats])
   );
 
   useFocusEffect(
@@ -461,28 +484,7 @@ export default function CalendarScreen() {
   }, [trainingComponents]);
 
   /* ------------- Weekly progress calculation (from backend) ----------- */
-  useEffect(() => {
-    (async () => {
-      if (!selectedDate) {
-        setWeekScheduled(0);
-        setWeekCompleted(0);
-        setWeekPercent(0);
-        return;
-      }
-
-      try {
-        const stats = await getWeeklyStats(selectedDate);
-        setWeekScheduled(stats?.scheduled ?? 0);
-        setWeekCompleted(stats?.completed ?? 0);
-        setWeekPercent(stats?.percent ?? 0);
-      } catch (error) {
-        console.error('Error fetching weekly stats:', error);
-        setWeekScheduled(0);
-        setWeekCompleted(0);
-        setWeekPercent(0);
-      }
-    })();
-  }, [selectedDate]);
+  useEffect(() => { loadWeeklyStats(); }, [loadWeeklyStats]);
 
   /* ------------- Build events map for WeeklyCalendar ----------- */
   const buildEvents = () => {
@@ -800,13 +802,13 @@ export default function CalendarScreen() {
                 </Text>
                 <View style={styles.progressStats}>
                   <View style={styles.progressStat}>
-                    <Text style={[styles.progressNum, { color: c.text.primary }]}>12</Text>
-                    <Text style={[styles.progressLabel, { color: c.text.tertiary }]}>ROUNDS</Text>
+                    <Text style={[styles.progressNum, { color: c.text.primary }]}>{weekScheduled}</Text>
+                    <Text style={[styles.progressLabel, { color: c.text.tertiary }]}>SESSIONS</Text>
                   </View>
                   <View style={[styles.progressDivider, { backgroundColor: c.border.light }]} />
                   <View style={styles.progressStat}>
-                    <Text style={[styles.progressNum, { color: c.text.primary }]}>840</Text>
-                    <Text style={[styles.progressLabel, { color: c.text.tertiary }]}>KCAL</Text>
+                    <Text style={[styles.progressNum, { color: c.text.primary }]}>{weekItems}</Text>
+                    <Text style={[styles.progressLabel, { color: c.text.tertiary }]}>ITEMS</Text>
                   </View>
                 </View>
               </View>
@@ -814,7 +816,17 @@ export default function CalendarScreen() {
           </GlassCard>
 
           {/* Training card / timeline or empty state */}
-          {!calendar || items.length === 0 ? (
+          {calendarError ? (
+            <GlassCard variant="medium" radius={16} padding={24} style={{ alignItems: 'center', gap: 12 }}>
+              <Ionicons name="alert-circle-outline" size={40} color={c.text.tertiary} />
+              <Text style={{ color: c.text.primary, fontSize: 16, fontWeight: '700', textAlign: 'center' }}>
+                Failed to load calendar
+              </Text>
+              <Text style={{ color: c.text.tertiary, fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
+                Check your connection and try again.
+              </Text>
+            </GlassCard>
+          ) : !calendar ? (
             <GlassCard variant="medium" radius={16} padding={24} style={{ alignItems: 'center', gap: 12 }}>
               <Ionicons name="calendar-outline" size={40} color={c.text.tertiary} />
               <Text style={{ color: c.text.primary, fontSize: 16, fontWeight: '700', textAlign: 'center' }}>
@@ -843,6 +855,16 @@ export default function CalendarScreen() {
                   <Text style={{ color: c.text.secondary, fontSize: 13, fontWeight: '600' }}>Browse</Text>
                 </Pressable>
               </View>
+            </GlassCard>
+          ) : items.length === 0 ? (
+            <GlassCard variant="medium" radius={16} padding={24} style={{ alignItems: 'center', gap: 12 }}>
+              <Ionicons name="calendar-outline" size={40} color={c.text.tertiary} />
+              <Text style={{ color: c.text.primary, fontSize: 16, fontWeight: '700', textAlign: 'center' }}>
+                No trainings in this calendar
+              </Text>
+              <Text style={{ color: c.text.tertiary, fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
+                Add trainings to your calendar to get started.
+              </Text>
             </GlassCard>
           ) : dayTrainings.length > 1 ? (
             /* Multiple trainings → Timeline view */

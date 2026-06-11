@@ -4,7 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Text } from '@/components/ui/text';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
-import { colors, colorUtils } from '@/src/theme/colors';
+import { colorUtils } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 import ProgressRing from './ProgressRing';
 
 interface BadgeProgressWidgetProps {
@@ -57,6 +58,7 @@ const formatAwardedDate = (iso?: string) => {
 
 const BadgeProgressWidgetBase: React.FC<BadgeProgressWidgetProps> = ({ badge, onPress }) => {
   const { width } = useWindowDimensions();
+  const c = useThemeColors();
   const isSmallScreen = width < 375;
 
   if (!badge) {
@@ -72,7 +74,7 @@ const BadgeProgressWidgetBase: React.FC<BadgeProgressWidgetProps> = ({ badge, on
     );
   }
 
-  const badgeColor = badge.color || colors.primary.main;
+  const badgeColor = badge.color || c.primary.main;
   const earned = !!badge.earned;
   const progressValue = Math.max(0, Math.min(1, Number(badge.progress ?? 0)));
   const percent = Math.round(progressValue * 100);
@@ -109,7 +111,7 @@ const BadgeProgressWidgetBase: React.FC<BadgeProgressWidgetProps> = ({ badge, on
           >
             <Ionicons name={(badge.icon_name as any) || 'ribbon-outline'} size={16} color={badgeColor} />
           </View>
-          <Text style={[styles.title, isSmallScreen && styles.titleSmall]} numberOfLines={1}>
+          <Text style={[styles.title, { color: c.text.primary }, isSmallScreen && styles.titleSmall]} numberOfLines={1}>
             {badge.title}
           </Text>
         </View>
@@ -117,16 +119,16 @@ const BadgeProgressWidgetBase: React.FC<BadgeProgressWidgetProps> = ({ badge, on
         <View style={styles.body}>
           <View style={styles.textBlock}>
             {earned ? (
-              <Text style={styles.unlockedText}>
+              <Text style={[styles.unlockedText, { color: c.success.main }]}>
                 ✅ UNLOCKED{awardedDate ? ` · ${awardedDate}` : ''}
               </Text>
             ) : (
               <>
-                <Text style={[styles.progressText, isSmallScreen && styles.progressTextSmall]} numberOfLines={2}>
+                <Text style={[styles.progressText, { color: c.text.secondary }, isSmallScreen && styles.progressTextSmall]} numberOfLines={2}>
                   {progressText}
                 </Text>
                 {remainingText ? (
-                  <Text style={[styles.estimateText, isSmallScreen && styles.estimateTextSmall]}>
+                  <Text style={[styles.estimateText, { color: c.text.tertiary }, isSmallScreen && styles.estimateTextSmall]}>
                     {remainingText}
                   </Text>
                 ) : null}
@@ -137,11 +139,11 @@ const BadgeProgressWidgetBase: React.FC<BadgeProgressWidgetProps> = ({ badge, on
             percent={earned ? 100 : percent}
             size={60}
             strokeWidth={6}
-            backgroundColor={colors.border.light}
+            backgroundColor={c.border.light}
             foregroundColor={badgeColor}
             animateDuration={700}
             accessibilityLabel={`${badge.title} progress ${earned ? 100 : percent}%`}
-            centerContent={<Text style={styles.ringText}>{earned ? '✓' : `${percent}%`}</Text>}
+            centerContent={<Text style={[styles.ringText, { color: c.text.primary }]}>{earned ? '✓' : `${percent}%`}</Text>}
           />
         </View>
       </GlassCard>
@@ -184,7 +186,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    color: colors.text.primary,
     fontSize: 14,
     fontWeight: '700',
     flex: 1,
@@ -203,7 +204,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   progressText: {
-    color: colors.text.secondary,
     fontSize: 12,
     lineHeight: 16,
   },
@@ -211,19 +211,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   estimateText: {
-    color: colors.text.tertiary,
     fontSize: 11,
   },
   estimateTextSmall: {
     fontSize: 10,
   },
   unlockedText: {
-    color: colors.success.main,
     fontSize: 12,
     fontWeight: '700',
   },
   ringText: {
-    color: colors.text.primary,
     fontSize: 12,
     fontWeight: '700',
   },

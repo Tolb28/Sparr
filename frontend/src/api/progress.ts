@@ -204,6 +204,99 @@ export async function fetchSessionsBreakdown(
   return (response as any)?.breakdown ?? [];
 }
 
+export interface DailySeriesPoint {
+  /** ISO date (YYYY-MM-DD) for daily buckets, or YYYY-MM for monthly buckets. */
+  key: string;
+  /** Display label, e.g. "Mon", "Apr 16", "Apr". */
+  label: string;
+  value: number;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function toLocalDate(dateStr: string): Date | null {
+  // Parse YYYY-MM-DD as a local date (avoid UTC shift from `new Date('YYYY-MM-DD')`).
+  const [y, m, d] = dateStr.split('-').map((n) => Number(n));
+  if (!y || !m || !d) return null;
+  const date = new Date(y, m - 1, d);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatDayLabel(date: Date, timeframe: ProgressTimeframe): string {
+  if (timeframe === 'week') return date.toLocaleDateString(undefined, { weekday: 'short' });
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/**
+ * 'sum' for additive metrics (sessions, hours); 'last' for level/running metrics
+ * (streak_days, score) where summing a bucket would be meaningless.
+ */
+export type SeriesAggregate = 'sum' | 'last';
+
+/**
+ * Builds a continuous series for the selected timeframe, zero-filling missing days so
+ * charts have a sensible, gap-free axis. Week/month bucket by day; year/lifetime bucket
+ * by month (to avoid 365/3650-point arrays). Entries outside the window are ignored.
+ */
+export function buildDailySeries<T>(
+  timeframe: ProgressTimeframe,
+  entries: T[],
+  getDate: (entry: T) => string,
+  getValue: (entry: T) => number,
+  aggregate: SeriesAggregate = 'sum',
+  today: Date = new Date()
+): DailySeriesPoint[] {
+  const anchor = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const byKey = new Map<string, { value: number; dateMs: number }>();
+  for (const entry of entries) {
+    const d = toLocalDate(getDate(entry));
+    if (!d) continue;
+    const key =
+      timeframe === 'week' || timeframe === 'month'
+        ? getDate(entry).slice(0, 10)
+        : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const value = getValue(entry);
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, { value, dateMs: d.getTime() });
+    } else if (aggregate === 'sum') {
+      existing.value += value;
+    } else if (d.getTime() >= existing.dateMs) {
+      existing.value = value;
+      existing.dateMs = d.getTime();
+    }
+  }
+
+  // Daily buckets for week (7) and month (30).
+  if (timeframe === 'week' || timeframe === 'month') {
+    const span = timeframe === 'week' ? 7 : 30;
+    const points: DailySeriesPoint[] = [];
+    for (let i = span - 1; i >= 0; i -= 1) {
+      const date = new Date(anchor.getTime() - i * DAY_MS);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      points.push({
+        key,
+        label: formatDayLabel(date, timeframe),
+        value: byKey.get(key)?.value ?? 0,
+      });
+    }
+    return points;
+  }
+
+  // Monthly buckets for year (12) and lifetime (12, trailing year).
+  const points: DailySeriesPoint[] = [];
+  for (let i = 11; i >= 0; i -= 1) {
+    const date = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    points.push({
+      key,
+      label: date.toLocaleDateString(undefined, { month: 'short' }),
+      value: byKey.get(key)?.value ?? 0,
+    });
+  }
+  return points;
+}
+
 export function aggregateMetrics(snapshots: Snapshot[]): ProgressMetrics {
   if (!snapshots.length) return { ...metricDefaults };
 

@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Text } from '@/components/ui/text';
 import { ChallengeRequirement, ChallengeSummary } from '@/src/api/challenges';
-import { colors, colorUtils } from '@/src/theme/colors';
+import { colorUtils } from '@/src/theme/colors';
+import { useThemeColors } from '@/src/hooks/useThemeColors';
 
 interface ChallengeDetailModalProps {
   visible: boolean;
@@ -35,6 +36,7 @@ export default function ChallengeDetailModal({
   onComplete,
 }: ChallengeDetailModalProps) {
   const insets = useSafeAreaInsets();
+  const c = useThemeColors();
 
   const [localChallenge, setLocalChallenge] = React.useState<ChallengeSummary | null>(challenge);
   React.useEffect(() => {
@@ -45,7 +47,7 @@ export default function ChallengeDetailModal({
 
   const allComplete =
     localChallenge.requirements.length > 0 && localChallenge.requirements.every((requirement) => requirement.is_complete);
-  const challengeColor = localChallenge.badge?.color || colors.primary.main;
+  const challengeColor = localChallenge.badge?.color || c.primary.main;
   const progressPercent = Math.round(Math.max(0, Math.min(1, localChallenge.progress || 0)) * 100);
 
   const handleLocalIncrement = (requirement: ChallengeRequirement, increment: number) => {
@@ -80,36 +82,36 @@ export default function ChallengeDetailModal({
       navigationBarTranslucent
       onRequestClose={onClose}
     >
-      <View style={styles.backdrop}>
+      <View style={[styles.backdrop, { backgroundColor: c.overlay.dark }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-        <View style={[styles.sheet, { paddingBottom: (insets.bottom || 0) + 20 }]}>
+        <View style={[styles.sheet, { paddingBottom: (insets.bottom || 0) + 20, backgroundColor: c.background.secondary }]}>
           <View style={styles.header}>
             <View style={[styles.iconWrap, { backgroundColor: colorUtils.hexToRgba(challengeColor, 0.2) }]}>
               <Ionicons name={(localChallenge.badge?.icon_name as any) || 'shield-outline'} size={18} color={challengeColor} />
             </View>
             <View style={styles.headerText}>
-              <Text style={styles.title}>{localChallenge.title}</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: c.text.primary }]}>{localChallenge.title}</Text>
+              <Text style={[styles.subtitle, { color: c.text.tertiary }]}>
                 {String(localChallenge.difficulty || 'unranked').toUpperCase()} · {progressPercent}% complete
               </Text>
             </View>
             <Pressable onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={20} color={colors.text.secondary} />
+              <Ionicons name="close" size={20} color={c.text.secondary} />
             </Pressable>
           </View>
 
-          <Text style={styles.description}>{localChallenge.description}</Text>
+          <Text style={[styles.description, { color: c.text.secondary }]}>{localChallenge.description}</Text>
 
           <GlassCard variant="medium" radius={12} padding={12} style={styles.badgeCard}>
-            <Text style={styles.badgeLabel}>Challenge Badge</Text>
+            <Text style={[styles.badgeLabel, { color: c.text.tertiary }]}>Challenge Badge</Text>
             <View style={styles.badgeRow}>
               <Ionicons
                 name={(localChallenge.badge?.icon_name as any) || 'ribbon-outline'}
                 size={18}
-                color={localChallenge.badge?.earned ? challengeColor : colors.text.tertiary}
+                color={localChallenge.badge?.earned ? challengeColor : c.text.tertiary}
               />
-              <Text style={styles.badgeText}>
+              <Text style={[styles.badgeText, { color: c.text.secondary }]}>
                 {localChallenge.badge?.title || 'Badge reward'}
                 {localChallenge.badge?.earned ? ' · unlocked' : ''}
               </Text>
@@ -134,22 +136,22 @@ export default function ChallengeDetailModal({
                 >
                   <View style={styles.requirementHeader}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.requirementTitle}>{requirement.title}</Text>
-                      <Text style={styles.requirementMeta}>
+                      <Text style={[styles.requirementTitle, { color: c.text.primary }]}>{requirement.title}</Text>
+                      <Text style={[styles.requirementMeta, { color: c.text.tertiary }]}>
                         {requirement.source === 'auto' ? 'Auto tracked' : 'Manual'} · {requirement.unit}
                       </Text>
                     </View>
-                    <Text style={styles.requirementProgress}>
+                    <Text style={[styles.requirementProgress, { color: c.text.secondary }]}>
                       {requirement.current_value} / {requirement.target_value}
                     </Text>
                   </View>
 
-                  <View style={styles.requirementTrack}>
-                    <View style={[styles.requirementFill, { width: progressWidth }]} />
+                  <View style={[styles.requirementTrack, { borderColor: c.glass.border, backgroundColor: c.glass.surface }]}>
+                    <View style={[styles.requirementFill, { width: progressWidth, backgroundColor: c.primary.main }]} />
                   </View>
 
                   <View style={styles.requirementFooter}>
-                    <Text style={styles.requirementState}>
+                    <Text style={[styles.requirementState, { color: c.text.tertiary }]}>
                       {requirement.is_complete ? 'Completed' : 'In progress'}
                     </Text>
                     {requirement.source === 'manual' &&
@@ -157,19 +159,21 @@ export default function ChallengeDetailModal({
                     localChallenge.status !== 'not_started' ? (
                       <Pressable
                         onPress={() => {
-                          // update local UI immediately
                           handleLocalIncrement(requirement, increment);
-                          // call parent to persist; parent will defer heavy refresh
                           onLogProgress(localChallenge.id_challenges, requirement.id_challenge_requirements, increment);
                         }}
                         disabled={loading}
-                        style={[styles.incrementButton, loading && styles.disabledButton]}
+                        style={[
+                          styles.incrementButton,
+                          { borderColor: c.glass.redBorder, backgroundColor: c.glass.redSurface },
+                          loading && styles.disabledButton,
+                        ]}
                         accessibilityRole="button"
                         accessibilityLabel={`Add progress to ${requirement.title}`}
                         testID={`ChallengeLog_${requirement.id_challenge_requirements}`}
                       >
-                        <Ionicons name="add" size={14} color={colors.primary.main} />
-                        <Text style={styles.incrementButtonText}>
+                        <Ionicons name="add" size={14} color={c.primary.main} />
+                        <Text style={[styles.incrementButtonText, { color: c.primary.main }]}>
                           +{increment} {requirement.unit}
                         </Text>
                       </Pressable>
@@ -182,7 +186,7 @@ export default function ChallengeDetailModal({
 
           {localChallenge.status === 'not_started' ? (
             <Pressable
-              style={[styles.primaryButton, loading && styles.disabledButton]}
+              style={[styles.primaryButton, { backgroundColor: c.primary.main }, loading && styles.disabledButton]}
               onPress={() => onStart(localChallenge.id_challenges)}
               disabled={loading}
               accessibilityRole="button"
@@ -193,14 +197,15 @@ export default function ChallengeDetailModal({
               <Text style={styles.primaryButtonText}>Start challenge</Text>
             </Pressable>
           ) : localChallenge.status === 'completed' ? (
-            <View style={styles.completedRow}>
-              <Ionicons name="checkmark-circle" size={18} color={colors.success.main} />
-              <Text style={styles.completedText}>Challenge completed</Text>
+            <View style={[styles.completedRow, { borderColor: colorUtils.hexToRgba(c.success.main, 0.35), backgroundColor: colorUtils.hexToRgba(c.success.main, 0.14) }]}>
+              <Ionicons name="checkmark-circle" size={18} color={c.success.main} />
+              <Text style={[styles.completedText, { color: c.success.main }]}>Challenge completed</Text>
             </View>
           ) : (
             <Pressable
               style={[
                 styles.primaryButton,
+                { backgroundColor: c.primary.main },
                 !allComplete && styles.inactiveButton,
                 loading && styles.disabledButton,
               ]}
@@ -223,12 +228,10 @@ export default function ChallengeDetailModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: colors.overlay.dark,
     justifyContent: 'flex-end',
   },
   sheet: {
     maxHeight: '88%',
-    backgroundColor: colors.background.secondary,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     paddingHorizontal: 16,
@@ -251,12 +254,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    color: colors.text.primary,
     fontSize: 16,
     fontWeight: '700',
   },
   subtitle: {
-    color: colors.text.tertiary,
     fontSize: 11,
     marginTop: 2,
   },
@@ -264,7 +265,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   description: {
-    color: colors.text.secondary,
     fontSize: 12,
     lineHeight: 18,
   },
@@ -272,7 +272,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   badgeLabel: {
-    color: colors.text.tertiary,
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.8,
@@ -283,7 +282,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   badgeText: {
-    color: colors.text.secondary,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -303,17 +301,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   requirementTitle: {
-    color: colors.text.primary,
     fontSize: 13,
     fontWeight: '700',
   },
   requirementMeta: {
-    color: colors.text.tertiary,
     fontSize: 10,
     marginTop: 2,
   },
   requirementProgress: {
-    color: colors.text.secondary,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -321,14 +316,11 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: colors.glass.border,
-    backgroundColor: colors.glass.surface,
     overflow: 'hidden',
   },
   requirementFill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: colors.primary.main,
   },
   requirementFooter: {
     flexDirection: 'row',
@@ -336,14 +328,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   requirementState: {
-    color: colors.text.tertiary,
     fontSize: 11,
   },
   incrementButton: {
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: colors.glass.redBorder,
-    backgroundColor: colors.glass.redSurface,
     paddingHorizontal: 10,
     paddingVertical: 8,
     minHeight: 36,
@@ -352,7 +341,6 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   incrementButtonText: {
-    color: colors.primary.main,
     fontSize: 11,
     fontWeight: '700',
   },
@@ -360,7 +348,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     borderRadius: 12,
     minHeight: 44,
-    backgroundColor: colors.primary.main,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -375,15 +362,12 @@ const styles = StyleSheet.create({
     minHeight: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colorUtils.hexToRgba(colors.success.main, 0.35),
-    backgroundColor: colorUtils.hexToRgba(colors.success.main, 0.14),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
   completedText: {
-    color: colors.success.main,
     fontSize: 13,
     fontWeight: '700',
   },

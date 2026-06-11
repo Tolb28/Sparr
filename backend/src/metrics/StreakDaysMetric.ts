@@ -7,6 +7,10 @@ export const StreakDaysMetric: MetricDefinition = {
   unit: 'days',
   /**
    * Computes the current training streak in days.
+   *
+   * The `streak_end >= CURRENT_DATE - 1` clause is a deliberate one-day grace period:
+   * the streak stays "current" until a full day is missed (so it doesn't break the
+   * moment midnight passes if you haven't trained *yet today*).
    */
   compute: async (profileId) => {
     const { rows } = await pool.query(

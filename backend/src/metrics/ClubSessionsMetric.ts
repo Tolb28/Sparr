@@ -6,7 +6,12 @@ export const ClubSessionsMetric: MetricDefinition = {
   name: 'Club Sessions',
   unit: 'sessions',
   /**
-   * Computes club sessions attended for a profile.
+   * Computes club sessions for a profile.
+   *
+   * Limitation: there is no attendance / check-in / RSVP table in the schema, so we
+   * cannot know which club trainings a member actually attended. This counts every
+   * already-started club training belonging to the member's clubs as a proxy. Replace
+   * the proxy with a real join once an attendance table exists.
    */
   compute: async (profileId) => {
     const { rows } = await pool.query(

@@ -99,10 +99,19 @@ const LineChartBase: React.FC<LineChartProps> = ({
     const compare = safeCompareData?.length ? Math.max(...safeCompareData) : 0;
     return Math.max(primary, compare);
   }, [safeData, safeCompareData]);
-  const normalized = useMemo(() => normalizeData(safeData, 0, maxValue), [safeData, maxValue]);
+  // Grid lines define the visible y-axis scale; normalize the series against that same
+  // "nice" max so points/line align with the gridline labels (a value of 1 sits on the
+  // "1" line, not pinned to the top when the axis maxes out at 2).
+  const gridLines = useMemo(
+    () => (showGrid ? generateGridLines(maxValue, 5) : []),
+    [maxValue, showGrid]
+  );
+  const gridMax = gridLines.length ? gridLines[gridLines.length - 1]?.y ?? maxValue : maxValue;
+  const scaleMax = gridMax || maxValue;
+  const normalized = useMemo(() => normalizeData(safeData, 0, scaleMax), [safeData, scaleMax]);
   const normalizedCompare = useMemo(
-    () => (safeCompareData ? normalizeData(safeCompareData, 0, maxValue) : null),
-    [safeCompareData, maxValue]
+    () => (safeCompareData ? normalizeData(safeCompareData, 0, scaleMax) : null),
+    [safeCompareData, scaleMax]
   );
   const points = useMemo(
     () => generateDataPoints(normalized, labels, width, height, padding),
@@ -113,10 +122,6 @@ const LineChartBase: React.FC<LineChartProps> = ({
     () => (normalizedCompare ? generateLinePath(normalizedCompare, width, height, padding) : null),
     [normalizedCompare, width, height, padding]
   );
-  const gridLines = useMemo(
-    () => (showGrid ? generateGridLines(maxValue, 5) : []),
-    [maxValue, showGrid]
-  );
   const labelStep = useMemo(
     () => Math.max(1, labels.length > 10 ? Math.ceil(labels.length / 8) : 1),
     [labels.length]
@@ -125,7 +130,6 @@ const LineChartBase: React.FC<LineChartProps> = ({
     () => Math.max(1, points.length > 12 ? Math.ceil(points.length / 10) : 1),
     [points.length]
   );
-  const gridMax = gridLines.length ? gridLines[gridLines.length - 1]?.y ?? maxValue : maxValue;
 
   const pathProgress = animatePathStroke(animateDuration);
   const compareProgress = animatePathStroke(animateDuration);

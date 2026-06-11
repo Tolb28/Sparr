@@ -1,4 +1,5 @@
 import { pool } from '../config/db';
+import { EFFECTIVE_DURATION_SECONDS } from './sql';
 import { MetricDefinition } from './types';
 
 export const TotalHoursMetric: MetricDefinition = {
@@ -6,13 +7,14 @@ export const TotalHoursMetric: MetricDefinition = {
   name: 'Total Hours',
   unit: 'hours',
   /**
-   * Computes total training hours for a profile.
+   * Computes total training hours for a profile. Completions logged without a timer
+   * value fall back to the training's estimated duration (see EFFECTIVE_DURATION_SECONDS).
    */
   compute: async (profileId) => {
     const { rows } = await pool.query(
-      `SELECT COALESCE(SUM(duration_seconds), 0)::int AS total_seconds
-       FROM workout_completions
-       WHERE profile_id = $1`,
+      `SELECT COALESCE(SUM(${EFFECTIVE_DURATION_SECONDS}), 0)::bigint AS total_seconds
+       FROM workout_completions wc
+       WHERE wc.profile_id = $1`,
       [profileId]
     );
 

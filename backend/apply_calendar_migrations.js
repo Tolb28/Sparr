@@ -1,23 +1,22 @@
 #!/usr/bin/env node
-// Applies the challenge system migrations (tables + seed data).
-// Safe to run multiple times — uses IF NOT EXISTS guards.
+// Applies the two calendar-types migrations to the dev/production database.
+// Safe to run multiple times — DDL is guarded with IF NOT EXISTS / IF EXISTS.
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 const { Pool } = require('pg');
 
 const MIGRATIONS = [
-  '2026-05-08_1205_create_challenge_system.sql',
-  '2026-05-08_1215_seed_calendar_challenges.sql',
-  '2026-05-13_2150_seed_freebie_challenges.sql',
+  '2026-02-24_0930_calendar_types_and_times.sql',
+  '2026-02-25_1000_calendar_nullable_training.sql',
 ];
 
 (async function main() {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   if (!process.env.DATABASE_URL) {
     console.error('❌ DATABASE_URL not set in backend/.env');
     process.exit(1);
   }
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   for (const filename of MIGRATIONS) {
     const filePath = path.join(__dirname, 'sql', 'migrations', filename);
@@ -26,8 +25,8 @@ const MIGRATIONS = [
       await pool.query(sql);
       console.log(`✅ Applied: ${filename}`);
     } catch (err) {
-      // Table already exists or duplicate seed → not a failure
-      if (err.code === '42P07' || err.code === '23505' || err.code === '42701') {
+      // Column/constraint already exists → not a failure
+      if (err.code === '42701' || err.code === '42P07' || err.code === '42710') {
         console.log(`⏭  Skipped (already applied): ${filename}`);
       } else {
         console.error(`❌ Error applying ${filename}:`, err.message);
@@ -36,11 +35,6 @@ const MIGRATIONS = [
       }
     }
   }
-
-  try {
-    const res = await pool.query('SELECT COUNT(*)::int AS count FROM public.challenge_catalog');
-    console.log(`📊 challenge_catalog rows: ${res.rows[0].count}`);
-  } catch (e) { /* ignore */ }
 
   await pool.end();
   console.log('Done.');

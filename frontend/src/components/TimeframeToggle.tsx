@@ -42,44 +42,49 @@ const TimeframeToggleBase: React.FC<TimeframeToggleProps> = ({
         };
 
         return (
-          <MotionView
-            key={option.value}
-            animate={{ scale: isActive ? 1 : 0.96, opacity: isActive ? 1 : 0.78 }}
-            transition={{ type: 'timing', duration: 200 }}
-          >
-            <Button
-              size="sm"
-              variant={isActive ? 'solid' : 'outline'}
-              action={isActive ? 'primary' : 'secondary'}
-              onPress={handlePress}
-              disabled={disabled}
-              accessibilityRole="button"
-              accessibilityLabel={`${option.label} timeframe`}
-              accessibilityState={{ disabled, selected: isActive }}
-              testID={`TimeframeToggle_${option.value}`}
-              className="rounded-full"
-              style={[
-                styles.button,
-                isSmallScreen && styles.buttonCompact,
-                isActive
-                  ? { backgroundColor: c.primary.main, borderColor: c.primary.main }
-                  : { backgroundColor: c.glass.surface, borderColor: c.glass.border },
-                disabled && styles.buttonDisabled,
-              ]}
+          <View key={option.value} style={{ flex: 1 }}>
+            <MotionView
+              animate={{ scale: isActive ? 1 : 0.96, opacity: isActive ? 1 : 0.78 }}
+              transition={{ type: 'timing', duration: 200 }}
+              style={{ flex: 1 }}
             >
-              <ButtonText
+              <Button
+                size="sm"
+                variant={isActive ? 'solid' : 'outline'}
+                action={isActive ? 'primary' : 'secondary'}
+                onPress={handlePress}
+                disabled={disabled}
+                accessibilityRole="button"
+                accessibilityLabel={`${option.label} timeframe`}
+                accessibilityState={{ disabled, selected: isActive }}
+                testID={`TimeframeToggle_${option.value}`}
+                className="rounded-full"
                 style={[
-                  styles.buttonText,
-                  isSmallScreen && styles.buttonTextCompact,
+                  styles.button,
+                  { width: '100%' },
+                  isSmallScreen && styles.buttonCompact,
                   isActive
-                    ? { color: '#fff', fontWeight: '700' }
-                    : { color: c.text.secondary, fontWeight: '600' },
+                    ? { backgroundColor: c.primary.main, borderColor: c.primary.main }
+                    : { backgroundColor: c.glass.surface, borderColor: c.glass.border },
+                  disabled && styles.buttonDisabled,
                 ]}
               >
-                {option.label.toUpperCase()}
-              </ButtonText>
-            </Button>
-          </MotionView>
+                <ButtonText
+                  numberOfLines={1}
+                  ellipsizeMode="clip"
+                  style={[
+                    styles.buttonText,
+                    isSmallScreen && styles.buttonTextCompact,
+                    isActive
+                      ? { color: '#fff', fontWeight: '600' }
+                      : { color: c.text.secondary, fontWeight: '600' },
+                  ]}
+                >
+                  {option.label.toUpperCase()}
+                </ButtonText>
+              </Button>
+            </MotionView>
+          </View>
         );
       })}
     </View>
@@ -101,20 +106,21 @@ const styles = StyleSheet.create({
   },
   button: {
     borderRadius: 999,
-    paddingHorizontal: 14,
+    paddingHorizontal: 8,
     paddingVertical: 10,
     minHeight: 44,
     borderWidth: 1,
   },
   buttonCompact: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   buttonDisabled: {
     opacity: 0.55,
   },
   buttonText: {
-    fontSize: 12,
-    letterSpacing: 0.4,
+    fontSize: 11,
+    letterSpacing: 0,
+    textAlign: 'center',
   },
   buttonTextCompact: {
     fontSize: 11,
