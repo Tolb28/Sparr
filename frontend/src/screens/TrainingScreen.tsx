@@ -315,13 +315,11 @@ export default function TrainingScreen() {
                   label={isRunning ? 'Pause' : 'Start'}
                   variant="primary"
                   onPress={handleToggleTimer}
-                  style={{ flex: 1 }}
                 />
                 <SparrButton
                   label="Skip"
                   variant="ghost"
                   onPress={handleSkip}
-                  style={{ flex: 1 }}
                 />
               </View>
             </GlassCard>
@@ -453,7 +451,7 @@ const styles = StyleSheet.create({
   setLabel: { fontSize: 14, marginTop: 4 },
   timerDisplay: { fontSize: 60, fontWeight: '700', fontFamily: 'Barlow_700Bold', textAlign: 'center', lineHeight: 76 },
   timerUrgent: { color: '#ef4444' },
-  timerControls: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  timerControls: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: 16 },
   repsBlock: { alignItems: 'center', gap: 6, marginBottom: 16 },
   repsLabel: { fontSize: 14 },
   repsCount: { fontSize: 36, fontWeight: '700', fontFamily: 'Barlow_700Bold', lineHeight: 44 },
