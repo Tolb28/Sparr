@@ -84,6 +84,15 @@ export const getDiscoveryBoxers = async (req: Request, res: Response) => {
       idx++;
     }
 
+    // Exclude the requesting user's own profile(s) from the boxers list
+    // @ts-ignore - authenticate middleware sets req.userId
+    const currentUserId = req.userId;
+    if (currentUserId) {
+      where.push(`p.user_id <> $${idx}`);
+      values.push(currentUserId);
+      idx++;
+    }
+
     values.push(limit);
     const limitIdx = idx;
     idx++;
