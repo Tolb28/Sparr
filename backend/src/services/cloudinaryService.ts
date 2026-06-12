@@ -164,15 +164,17 @@ export class CloudinaryService {
     return baseUrl;
   }
   generateDrillUrl(publicId: string): string {
-    const cacheBuster = Math.floor(Date.now() / 1000).toString();
-    const baseUrl = this.cloud.url(publicId, {
+    // Force a .jpg extension on the delivery URL. Cloudinary serves these
+    // assets with `X-Content-Type-Options: nosniff`, and Android's image
+    // loader needs a recognizable file extension to decode an extension-less
+    // URL — without it the preview never loads.
+    return this.cloud.url(publicId, {
       secure: true,
       width: 400,
       height: 300,
       crop: 'fill',
-      ...(cacheBuster ? { version: cacheBuster } : {})
+      format: 'jpg',
     });
-    return baseUrl;
   }
 
   /**
@@ -180,9 +182,13 @@ export class CloudinaryService {
    * Adds MP4 fetch_format and sensible scaling/quality transforms.
    */
   generateVideoUrl(publicId: string, options: Record<string, unknown> = {}): string {
+    // Force a .mp4 extension and H.264 transcode. expo-video / ExoPlayer on
+    // Android infers the container from the URL extension; an extension-less
+    // URL leaves the player unable to start playback (blank video).
     return this.cloud.url(publicId, {
       secure: true,
       resource_type: 'video',
+      format: 'mp4',
       transformation: [
         { width: 1280, crop: 'scale' },
         { quality: 'auto' },

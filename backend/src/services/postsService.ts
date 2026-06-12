@@ -194,6 +194,10 @@ export const getPosts = async ({
 
   const { rows } = await pool.query(query, values);
 
+  // Return the stored source URL as-is. Post media is persisted as a full
+  // Cloudinary delivery URL (with file extension), which both expo-video and
+  // RN Image can load directly. Rewriting it through a transform stripped the
+  // file extension and broke video playback on Android.
   const withUrls = rows.map(row => ({
     ...row,
     avatar_url: row.avatar ? cloudinaryService.generateAvatarUrl(row.avatar, row.updated_at) : null,
