@@ -115,7 +115,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'flex-end',
+    alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 6,
     gap: 8,
@@ -123,9 +123,7 @@ const styles = StyleSheet.create({
   containerMe: {
     flexDirection: 'row-reverse',
   },
-  avatar: {
-    marginBottom: 8,
-  },
+  avatar: {},
   messageGroup: {
     alignItems: 'flex-start',
     gap: 4,

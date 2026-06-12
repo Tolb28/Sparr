@@ -23,7 +23,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": true,
-      "tablet": true
+      "tablet": true,
+      "package": "com.tolb.sparr"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,6 +33,11 @@
       "expo-secure-store",
       "expo-video",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0e61c046-2b10-44e3-ad3f-0f10d5364378"
+      }
+    }
   }
 }

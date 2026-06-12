@@ -786,35 +786,6 @@ export default function CalendarScreen() {
             }}
           />
 
-          {/* Weekly progress */}
-          <GlassCard variant="medium" radius={16} padding={16} style={styles.progressCard}>
-            <View style={styles.progressRow}>
-              <ProgressRing
-                percent={Math.min(100, Math.round(weekPercent || 0))}
-                accessibilityLabel={`Weekly goal completion ${Math.min(100, Math.round(weekPercent || 0))}%`}
-              />
-              <View style={styles.progressInfo}>
-                <Text style={[styles.progressTitle, { color: c.text.primary }]}>Weekly Goal</Text>
-                <Text style={[styles.progressSub, { color: c.text.secondary }]}>
-                  {weekScheduled > 0
-                    ? `${weekCompleted} of ${weekScheduled} sessions completed`
-                    : 'No sessions scheduled this week.'}
-                </Text>
-                <View style={styles.progressStats}>
-                  <View style={styles.progressStat}>
-                    <Text style={[styles.progressNum, { color: c.text.primary }]}>{weekScheduled}</Text>
-                    <Text style={[styles.progressLabel, { color: c.text.tertiary }]}>SESSIONS</Text>
-                  </View>
-                  <View style={[styles.progressDivider, { backgroundColor: c.border.light }]} />
-                  <View style={styles.progressStat}>
-                    <Text style={[styles.progressNum, { color: c.text.primary }]}>{weekItems}</Text>
-                    <Text style={[styles.progressLabel, { color: c.text.tertiary }]}>ITEMS</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </GlassCard>
-
           {/* Training card / timeline or empty state */}
           {calendarError ? (
             <GlassCard variant="medium" radius={16} padding={24} style={{ alignItems: 'center', gap: 12 }}>

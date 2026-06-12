@@ -30,7 +30,16 @@ async function setProfileAvatarSrc(profileId: string | number, publicId: string)
 }
 
 async function setPostSrc(postId: string | number, publicId: string): Promise<void> {
-  console.log(`DB: set posts.src = "${publicId}" for post ${postId}`);
+  try {
+    await pool.query(
+      "UPDATE posts SET source = $1 WHERE id_posts = $2",
+      [publicId, postId]
+    );
+    console.log(`✅ Updated post source to "${publicId}" for post ${postId}`);
+  } catch (err) {
+    console.error(`❌ Failed to update post source in database:`, err);
+    throw err;
+  }
 }
 
 async function setClubAvatarSrc(clubId: string | number, publicId: string): Promise<void> {
