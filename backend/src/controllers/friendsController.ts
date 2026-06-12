@@ -194,12 +194,14 @@ export const checkFriendStatus = async (req: Request, res: Response) => {
     }
 
     const friendship = rows[0];
-    if (friendship.status === 'accepted') {
+    if (String(friendship.status).toLowerCase() === 'accepted') {
       return res.json({ status: 'friends' });
     }
 
-    // For pending, check who sent the request
-    if (friendship.profiles_id_profiles === currentProfileId) {
+    // For pending, check who sent the request. id columns can come back from pg
+    // as strings or numbers depending on column type, so compare numerically to
+    // avoid a strict-equality mismatch that would always report 'pending_received'.
+    if (Number(friendship.profiles_id_profiles) === Number(currentProfileId)) {
       return res.json({ status: 'pending_sent' });
     } else {
       return res.json({ status: 'pending_received' });
