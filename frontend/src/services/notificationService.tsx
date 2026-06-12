@@ -166,8 +166,8 @@ export const NotificationHost: React.FC = () => {
             style={[
               styles.toast,
               {
-                borderColor: colorUtils.hexToRgba(accentColor, 0.4),
-                backgroundColor: colorUtils.hexToRgba(accentColor, 0.12),
+                borderColor: colorUtils.hexToRgba(accentColor, 0.6),
+                backgroundColor: '#181818',
               },
             ]}
             animate={{ opacity: visible ? 1 : 0, translateY: visible ? 0 : -20 }}

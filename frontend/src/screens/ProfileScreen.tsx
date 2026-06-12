@@ -197,8 +197,8 @@ export default function ProfileScreen() {
               <Text style={[styles.statValue, { color: c.text.primary }]}>{profile?.title_style || '—'}</Text>
             </GlassCard>
               <GlassCard style={[styles.statCard, styles.statCardScore]} radius={12} padding={12}>
-                <Text style={[styles.statLabel, { color: c.text.tertiary }]}>SCORE</Text>
-                <Text style={[styles.statValue, styles.statValueRed, { color: c.primary.main }]}>{metrics?.score ?? 0}</Text>
+                <Text style={[styles.statLabel, { color: c.text.tertiary }]}>HEIGHT</Text>
+                <Text style={[styles.statValue, { color: c.text.primary }]}>{profile?.height_cm ? `${profile.height_cm} cm` : '—'}</Text>
               </GlassCard>
             </View>
 
